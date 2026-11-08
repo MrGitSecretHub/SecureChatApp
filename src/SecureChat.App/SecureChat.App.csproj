@@ -13,8 +13,8 @@
 
     <ApplicationTitle>SecureChat</ApplicationTitle>
     <ApplicationId>com.securechat.app</ApplicationId>
-    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.1</ApplicationDisplayVersion>
+    <ApplicationVersion>2</ApplicationVersion>
 
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
     <AndroidAbi Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">x86;arm64-v8a;x86_64</AndroidAbi>
@@ -65,5 +65,8 @@
     </PropertyGroup>
     <Exec Condition="Exists('$(_WinAppSdkRuntimeGlob)')" Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;Get-ChildItem -Path '$(_WinAppSdkRuntimeGlob)' -Filter '*.dll' -File -ErrorAction SilentlyContinue | Copy-Item -Destination '$(_WinAppSdkOutDir)' -Force&quot;" ContinueOnError="true" StandardOutputImportance="low" />
   </Target>
+
+  <!-- Локальные ключи подписи Release APK (в репозиторий не попадают). -->
+  <Import Project="keystore.props" Condition="Exists('keystore.props')" />
 
 </Project>

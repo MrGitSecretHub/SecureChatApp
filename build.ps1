@@ -67,8 +67,13 @@ if ($Target -in @("all", "android")) {
 }
 
 if ($Target -in @("all", "tests")) {
-    Invoke-DotNet "Tests" @(
+    Invoke-DotNet "Core tests" @(
         "test", "tests\SecureChat.Core.Tests\SecureChat.Core.Tests.csproj",
+        "--nologo", "-v", "q"
+    )
+
+    Invoke-DotNet "Server tests" @(
+        "test", "tests\SecureChat.Server.Tests\SecureChat.Server.Tests.csproj",
         "--nologo", "-v", "q"
     )
 }

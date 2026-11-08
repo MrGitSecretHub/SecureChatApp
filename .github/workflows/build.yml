@@ -1,0 +1,48 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Core tests
+        run: dotnet test tests/SecureChat.Core.Tests/SecureChat.Core.Tests.csproj -c Release
+
+      - name: Server tests
+        run: dotnet test tests/SecureChat.Server.Tests/SecureChat.Server.Tests.csproj -c Release
+
+  server:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Build server
+        run: dotnet build src/SecureChat.Server/SecureChat.Server.csproj -c Release
+
+  windows-app:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Install MAUI workload
+        run: dotnet workload restore src/SecureChat.App/SecureChat.App.csproj
+
+      - name: Build Windows app
+        run: dotnet build src/SecureChat.App/SecureChat.App.csproj -f net9.0-windows10.0.19041.0 -c Release
