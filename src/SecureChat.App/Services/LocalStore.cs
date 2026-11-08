@@ -59,6 +59,16 @@ public sealed class StoredConversation
     public List<StoredMessage> Messages { get; set; } = new();
 }
 
+/// <summary>Совпадение при глобальном поиске по локальной истории.</summary>
+public sealed class StoredMessageSearchResult
+{
+    public required string Username { get; init; }
+    public required string MessageId { get; init; }
+    public required string Text { get; init; }
+    public long SentAtUnixMs { get; init; }
+    public bool IsMine { get; init; }
+}
+
 public sealed class LocalState
 {
     public List<StoredConversation> Conversations { get; set; } = new();
@@ -289,6 +299,48 @@ public sealed class LocalStore
             EnsureInitialized();
             var message = Find(username)?.Messages.FirstOrDefault(item => item.Id == messageId);
             return message is null ? null : CloneMessage(message);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Ищет подстроку во всех сообщениях (включая архив). Черновики
+    /// и служебные записи без текста пропускаются.
+    /// </summary>
+    public async Task<IReadOnlyList<StoredMessageSearchResult>> SearchMessagesAsync(
+        string query,
+        int limit = 100)
+    {
+        var needle = query?.Trim() ?? string.Empty;
+        if (needle.Length < 2)
+        {
+            return Array.Empty<StoredMessageSearchResult>();
+        }
+
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            return _state!.Conversations
+                .SelectMany(conversation => conversation.Messages
+                    .Where(message =>
+                        !message.IsDraft &&
+                        !string.IsNullOrEmpty(message.Text) &&
+                        message.Text.Contains(needle, StringComparison.OrdinalIgnoreCase))
+                    .Select(message => new StoredMessageSearchResult
+                    {
+                        Username = conversation.Username,
+                        MessageId = message.Id,
+                        Text = message.Text,
+                        SentAtUnixMs = message.SentAtUnixMs,
+                        IsMine = message.IsMine
+                    }))
+                .OrderByDescending(item => item.SentAtUnixMs)
+                .Take(limit)
+                .ToList();
         }
         finally
         {

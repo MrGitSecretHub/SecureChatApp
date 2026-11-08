@@ -16,7 +16,12 @@ public sealed partial class NotificationService
     public partial void EnsurePermission();
 
     /// <returns>true, если системное уведомление удалось показать.</returns>
-    public partial bool ShowNotification(string title, string body, string username);
+    public partial bool ShowNotification(
+        string title,
+        string body,
+        string username,
+        int unreadCount,
+        bool silent);
 
     public partial void ActivateWindow();
 

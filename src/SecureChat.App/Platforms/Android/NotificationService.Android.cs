@@ -20,6 +20,8 @@ public sealed partial class NotificationService
     private const string GroupKey = "securechat.messages.group";
     private const int SummaryNotificationId = 1;
     private const int PermissionRequestCode = 4501;
+    private static readonly HashSet<string> ActiveChats = new(StringComparer.OrdinalIgnoreCase);
+    private static bool _permissionRequested;
 
     public partial void Initialize()
     {
@@ -71,6 +73,12 @@ public sealed partial class NotificationService
                 return;
             }
 
+            if (_permissionRequested)
+            {
+                return;
+            }
+
+            _permissionRequested = true;
             ActivityCompat.RequestPermissions(
                 activity,
                 new[] { Android.Manifest.Permission.PostNotifications },
@@ -82,7 +90,12 @@ public sealed partial class NotificationService
         }
     }
 
-    public partial bool ShowNotification(string title, string body, string username)
+    public partial bool ShowNotification(
+        string title,
+        string body,
+        string username,
+        int unreadCount,
+        bool silent)
     {
         try
         {
@@ -114,25 +127,52 @@ public sealed partial class NotificationService
                 .SetPriority((int)NotificationPriority.High)
                 .SetDefaults((int)NotificationDefaults.Sound | (int)NotificationDefaults.Vibrate)
                 .SetGroup(GroupKey)
+                .SetNumber(unreadCount)
                 .SetShowWhen(true)
                 .SetWhen(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 
+            if (silent)
+            {
+                // Настройка «Звук уведомлений» выключена: канал High, но
+                // конкретное уведомление не должно звучать и вибрировать.
+                builder.SetSilent(true);
+            }
+            else
+            {
+                builder.SetDefaults(
+                    (int)NotificationDefaults.Sound | (int)NotificationDefaults.Vibrate);
+            }
+
             compat.Notify(notificationId, builder.Build());
 
-            // Сводное уведомление группы — без звука, чтобы не дублировать сигнал.
-            var summary = new NotificationCompat.Builder(context, ChannelId)
-                .SetContentTitle("SecureChat")
-                .SetContentText("Новые сообщения")
-                .SetSmallIcon(Resource.Drawable.ic_notification)
-                .SetColor(AndroidColor.ParseColor("#0088CC"))
-                .SetAutoCancel(true)
-                .SetSilent(true)
-                .SetGroup(GroupKey)
-                .SetGroupSummary(true)
-                .SetContentIntent(pendingIntent)
-                .Build();
+            lock (ActiveChats)
+            {
+                ActiveChats.Add(username);
 
-            compat.Notify(SummaryNotificationId, summary);
+                // Сводное уведомление нужно только когда чатов два и больше:
+                // иначе Android свернул бы группу и спрятал имя собеседника.
+                if (ActiveChats.Count > 1)
+                {
+                    var summary = new NotificationCompat.Builder(context, ChannelId)
+                        .SetContentTitle("SecureChat")
+                        .SetContentText("Новые сообщения")
+                        .SetSmallIcon(Resource.Drawable.ic_notification)
+                        .SetColor(AndroidColor.ParseColor("#0088CC"))
+                        .SetAutoCancel(true)
+                        .SetSilent(true)
+                        .SetGroup(GroupKey)
+                        .SetGroupSummary(true)
+                        .SetContentIntent(pendingIntent)
+                        .Build();
+
+                    compat.Notify(SummaryNotificationId, summary);
+                }
+                else
+                {
+                    compat.Cancel(SummaryNotificationId);
+                }
+            }
+
             return true;
         }
         catch

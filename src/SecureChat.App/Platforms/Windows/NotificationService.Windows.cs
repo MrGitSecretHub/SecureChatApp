@@ -45,7 +45,12 @@ public sealed partial class NotificationService
         // Windows не запрашивает разрешение на уведомления.
     }
 
-    public partial bool ShowNotification(string title, string body, string username)
+    public partial bool ShowNotification(
+        string title,
+        string body,
+        string username,
+        int unreadCount,
+        bool silent)
     {
         if (!_available)
         {

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Pages.GlobalSearchPage"
+             Title="Поиск по сообщениям">
+    <Grid Padding="16" RowDefinitions="Auto,Auto,*" RowSpacing="10">
+        <SearchBar x:Name="SearchEntry"
+                   Placeholder="Поиск по всем сообщениям"
+                   TextChanged="OnSearchTextChanged"
+                   SearchButtonPressed="OnSearchPressed" />
+
+        <Label x:Name="HintLabel"
+               Grid.Row="1"
+               Text="Введите минимум 2 символа."
+               Style="{DynamicResource Caption}" />
+
+        <CollectionView x:Name="ResultsView"
+                        Grid.Row="2"
+                        SelectionMode="Single"
+                        SelectionChanged="OnResultSelected">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
+                    <Label Text="🔍"
+                           Style="{DynamicResource EmptyStateIcon}" />
+                    <Label Text="Ничего не найдено"
+                           Style="{DynamicResource EmptyStateTitle}" />
+                    <Label Text="Поиск идёт по локальной истории на этом устройстве."
+                           Style="{DynamicResource EmptyStateCaption}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{DynamicResource Card}" Margin="0,4" Padding="12">
+                        <VerticalStackLayout Spacing="4">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <Label Text="{Binding Title}"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding TimeText}"
+                                       Style="{DynamicResource Caption}" />
+                            </Grid>
+                            <Label Text="{Binding Preview}"
+                                   Style="{DynamicResource Caption}"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="2" />
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

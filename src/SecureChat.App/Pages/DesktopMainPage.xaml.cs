@@ -463,6 +463,12 @@ public partial class DesktopMainPage : ContentPage, IDisposable
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
 
+    private async void OnGlobalSearchPressed(object sender, EventArgs e)
+    {
+        var query = SearchEntry.Text?.Trim() ?? string.Empty;
+        await Navigation.PushAsync(new GlobalSearchPage(query));
+    }
+
     private async void OnSpacesClicked(object sender, EventArgs e)
     {
         try
@@ -591,7 +597,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
             var preview = _session.ShowNotificationPreview
                 ? MessagePreview.Build(message.Text)
                 : "Новое сообщение";
-            if (!_notifications.ShowNotification(username, preview, username))
+            if (!_notifications.ShowNotification(username, preview, username, 0, silent: false))
             {
                 ShowInAppToast(username, preview);
             }

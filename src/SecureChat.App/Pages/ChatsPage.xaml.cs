@@ -34,6 +34,10 @@ public partial class ChatsPage : ContentPage
         await RefreshAsync();
         UpdateConnectionStatus(!_chatManager.IsOffline);
 
+        // Android 13+: разрешение на уведомления запрашиваем и при автовходе,
+        // когда экран логина не показывался.
+        AppServices.Get<NotificationService>().EnsurePermission();
+
         // Уведомление могло быть нажато до того, как экран чатов появился.
         var pending = AppServices.Get<NotificationService>().ConsumePendingUsername();
         if (!string.IsNullOrWhiteSpace(pending))
@@ -171,6 +175,12 @@ public partial class ChatsPage : ContentPage
     private async void OnAddContactClicked(object sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("//contacts");
+    }
+
+    private async void OnSearchMessagesPressed(object sender, EventArgs e)
+    {
+        var query = (sender as SearchBar)?.Text?.Trim() ?? string.Empty;
+        await Navigation.PushAsync(new GlobalSearchPage(query));
     }
 
     private async void OnMyProfileClicked(object sender, EventArgs e)

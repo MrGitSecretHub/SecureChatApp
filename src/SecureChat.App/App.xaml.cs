@@ -36,36 +36,56 @@ public partial class App : Application
         AppServices.Get<NotificationService>().Activated += OnNotificationActivated;
     }
 
-    private static void OnIncomingMessage(StoredMessage message, string username)
+    private static async void OnIncomingMessage(StoredMessage message, string username)
     {
-        var session = AppServices.Get<AppSession>();
-
-        // В «беззвучном» чате не показываем ни звук, ни уведомление.
-        if (AppServices.Get<ChatManager>().IsConversationMuted(username))
+        try
         {
-            return;
-        }
+            var session = AppServices.Get<AppSession>();
 
-        var isAndroidBackground =
-            DeviceInfo.Platform == DevicePlatform.Android && !AppLifecycle.IsForeground;
-
-        if (isAndroidBackground)
-        {
-            var preview = session.ShowNotificationPreview
-                ? MessagePreview.Build(message.Text)
-                : "Новое сообщение";
-
-            if (AppServices.Get<NotificationService>()
-                .ShowNotification(username, preview, username))
+            // В «беззвучном» чате не показываем ни звук, ни уведомление.
+            if (AppServices.Get<ChatManager>().IsConversationMuted(username))
             {
-                // Системное уведомление само проигрывает звук — не дублируем.
                 return;
             }
-        }
 
-        if (session.SoundsEnabled)
+            var isAndroidBackground =
+                DeviceInfo.Platform == DevicePlatform.Android && !AppLifecycle.IsForeground;
+
+            if (isAndroidBackground)
+            {
+                var preview = session.ShowNotificationPreview
+                    ? MessagePreview.Build(message.Text)
+                    : "Новое сообщение";
+
+                var unread = 1;
+                var conversation = await AppServices.Get<ChatManager>()
+                    .GetConversationAsync(username);
+                if (conversation is not null)
+                {
+                    unread = Math.Max(1, conversation.UnreadCount);
+                }
+
+                if (AppServices.Get<NotificationService>()
+                    .ShowNotification(
+                        username,
+                        preview,
+                        username,
+                        unread,
+                        silent: !session.SoundsEnabled))
+                {
+                    // Системное уведомление само проигрывает звук — не дублируем.
+                    return;
+                }
+            }
+
+            if (session.SoundsEnabled)
+            {
+                AppServices.Get<SoundService>().PlayNotification();
+            }
+        }
+        catch
         {
-            AppServices.Get<SoundService>().PlayNotification();
+            // Сбой уведомления не должен влиять на доставку сообщений.
         }
     }
 

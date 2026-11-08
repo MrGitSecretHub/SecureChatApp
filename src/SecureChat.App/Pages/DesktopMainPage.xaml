@@ -142,8 +142,9 @@
                         TextColor="{DynamicResource TextPrimary}" />
                 <SearchBar Grid.Row="1"
                            x:Name="SearchEntry"
-                           Placeholder="Поиск по чатам (Ctrl+F)"
-                           TextChanged="OnSearchTextChanged" />
+                           Placeholder="Поиск по чатам (Enter — по сообщениям)"
+                           TextChanged="OnSearchTextChanged"
+                           SearchButtonPressed="OnGlobalSearchPressed" />
             </Grid>
 
             <!-- Список чатов -->

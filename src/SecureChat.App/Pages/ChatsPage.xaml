@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.ChatsPage"
              Title="Чаты">
-    <Grid Padding="16" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+    <Grid Padding="16" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="12">
 
         <!-- Шапка -->
         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
@@ -36,9 +36,15 @@
                IsVisible="False"
                LineBreakMode="WordWrap" />
 
+        <!-- Поиск по сообщениям -->
+        <SearchBar Grid.Row="2"
+                   x:Name="MessageSearchEntry"
+                   Placeholder="Поиск по всем сообщениям"
+                   SearchButtonPressed="OnSearchMessagesPressed" />
+
         <!-- Список чатов -->
         <CollectionView x:Name="ConversationsView"
-                        Grid.Row="2"
+                        Grid.Row="3"
                         SelectionMode="Single"
                         SelectionChanged="OnConversationSelected">
             <CollectionView.EmptyView>
@@ -140,7 +146,7 @@
         </CollectionView>
 
         <!-- Нижняя панель: быстрые действия и выход -->
-        <Grid Grid.Row="3"
+        <Grid Grid.Row="4"
               Padding="12,8,12,12"
               RowDefinitions="Auto,Auto"
               RowSpacing="8">

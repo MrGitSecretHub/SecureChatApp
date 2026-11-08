@@ -412,6 +412,12 @@ public sealed class ChatManager
     public Task<StoredConversation?> GetConversationAsync(string username) =>
         _localStore.GetConversationAsync(username);
 
+    /// <summary>Глобальный поиск по локальной истории сообщений.</summary>
+    public Task<IReadOnlyList<StoredMessageSearchResult>> SearchMessagesAsync(
+        string query,
+        int limit = 100) =>
+        _localStore.SearchMessagesAsync(query, limit);
+
     public Task<bool> ArchiveConversationAsync(string username, bool archived = true)
     {
         // «Избранное» (хранилище) нельзя архивировать — оно всегда в основном списке.
