@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Pages.ChatsPage"
+             Title="Чаты">
+    <Grid Padding="16" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+
+        <!-- Шапка -->
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <VerticalStackLayout Spacing="2">
+                <Label Text="Диалоги"
+                       Style="{DynamicResource H1}" />
+                <Label Text="Сквозное шифрование включено"
+                       Style="{DynamicResource Caption}" />
+            </VerticalStackLayout>
+            <Button Grid.Column="1"
+                    Text="＋"
+                    Style="{DynamicResource IconButtonActive}"
+                    VerticalOptions="Center"
+                    Clicked="OnAddContactClicked"
+                    ToolTipProperties.Text="Добавить контакт" />
+            <Button x:Name="ArchiveToggleButton"
+                    Grid.Column="2"
+                    Text="📥"
+                    Style="{DynamicResource IconButtonActive}"
+                    VerticalOptions="Center"
+                    Clicked="OnToggleArchiveModeClicked"
+                    ToolTipProperties.Text="Показать архив чатов" />
+        </Grid>
+
+        <!-- Статус подключения -->
+        <Label x:Name="StatusLabel"
+               Grid.Row="1"
+               Style="{DynamicResource Caption}"
+               TextColor="{DynamicResource Danger}"
+               IsVisible="False"
+               LineBreakMode="WordWrap" />
+
+        <!-- Список чатов -->
+        <CollectionView x:Name="ConversationsView"
+                        Grid.Row="2"
+                        SelectionMode="Single"
+                        SelectionChanged="OnConversationSelected">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
+                    <Label Text="💬"
+                           Style="{DynamicResource EmptyStateIcon}" />
+                    <Label Text="Пока нет чатов"
+                           Style="{DynamicResource EmptyStateTitle}" />
+                    <Label Text="Добавьте контакт по имени пользователя, чтобы начать переписку."
+                           Style="{DynamicResource EmptyStateCaption}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{DynamicResource Card}" Margin="0,4" Padding="12">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+
+                            <!-- Аватар -->
+                            <Grid WidthRequest="46"
+                                  HeightRequest="46">
+                                <Border StrokeThickness="0"
+                                        BackgroundColor="{DynamicResource AccentSoft}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="23" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding Initial}"
+                                           FontAttributes="Bold"
+                                           FontSize="18"
+                                           TextColor="{DynamicResource Accent}"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Border>
+                                <Image Source="{Binding AvatarSource}"
+                                       Aspect="AspectFill"
+                                       WidthRequest="46"
+                                       HeightRequest="46">
+                                    <Image.Clip>
+                                        <EllipseGeometry />
+                                    </Image.Clip>
+                                </Image>
+                            </Grid>
+
+                            <!-- Название и превью -->
+                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                <Label Text="{Binding Username}"
+                                       FontAttributes="Bold"
+                                       FontSize="16"
+                                       TextColor="{DynamicResource TextPrimary}" />
+                                <Label Text="{Binding LastMessage}"
+                                       Style="{DynamicResource Caption}"
+                                       MaxLines="1"
+                                       LineBreakMode="TailTruncation" />
+                            </VerticalStackLayout>
+
+                            <!-- Время и счётчик непрочитанных -->
+                            <VerticalStackLayout Grid.Column="2"
+                                                 Spacing="4"
+                                                 HorizontalOptions="End"
+                                                 VerticalOptions="Center">
+                                <Label Text="🔇"
+                                       FontSize="10"
+                                       HorizontalOptions="End"
+                                       IsVisible="{Binding IsMuted}" />
+                                <Label Text="{Binding TimeText}"
+                                       FontSize="10"
+                                       TextColor="{DynamicResource TextDisabled}"
+                                       HorizontalOptions="End" />
+                                <Border IsVisible="{Binding HasUnread}"
+                                        BackgroundColor="{DynamicResource Accent}"
+                                        StrokeThickness="0"
+                                        Padding="7,2"
+                                        HorizontalOptions="End">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding UnreadText}"
+                                           FontSize="10"
+                                           FontAttributes="Bold"
+                                           TextColor="{DynamicResource AccentText}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Меню чата -->
+                            <Button Grid.Column="3"
+                                    Text="⋮"
+                                    FontSize="18"
+                                    Padding="4"
+                                    MinimumWidthRequest="32"
+                                    MinimumHeightRequest="32"
+                                    Style="{DynamicResource IconButton}"
+                                    VerticalOptions="Center"
+                                    Clicked="OnConversationMenuClicked"
+                                    ToolTipProperties.Text="Действия с чатом" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Нижняя панель: быстрые действия и выход -->
+        <Grid Grid.Row="3"
+              Padding="12,8,12,12"
+              RowDefinitions="Auto,Auto"
+              RowSpacing="8">
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="*,*,*,*"
+                  ColumnSpacing="8">
+                <Button Grid.Column="0"
+                        Text="➕"
+                        FontSize="18"
+                        HeightRequest="42"
+                        Style="{DynamicResource IconButton}"
+                        BackgroundColor="{DynamicResource SurfaceAlt}"
+                        Clicked="OnAddContactClicked"
+                        ToolTipProperties.Text="Новый чат" />
+                <Button Grid.Column="1"
+                        Text="💬"
+                        FontSize="16"
+                        HeightRequest="42"
+                        Style="{DynamicResource IconButton}"
+                        BackgroundColor="{DynamicResource SurfaceAlt}"
+                        Clicked="OnMyProfileClicked"
+                        ToolTipProperties.Text="Мой профиль" />
+                <Button Grid.Column="2"
+                        Text="📢"
+                        FontSize="16"
+                        HeightRequest="42"
+                        Style="{DynamicResource IconButton}"
+                        BackgroundColor="{DynamicResource SurfaceAlt}"
+                        Clicked="OnSpacesClicked"
+                        ToolTipProperties.Text="Группы, каналы и форумы" />
+                <Button Grid.Column="3"
+                        Text="🌐"
+                        FontSize="16"
+                        HeightRequest="42"
+                        Style="{DynamicResource IconButton}"
+                        BackgroundColor="{DynamicResource SurfaceAlt}"
+                        Clicked="OnBrowserClicked"
+                        ToolTipProperties.Text="Встроенный браузер" />
+            </Grid>
+            <Button Grid.Row="1"
+                    Text="Выйти из аккаунта"
+                    FontSize="13"
+                    Style="{DynamicResource GhostButton}"
+                    TextColor="{DynamicResource Danger}"
+                    Clicked="OnLogoutClicked"
+                    ToolTipProperties.Text="Выйти из аккаунта" />
+        </Grid>
+    </Grid>
+</ContentPage>

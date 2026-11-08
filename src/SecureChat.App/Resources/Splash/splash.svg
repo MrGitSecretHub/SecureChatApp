@@ -1,0 +1,16 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0044aa;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bgGradient)" />
+  
+  <!-- Пузырь -->
+  <path d="M300 340 C300 280 360 240 420 240 H700 C760 240 820 280 820 340 V600 C820 660 760 700 700 700 H420 C360 700 300 660 300 600 V340 Z" fill="#ffffff" />
+  
+  <!-- Замочек -->
+  <path d="M460 460 L660 460 L660 540 L460 540 Z" fill="#0066ff" />
+  <circle cx="560" cy="580" r="35" fill="#ffffff" />
+</svg>

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:SecureChat.App.Views"
+             xmlns:pages="clr-namespace:SecureChat.App.Pages"
+             x:Class="SecureChat.App.Pages.SearchUsersPage"
+             Title="Поиск пользователей">
+    <Grid Padding="16" RowDefinitions="Auto,Auto,*" RowSpacing="12">
+
+        <!-- Шапка -->
+        <VerticalStackLayout Spacing="2">
+            <Label Text="Поиск пользователя" Style="{DynamicResource H1}" />
+            <Label Text="Введите @имя пользователя, чтобы найти его на сервере."
+                   Style="{DynamicResource Caption}" />
+        </VerticalStackLayout>
+
+        <!-- Поиск -->
+        <Border Grid.Row="1" Style="{DynamicResource Card}" Padding="12">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Entry x:Name="UsernameEntry"
+                       Placeholder="@имя пользователя"
+                       IsSpellCheckEnabled="False"
+                       Completed="OnSearchClicked" />
+                <Button Grid.Column="1"
+                        x:Name="SearchButton"
+                        Text="Найти"
+                        Clicked="OnSearchClicked" />
+            </Grid>
+        </Border>
+
+        <!-- Результаты -->
+        <CollectionView x:Name="ResultsView"
+                        Grid.Row="2"
+                        SelectionMode="None">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
+                    <Label Text="🔍"
+                           Style="{DynamicResource EmptyStateIcon}" />
+                    <Label Text="Результаты поиска появятся здесь"
+                           Style="{DynamicResource EmptyStateTitle}" />
+                    <Label Text="Введите @имя пользователя выше и нажмите «Найти»."
+                           Style="{DynamicResource EmptyStateCaption}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="pages:SearchUserVm">
+                    <Border Style="{DynamicResource Card}" Margin="0,4" Padding="12">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+
+                            <!-- Аватар -->
+                            <Grid WidthRequest="42" HeightRequest="42">
+                                <Border StrokeThickness="0"
+                                        BackgroundColor="{DynamicResource AccentSoft}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="21" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding Initial}"
+                                           FontAttributes="Bold"
+                                           FontSize="16"
+                                           TextColor="{DynamicResource Accent}"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Border>
+                                <Image Source="{Binding AvatarSource}"
+                                       Aspect="AspectFill"
+                                       WidthRequest="42"
+                                       HeightRequest="42">
+                                    <Image.Clip>
+                                        <EllipseGeometry />
+                                    </Image.Clip>
+                                </Image>
+                            </Grid>
+
+                            <!-- Информация -->
+                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                <Label Text="{Binding Username}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource TextPrimary}" />
+                                <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                                    <Label Text="{Binding FingerprintFormatted}"
+                                           Style="{DynamicResource Caption}"
+                                           FontFamily="{DynamicResource FontFamilyMono}"
+                                           LineBreakMode="WordWrap"
+                                           MaxLines="2"
+                                           IsVisible="{Binding HasFingerprint}" />
+                                    <Label Text="•"
+                                           Style="{DynamicResource Caption}"
+                                           IsVisible="{Binding HasFingerprint}" />
+                                    <Label Text="{Binding CreatedAtText}"
+                                           Style="{DynamicResource Caption}"
+                                           IsVisible="{Binding HasCreatedAt}" />
+                                </Grid>
+                            </VerticalStackLayout>
+
+                            <!-- Кнопка -->
+                            <Button Grid.Column="2"
+                                    Text="Добавить"
+                                    Style="{DynamicResource PrimaryButton}"
+                                    Clicked="OnAddClicked"
+                                    WidthRequest="90"
+                                    HeightRequest="34"
+                                    VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

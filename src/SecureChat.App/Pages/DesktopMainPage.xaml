@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:SecureChat.App.Views"
+             x:Class="SecureChat.App.Pages.DesktopMainPage"
+             NavigationPage.HasNavigationBar="False"
+             Title="SecureChat">
+    <Grid ColumnDefinitions="300,1,*" RowDefinitions="*">
+
+        <!-- САЙДБАР -->
+        <Grid Grid.Column="0"
+              BackgroundColor="{DynamicResource Surface}"
+              RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+
+            <!-- Шапка приложения -->
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="Auto,*,Auto"
+                  ColumnSpacing="10"
+                  Padding="12,14,8,8">
+                <Border Grid.Column="0"
+                        WidthRequest="36"
+                        HeightRequest="36"
+                        BackgroundColor="{DynamicResource Accent}"
+                        StrokeThickness="0"
+                        VerticalOptions="Center">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+                    <Label Text="🔒"
+                           FontSize="17"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center" />
+                </Border>
+                <Label Grid.Column="1"
+                       Text="SecureChat"
+                       FontSize="17"
+                       FontAttributes="Bold"
+                       LineBreakMode="NoWrap"
+                       TextColor="{DynamicResource TextPrimary}"
+                       VerticalOptions="Center" />
+                <Grid Grid.Column="2"
+                      ColumnDefinitions="Auto,Auto,Auto,Auto"
+                      ColumnSpacing="1"
+                      VerticalOptions="Center">
+                    <Label Grid.Column="0"
+                           x:Name="ConnectionDot"
+                           Text="●"
+                           FontSize="7"
+                           Margin="0,0,3,0"
+                           TextColor="{DynamicResource Danger}"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="⚙"
+                            Style="{DynamicResource IconButton}"
+                            Padding="4"
+                            MinimumWidthRequest="28"
+                            MinimumHeightRequest="28"
+                            Clicked="OnProfileTapped"
+                            ToolTipProperties.Text="Профиль и настройки" />
+                    <Button Grid.Column="2"
+                            Text="💬"
+                            Style="{DynamicResource IconButton}"
+                            Padding="4"
+                            MinimumWidthRequest="28"
+                            MinimumHeightRequest="28"
+                            Clicked="OnNewChatClicked"
+                            ToolTipProperties.Text="Новый чат (Ctrl+N)" />
+                    <Button Grid.Column="3"
+                            Text="🔍"
+                            Style="{DynamicResource IconButton}"
+                            Padding="4"
+                            MinimumWidthRequest="28"
+                            MinimumHeightRequest="28"
+                            Clicked="OnSearchUsersClicked"
+                            ToolTipProperties.Text="Поиск пользователей по @username" />
+                </Grid>
+            </Grid>
+
+            <!-- Карточка профиля (клик открывает профиль и настройки) -->
+            <Border Grid.Row="1"
+                    Margin="12,4,12,8"
+                    Padding="12,10"
+                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnProfileTapped" />
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="46,*" ColumnSpacing="12">
+                    <Border Grid.Column="0"
+                            WidthRequest="46"
+                            HeightRequest="46"
+                            BackgroundColor="{DynamicResource Accent}"
+                            StrokeThickness="0"
+                            VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <Ellipse />
+                        </Border.StrokeShape>
+                        <Image x:Name="HeaderAvatar"
+                               WidthRequest="46"
+                               HeightRequest="46"
+                               Aspect="AspectFill" />
+                    </Border>
+                    <VerticalStackLayout Grid.Column="1"
+                                         Spacing="3"
+                                         VerticalOptions="Center">
+                        <Label x:Name="UserLabel"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{DynamicResource TextPrimary}"
+                               LineBreakMode="TailTruncation" />
+                        <HorizontalStackLayout Spacing="6">
+                            <Border x:Name="StatusDot"
+                                    WidthRequest="8"
+                                    HeightRequest="8"
+                                    StrokeThickness="0"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <Ellipse />
+                                </Border.StrokeShape>
+                            </Border>
+                            <Label x:Name="UserStatusLabel"
+                                   FontSize="12"
+                                   TextColor="{DynamicResource TextMuted}"
+                                   LineBreakMode="TailTruncation" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <!-- Статус и поиск -->
+            <Grid Grid.Row="2"
+                  Margin="12,0,12,8"
+                  RowDefinitions="Auto,Auto"
+                  RowSpacing="8">
+                <Picker Grid.Row="0"
+                        x:Name="StatusPicker"
+                        Title="Статус"
+                        SelectedIndexChanged="OnStatusChanged"
+                        TextColor="{DynamicResource TextPrimary}" />
+                <SearchBar Grid.Row="1"
+                           x:Name="SearchEntry"
+                           Placeholder="Поиск по чатам (Ctrl+F)"
+                           TextChanged="OnSearchTextChanged" />
+            </Grid>
+
+            <!-- Список чатов -->
+            <Label Grid.Row="3"
+                   Text="Закреплённые"
+                   Style="{StaticResource SectionHeader}"
+                   x:Name="PinnedSectionLabel"
+                   IsVisible="False" />
+
+            <CollectionView Grid.Row="4"
+                            x:Name="ConversationsView"
+                            ItemsSource="{Binding Conversations, Mode=OneWay}"
+                            SelectionMode="Single"
+                            SelectionChanged="OnConversationSelected"
+                            BackgroundColor="Transparent">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="views:ConversationVm">
+                        <Border Margin="8,2"
+                                Padding="10,8"
+                                StrokeThickness="0"
+                                BackgroundColor="{Binding IsSelected, Converter={StaticResource BoolToSidebarColorConverter}}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Grid ColumnDefinitions="46,*,Auto,Auto" ColumnSpacing="6">
+                                <Border Grid.Column="0"
+                                        WidthRequest="46"
+                                        HeightRequest="46"
+                                        BackgroundColor="{DynamicResource Accent}"
+                                        StrokeThickness="0"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <Ellipse />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding Initial}"
+                                           FontSize="17"
+                                           FontAttributes="Bold"
+                                           TextColor="{DynamicResource AccentText}"
+                                           HorizontalTextAlignment="Center"
+                                           VerticalTextAlignment="Center" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Spacing="2"
+                                                     VerticalOptions="Center">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding Username}"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               TextColor="{DynamicResource TextPrimary}"
+                                               LineBreakMode="TailTruncation" />
+                                        <Border Grid.Column="1"
+                                                WidthRequest="8"
+                                                HeightRequest="8"
+                                                StrokeThickness="0"
+                                                BackgroundColor="{Binding OnlineStatusColor}"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <Ellipse />
+                                            </Border.StrokeShape>
+                                        </Border>
+                                    </Grid>
+                                    <Label Text="{Binding LastMessage}"
+                                           FontSize="13"
+                                           TextColor="{DynamicResource TextMuted}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1"
+                                           IsVisible="{DynamicResource SidebarPreviewVisible}" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="2"
+                                                     Spacing="4"
+                                                     VerticalOptions="Center">
+                                    <Label Text="🔇"
+                                           FontSize="11"
+                                           HorizontalOptions="End"
+                                           IsVisible="{Binding IsMuted}" />
+                                    <Label Text="{Binding TimeText}"
+                                           FontSize="11"
+                                           TextColor="{DynamicResource TextMuted}"
+                                           HorizontalOptions="End"
+                                           IsVisible="{DynamicResource SidebarPreviewVisible}" />
+                                    <Label Text="{Binding UnreadText}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{DynamicResource AccentText}"
+                                           BackgroundColor="{DynamicResource Accent}"
+                                           HorizontalTextAlignment="Center"
+                                           VerticalTextAlignment="Center"
+                                           Padding="7,2"
+                                           HorizontalOptions="End"
+                                           IsVisible="{Binding HasUnread}" />
+                                </VerticalStackLayout>
+                                <Button Grid.Column="3"
+                                        Text="⋮"
+                                        FontSize="18"
+                                        Padding="4"
+                                        MinimumWidthRequest="32"
+                                        MinimumHeightRequest="32"
+                                        Style="{DynamicResource IconButton}"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Center"
+                                        Clicked="OnConversationMenuClicked"
+                                        ToolTipProperties.Text="Действия с чатом" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Нижняя панель: быстрые действия и выход -->
+            <Grid Grid.Row="5"
+                  Padding="12,8,12,12"
+                  RowDefinitions="Auto,Auto"
+                  RowSpacing="8">
+                <Grid Grid.Row="0"
+                      ColumnDefinitions="*,*,*,*,*"
+                      ColumnSpacing="8">
+                    <Button Grid.Column="0"
+                            Text="➕"
+                            FontSize="18"
+                            HeightRequest="42"
+                            Style="{DynamicResource IconButton}"
+                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                            Clicked="OnNewChatClicked"
+                            ToolTipProperties.Text="Новый чат (Ctrl+N)" />
+                    <Button Grid.Column="1"
+                            Text="💬"
+                            FontSize="16"
+                            HeightRequest="42"
+                            Style="{DynamicResource IconButton}"
+                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                            Clicked="OnMyProfileClicked"
+                            ToolTipProperties.Text="Мой профиль" />
+                    <Button Grid.Column="2"
+                            Text="📢"
+                            FontSize="16"
+                            HeightRequest="42"
+                            Style="{DynamicResource IconButton}"
+                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                            Clicked="OnSpacesClicked"
+                            ToolTipProperties.Text="Группы, каналы и форумы" />
+                    <Button Grid.Column="3"
+                            Text="🌐"
+                            FontSize="16"
+                            HeightRequest="42"
+                            Style="{DynamicResource IconButton}"
+                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                            Clicked="OnBrowserClicked"
+                            ToolTipProperties.Text="Встроенный браузер" />
+                    <Button Grid.Column="4"
+                            Text="📥"
+                            FontSize="16"
+                            HeightRequest="42"
+                            Style="{DynamicResource IconButton}"
+                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                            Clicked="OnArchiveClicked"
+                            ToolTipProperties.Text="Архив чатов" />
+                </Grid>
+                <Button Grid.Row="1"
+                        Text="Выйти из аккаунта"
+                        FontSize="13"
+                        Style="{DynamicResource GhostButton}"
+                        TextColor="{DynamicResource Danger}"
+                        Clicked="OnLogoutClicked"
+                        ToolTipProperties.Text="Выйти из аккаунта" />
+            </Grid>
+        </Grid>
+
+        <!-- Разделитель -->
+        <BoxView Grid.Column="1"
+                 WidthRequest="1"
+                 BackgroundColor="{DynamicResource BorderColor}" />
+
+        <!-- ОБЛАСТЬ ЧАТА -->
+        <Grid Grid.Column="2"
+              BackgroundColor="{DynamicResource PageBackground}">
+
+            <!-- Пустое состояние -->
+            <VerticalStackLayout x:Name="EmptyState"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="12">
+                <Border WidthRequest="96"
+                        HeightRequest="96"
+                        HorizontalOptions="Center"
+                        BackgroundColor="{DynamicResource Accent}"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <Ellipse />
+                    </Border.StrokeShape>
+                    <Label Text="💬"
+                           FontSize="42"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center" />
+                </Border>
+                <Label Text="Выберите чат"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       TextColor="{DynamicResource TextPrimary}"
+                       HorizontalOptions="Center" />
+                <Label Text="Выберите переписку слева или начните новую"
+                       FontSize="14"
+                       TextColor="{DynamicResource TextMuted}"
+                       HorizontalOptions="Center" />
+                <Button Text="Новый чат"
+                        Style="{DynamicResource PrimaryButton}"
+                        Clicked="OnNewChatClicked"
+                        HorizontalOptions="Center"
+                        Margin="0,8,0,0" />
+            </VerticalStackLayout>
+
+            <!-- Переписка -->
+            <views:ChatView x:Name="ChatHost" IsVisible="False" />
+
+            <!-- Всплывающее уведомление о новом сообщении -->
+            <Border x:Name="InAppToast"
+                    WidthRequest="320"
+                    Padding="14,12"
+                    Margin="20"
+                    HorizontalOptions="End"
+                    VerticalOptions="End"
+                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                    StrokeThickness="0"
+                    IsVisible="False">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnToastTapped" />
+                </Border.GestureRecognizers>
+                <VerticalStackLayout Spacing="4">
+                    <Label x:Name="ToastTitle"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="{DynamicResource TextPrimary}" />
+                    <Label x:Name="ToastBody"
+                           FontSize="13"
+                           TextColor="{DynamicResource TextSecondary}"
+                           LineBreakMode="TailTruncation"
+                           MaxLines="2" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Статус подключения -->
+            <Label x:Name="StatusLabel"
+                   FontSize="12"
+                   TextColor="{DynamicResource Danger}"
+                   HorizontalOptions="End"
+                   VerticalOptions="Start"
+                   Margin="18,10,18,0"
+                   IsVisible="False" />
+        </Grid>
+    </Grid>
+</ContentPage>

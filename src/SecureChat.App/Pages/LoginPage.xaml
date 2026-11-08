@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Pages.LoginPage"
+             Shell.NavBarIsVisible="False"
+             Title="SecureChat">
+    <ScrollView>
+        <Grid Padding="24" RowDefinitions="*,Auto,*">
+            <VerticalStackLayout Grid.Row="1"
+                                 Spacing="16"
+                                 MaximumWidthRequest="460"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center">
+                <Label Text="SecureChat"
+                       FontSize="42"
+                       FontAttributes="Bold"
+                       TextColor="{DynamicResource Accent}"
+                       HorizontalOptions="Center" />
+                <Label Text="Сквозное шифрование. Сервер пересылает только шифротекст и не видит ваши сообщения."
+                       FontSize="13"
+                       TextColor="{DynamicResource Muted}"
+                       HorizontalTextAlignment="Center"
+                       LineBreakMode="WordWrap" />
+
+                <Border Style="{DynamicResource Card}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Адрес сервера" Style="{DynamicResource FieldLabel}" />
+                        <Entry x:Name="ServerEntry"
+                               Placeholder="https://localhost:5443"
+                               Keyboard="Url"
+                               ClearButtonVisibility="WhileEditing" />
+                        <Label x:Name="ServerHintLabel"
+                               Text="Телефон или эмулятор: нажмите, чтобы выбрать адрес"
+                               Style="{DynamicResource Caption}"
+                               TextColor="{DynamicResource Accent}"
+                               LineBreakMode="WordWrap">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnServerHintTapped" />
+                            </Label.GestureRecognizers>
+                        </Label>
+
+                        <Label Text="Имя пользователя" Style="{DynamicResource FieldLabel}" />
+                        <Entry x:Name="UsernameEntry"
+                               Placeholder="alice"
+                               IsSpellCheckEnabled="False"
+                               MaxLength="32" />
+
+                        <Label Text="Электронная почта" Style="{DynamicResource FieldLabel}" />
+                        <Entry x:Name="EmailEntry"
+                               Placeholder="alice@example.com"
+                               Keyboard="Email"
+                               IsSpellCheckEnabled="False" />
+
+                        <Label Text="Пароль" Style="{DynamicResource FieldLabel}" />
+                        <Entry x:Name="PasswordEntry"
+                               Placeholder="Не менее 8 символов"
+                               IsPassword="True" />
+
+                        <Label Text="Повтор пароля (для регистрации)" Style="{DynamicResource FieldLabel}" />
+                        <Entry x:Name="ConfirmEntry"
+                               Placeholder="Повторите пароль"
+                               IsPassword="True" />
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,8,0,0">
+                            <Button x:Name="LoginButton"
+                                    Text="Войти"
+                                    Clicked="OnLoginClicked" />
+                            <Button x:Name="RegisterButton"
+                                    Grid.Column="1"
+                                    Text="Регистрация"
+                                    Style="{DynamicResource SecondaryButton}"
+                                    Clicked="OnRegisterClicked" />
+                        </Grid>
+
+                        <ActivityIndicator x:Name="BusyIndicator"
+                                           IsRunning="False"
+                                           IsVisible="False"
+                                           Color="{DynamicResource Accent}" />
+
+                        <Label x:Name="StatusLabel"
+                               FontSize="13"
+                               TextColor="{DynamicResource Danger}"
+                               IsVisible="False"
+                               LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="При регистрации на устройстве создаются ключи ECDH и ECDSA. Приватные ключи не покидают устройство."
+                       FontSize="11"
+                       TextColor="{DynamicResource Muted}"
+                       HorizontalTextAlignment="Center"
+                       LineBreakMode="WordWrap" />
+            </VerticalStackLayout>
+        </Grid>
+    </ScrollView>
+</ContentPage>

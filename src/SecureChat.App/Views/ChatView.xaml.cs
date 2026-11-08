@@ -1,0 +1,2671 @@
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Text;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.ApplicationModel.DataTransfer;
+using SecureChat.App.Pages;
+using SecureChat.App.Services;
+using SecureChat.Core.Contracts;
+
+#if ANDROID
+using Android.Media;
+using Android.Content;
+#endif
+
+namespace SecureChat.App.Views;
+
+/// <summary>
+/// Переписка с одним контактом. Используется и на телефоне (внутри ChatPage),
+/// и в двухпанельном Windows-клиенте.
+/// </summary>
+public partial class ChatView : ContentView
+{
+    private const string AttachPhoto = "Фото или GIF";
+    private const string AttachFile = "Файл";
+    private const string ProfileTab = "profile";
+    private const string MediaTab = "media";
+    private const string PinnedTab = "pinned";
+
+    private static readonly string[] ReactionEmojis = { "👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🙏" };
+
+    private static readonly CultureInfo RuCulture = new("ru-RU");
+
+    private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
+    private readonly AppSession _session = AppServices.Get<AppSession>();
+    private readonly LinkPreviewService _previewService = AppServices.Get<LinkPreviewService>();
+    private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
+    private readonly ObservableCollection<MessageVm> _messages = new();
+    private readonly ObservableCollection<MessageVm> _mediaItems = new();
+    private readonly ObservableCollection<MessageVm> _pinnedItems = new();
+
+    private StoredConversation? _conversation;
+    private string? _username;
+    private bool _subscribed;
+    private bool _sending;
+    private bool _sendingAttachment;
+    private bool _suppressDraft;
+    private MessageVm? _selected;
+    private int _pinnedIndex;
+    private string _messageQuery = string.Empty;
+    private DateTime _lastTypingSentUtc = DateTime.MinValue;
+    private CancellationTokenSource? _hintCts;
+    private CancellationTokenSource? _draftCts;
+    private MessageVm? _replyingTo;
+    private string? _editingMessageId;
+    private Point _menuPosition;
+    private CancellationTokenSource? _longPressCts;
+
+    /// <summary>Очередь отправки медиа (фото, видео, голосовые, кружки, файлы).</summary>
+    private readonly ObservableCollection<PendingMediaItem> _pendingMedia = new();
+    public IEnumerable<PendingMediaItem> PendingMedia => _pendingMedia;
+    private bool _processingMediaQueue;
+
+    /// <summary>Один элемент очереди отправки с прогрессом и возможностью отмены.</summary>
+    public sealed class PendingMediaItem : INotifyPropertyChanged
+    {
+        public string Id { get; } = Guid.NewGuid().ToString("N");
+        public string FileName { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public byte[] Data { get; set; } = Array.Empty<byte>();
+        public string? MessageKind { get; set; }
+        public CancellationTokenSource Cts { get; } = new();
+
+        private int _progress;
+        public int Progress
+        {
+            get => _progress;
+            set { if (_progress != value) { _progress = value; Notify(); } }
+        }
+
+        private string _status = "Отправка…";
+        public string Status
+        {
+            get => _status;
+            set { if (_status != value) { _status = value; Notify(); } }
+        }
+
+        public bool IsImage => ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+
+        public string KindEmoji => ContentType switch
+        {
+            var c when c.StartsWith("image/", StringComparison.OrdinalIgnoreCase) => "📷",
+            var c when c.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) => "🎤",
+            var c when c.StartsWith("video/", StringComparison.OrdinalIgnoreCase) => "📹",
+            _ => "📄"
+        };
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void Notify([CallerMemberName] string? n = null) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+    }
+    private string? _scrollToMessageId;
+
+#if ANDROID || WINDOWS
+    private IVoicePlayer? _voicePlayer;
+    private string? _voicePlayingMessageId;
+    private string? _voiceProgressMessageId;
+    private System.Timers.Timer? _voiceProgressTimer;
+#endif
+
+    public ChatView()
+    {
+        InitializeComponent();
+        MessagesView.ItemsSource = _messages;
+        MediaItemsView.ItemsSource = _mediaItems;
+        PinnedItemsView.ItemsSource = _pinnedItems;
+        Loaded += OnViewLoaded;
+        Unloaded += OnViewUnloaded;
+    }
+
+    private void OnViewLoaded(object? sender, EventArgs e)
+    {
+#if WINDOWS
+        EnsureWindowHooks();
+#endif
+    }
+
+    private void OnViewUnloaded(object? sender, EventArgs e)
+    {
+#if WINDOWS
+        // Чат закрыт — файлы, брошенные в окно, больше не должны уходить сюда.
+        if (ReferenceEquals(_activeDropTarget, this))
+        {
+            _activeDropTarget = null;
+        }
+#endif
+    }
+
+    /// <summary>Кнопка 😊 — показать или скрыть эмодзи-панель.</summary>
+    private void OnEmojiButtonClicked(object sender, EventArgs e)
+    {
+        EmojiPicker.IsVisible = !EmojiPicker.IsVisible;
+    }
+
+    /// <summary>Эмодзи из панели — вставить в позицию курсора поля ввода.</summary>
+    private void OnEmojiPicked(string emoji)
+    {
+        var text = MessageEntry.Text ?? string.Empty;
+        var position = Math.Clamp(MessageEntry.CursorPosition, 0, text.Length);
+        MessageEntry.Text = text.Insert(position, emoji);
+        MessageEntry.CursorPosition = Math.Min(position + emoji.Length, MessageEntry.Text.Length);
+        MessageEntry.Focus();
+    }
+
+    /// <summary>Нажата ⚙ — открыть профиль и настройки.</summary>
+    public event Action? SettingsRequested;
+
+    /// <summary>Нажата ✕ — закрыть чат.</summary>
+    public event Action? CloseRequested;
+
+    public string? Username => _username;
+
+    private Page? HostPage => Application.Current?.Windows.FirstOrDefault()?.Page;
+
+    public async Task OpenAsync(string username, string? scrollToMessageId = null)
+    {
+        ResetChat();
+
+        var stored = await _chatManager.GetConversationAsync(username)
+            ?? throw new InvalidOperationException("Контакт не найден.");
+
+        _username = stored.Username;
+        Subscribe();
+        await _chatManager.OpenChatAsync(_username);
+        _conversation = await _chatManager.GetConversationAsync(_username) ?? stored;
+
+        ContactLabel.Text = _conversation.Username;
+        ContactAvatar.Source = AvatarSource(_conversation.AvatarBase64);
+        KeyWarningLabel.IsVisible = _conversation.KeysChanged;
+        ApplyConnectionState(_chatManager.IsOnline, offline: _chatManager.IsOffline);
+        FillProfile();
+        LoadMessages();
+
+        _scrollToMessageId = scrollToMessageId;
+        if (_scrollToMessageId is not null)
+        {
+            var target = _messages.FirstOrDefault(m => m.Id == _scrollToMessageId);
+            if (target is not null)
+            {
+                ScrollToMessage(target);
+                _scrollToMessageId = null;
+            }
+        }
+
+        _suppressDraft = true;
+        MessageEntry.Text = await _chatManager.GetDraftAsync(_username) ?? string.Empty;
+        _suppressDraft = false;
+        DraftLabel.IsVisible = MessageEntry.Text.Length > 0;
+        ScrollToBottom();
+    }
+
+    public void Close() => ResetChat();
+
+    private void ResetChat()
+    {
+        StopVoicePlayback();
+
+        if (_username is not null)
+        {
+            _draftCts?.Cancel();
+            _ = _chatManager.SaveDraftAsync(_username, MessageEntry.Text ?? string.Empty);
+            _chatManager.CloseChat(_username);
+        }
+
+        Unsubscribe();
+        _username = null;
+        _conversation = null;
+        _selected = null;
+        _pinnedIndex = 0;
+        _messageQuery = string.Empty;
+        _messages.Clear();
+        _mediaItems.Clear();
+        _pinnedItems.Clear();
+
+        _suppressDraft = true;
+        MessageEntry.Text = string.Empty;
+        _suppressDraft = false;
+
+        MessageSearchBar.Text = string.Empty;
+        MessageSearchBar.IsVisible = false;
+        InfoPanel.IsVisible = false;
+        ContextMenuOverlay.IsVisible = false;
+        OfflineBanner.IsVisible = false;
+        DraftLabel.IsVisible = false;
+        HideHint();
+    }
+
+    private void Subscribe()
+    {
+        if (_subscribed)
+        {
+            return;
+        }
+
+        _subscribed = true;
+        _chatManager.MessageAdded += OnMessageAdded;
+        _chatManager.MessageStatusChanged += OnMessageStatusChanged;
+        _chatManager.MessageMediaChanged += OnMessageMediaChanged;
+        _chatManager.TypingReceived += OnTypingReceived;
+        _chatManager.Error += OnError;
+        _chatManager.ConnectionStateChanged += OnConnectionStateChanged;
+    }
+
+    private void Unsubscribe()
+    {
+        if (!_subscribed)
+        {
+            return;
+        }
+
+        _subscribed = false;
+        _chatManager.MessageAdded -= OnMessageAdded;
+        _chatManager.MessageStatusChanged -= OnMessageStatusChanged;
+        _chatManager.MessageMediaChanged -= OnMessageMediaChanged;
+        _chatManager.TypingReceived -= OnTypingReceived;
+        _chatManager.Error -= OnError;
+        _chatManager.ConnectionStateChanged -= OnConnectionStateChanged;
+    }
+
+    private bool IsCurrent(string username) =>
+        _username is not null && string.Equals(username, _username, StringComparison.OrdinalIgnoreCase);
+
+    private void LoadMessages()
+    {
+        _messages.Clear();
+        if (_username is null || _conversation is null)
+        {
+            return;
+        }
+
+        foreach (var stored in _conversation.Messages.OrderBy(item => item.SentAtUnixMs))
+        {
+            _messages.Add(CreateMessageVm(stored, _username));
+        }
+
+        RefreshDerived();
+        _ = LoadImagesAsync(_messages.ToList(), _username);
+    }
+
+    private MessageVm CreateMessageVm(StoredMessage stored, string peer)
+    {
+        return new MessageVm(stored, _session.Username, peer);
+    }
+
+    private void InsertSorted(MessageVm message)
+    {
+        var index = _messages.Count;
+        while (index > 0 && _messages[index - 1].SentAtUnixMs > message.SentAtUnixMs)
+        {
+            index--;
+        }
+
+        _messages.Insert(index, message);
+    }
+
+    private MessageVm? FindMessage(string messageId) =>
+        _messages.FirstOrDefault(item => item.Id == messageId);
+
+    private void RefreshDerived()
+    {
+        var today = DateTime.Today;
+        for (var i = 0; i < _messages.Count; i++)
+        {
+            var current = _messages[i];
+            var previous = i > 0 ? _messages[i - 1] : null;
+            var next = i + 1 < _messages.Count ? _messages[i + 1] : null;
+
+            current.HasDateLabel = previous is null || previous.LocalDate != current.LocalDate;
+            current.DateLabel = FormatDateLabel(current.LocalDate, today);
+            current.ShowAvatar = !current.IsMine &&
+                (next is null || next.IsMine || next.LocalDate != current.LocalDate ||
+                 next.SenderDisplay != current.SenderDisplay);
+            current.MatchesSearch = _messageQuery.Length == 0 ||
+                current.DisplayText.Contains(_messageQuery, StringComparison.OrdinalIgnoreCase);
+        }
+
+        RefreshSidePanels();
+    }
+
+    private List<MessageVm> GetPinned() =>
+        _messages.Where(item => item.IsPinned).OrderByDescending(item => item.SentAtUnixMs).ToList();
+
+    private void RefreshSidePanels()
+    {
+        var pinned = GetPinned();
+        _pinnedIndex = Math.Clamp(_pinnedIndex, 0, Math.Max(0, pinned.Count - 1));
+
+        _pinnedItems.Clear();
+        foreach (var item in pinned)
+        {
+            _pinnedItems.Add(item);
+        }
+
+        var hasPinned = pinned.Count > 0;
+        var counter = hasPinned ? PinnedCounterText(_pinnedIndex, pinned.Count) : string.Empty;
+        PinnedSectionInline.IsVisible = hasPinned;
+        PinnedCountLabelInline.Text = counter;
+        PinnedLabelInline.Text = hasPinned ? Shorten(pinned[_pinnedIndex].DisplayText, 80) : string.Empty;
+        PinnedCountLabel.Text = counter;
+        PinnedEmptyLabel.IsVisible = !hasPinned;
+
+        _mediaItems.Clear();
+        foreach (var item in _messages.Reverse().Where(item => item.IsImage || item.IsFile))
+        {
+            _mediaItems.Add(item);
+        }
+
+        MediaEmptyLabel.IsVisible = _mediaItems.Count == 0;
+    }
+
+    private static string PinnedCounterText(int index, int count) =>
+        count >= 4 ? "4+" : $"{index + 1}-{count}";
+
+    private async Task LoadImagesAsync(IReadOnlyList<MessageVm> items, string user)
+    {
+        foreach (var item in items.Where(item => item.IsImage && item.ImageSource is null))
+        {
+            var bytes = await _chatManager.GetLocalMediaAsync(item.Id);
+            if (bytes is null)
+            {
+                _ = _chatManager.EnsureMediaAsync(user, item.Id);
+                continue;
+            }
+
+            var copy = bytes;
+            MainThread.BeginInvokeOnMainThread(() =>
+                item.SetImage(ImageSource.FromStream(() => new MemoryStream(copy))));
+        }
+    }
+
+    private async Task ReloadMediaAsync(MessageVm message, string user)
+    {
+        var conversation = await _chatManager.GetConversationAsync(user);
+        var fresh = conversation?.Messages.FirstOrDefault(item => item.Id == message.Id);
+        byte[]? bytes = null;
+        if (fresh is not null && message.IsImage)
+        {
+            bytes = await _chatManager.GetLocalMediaAsync(message.Id);
+        }
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (fresh is not null)
+            {
+                message.Update(fresh, _session.Username, user);
+            }
+
+            if (bytes is not null)
+            {
+                var copy = bytes;
+                message.SetImage(ImageSource.FromStream(() => new MemoryStream(copy)));
+            }
+
+            RefreshSidePanels();
+        });
+    }
+
+    private void OnMessageAdded(StoredMessage message, string username) =>
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (_username is null || !IsCurrent(username))
+            {
+                return;
+            }
+
+            var peer = _username;
+            var existing = FindMessage(message.Id);
+            if (existing is not null)
+            {
+                existing.LinkPreview = null;
+                existing.Update(message, _session.Username, peer);
+                RefreshDerived();
+                if (_session.LinkPreviewEnabled && existing.HasUrls)
+                {
+                    _ = EnsurePreviewAsync(existing);
+                }
+                if (_scrollToMessageId is not null && message.Id == _scrollToMessageId)
+                {
+                    ScrollToMessage(existing);
+                    _scrollToMessageId = null;
+                }
+
+                // Обновляем аватар собеседника в шапке чата.
+                if (!message.IsMine && !string.IsNullOrWhiteSpace(message.SenderAvatarBase64) &&
+                    _conversation is not null &&
+                    !string.Equals(_conversation.AvatarBase64, message.SenderAvatarBase64, StringComparison.Ordinal))
+                {
+                    _conversation.AvatarBase64 = message.SenderAvatarBase64;
+                    ContactAvatar.Source = AvatarSource(_conversation.AvatarBase64);
+                }
+
+                return;
+            }
+
+            var created = CreateMessageVm(message, peer);
+            InsertSorted(created);
+            RefreshDerived();
+            ScrollToBottom();
+            _ = LoadImagesAsync(new[] { created }, peer);
+            if (_session.LinkPreviewEnabled && created.HasUrls)
+            {
+                _ = EnsurePreviewAsync(created);
+            }
+            if (_scrollToMessageId is not null && created.Id == _scrollToMessageId)
+            {
+                ScrollToMessage(created);
+                _scrollToMessageId = null;
+            }
+
+            // Обновляем аватар собеседника в шапке чата для нового сообщения.
+            if (!message.IsMine && !string.IsNullOrWhiteSpace(message.SenderAvatarBase64) &&
+                _conversation is not null &&
+                !string.Equals(_conversation.AvatarBase64, message.SenderAvatarBase64, StringComparison.Ordinal))
+            {
+                _conversation.AvatarBase64 = message.SenderAvatarBase64;
+                ContactAvatar.Source = AvatarSource(_conversation.AvatarBase64);
+            }
+        });
+
+    private void OnMessageStatusChanged(string messageId, string status) =>
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var message = FindMessage(messageId);
+            if (message is not null)
+            {
+                message.DeliveryStatus = status;
+            }
+        });
+
+    private void OnMessageMediaChanged(string messageId, string username) =>
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (!IsCurrent(username))
+            {
+                return;
+            }
+
+            var message = FindMessage(messageId);
+            if (message is not null)
+            {
+                _ = ReloadMediaAsync(message, username);
+            }
+        });
+
+    private void OnTypingReceived(string username) =>
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (IsCurrent(username))
+            {
+                ShowHint($"{username} печатает…", isError: false);
+            }
+        });
+
+    private void OnError(string message) =>
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (_username is not null)
+            {
+                ShowHint(message, isError: true);
+            }
+        });
+
+    private void OnConnectionStateChanged(bool connected) =>
+        MainThread.BeginInvokeOnMainThread(() => ApplyConnectionState(connected, offline: !connected));
+
+    private void ApplyConnectionState(bool connected, bool offline)
+    {
+        if (_username is null)
+        {
+            return;
+        }
+
+        OfflineBanner.IsVisible = offline;
+        ContactStatusLabel.Text = connected ? "Онлайн" : offline ? "Офлайн" : "Подключение…";
+        ContactStatusLabel.TextColor = Res(offline && !connected ? "Warning" : "TextMuted");
+    }
+
+    private void FillProfile()
+    {
+        if (_conversation is null)
+        {
+            return;
+        }
+
+        ProfileAvatar.Source = AvatarSource(_conversation.AvatarBase64);
+        ProfileName.Text = _conversation.Username;
+        ProfileStatus.Text = _conversation.OnlineStatus;
+        ProfileBio.IsVisible = false;
+        ProfileFingerprint.Text = _conversation.Fingerprint;
+        ProfileUserId.Text = _conversation.UserId;
+        ProfileCreated.Text = "—";
+    }
+
+    private void OnMessageTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (_suppressDraft || _username is null)
+        {
+            return;
+        }
+
+        SendTypingIfNeeded();
+        ScheduleDraftSave(_username, e.NewTextValue ?? string.Empty);
+    }
+
+    private void SendTypingIfNeeded()
+    {
+        if (_conversation is null || !_session.ShowTypingStatus || string.IsNullOrEmpty(MessageEntry.Text))
+        {
+            return;
+        }
+
+        if (DateTime.UtcNow - _lastTypingSentUtc < TimeSpan.FromSeconds(3))
+        {
+            return;
+        }
+
+        _lastTypingSentUtc = DateTime.UtcNow;
+        _ = _chatManager.NotifyTypingAsync(_conversation.UserId);
+    }
+
+    private void ScheduleDraftSave(string user, string text)
+    {
+        _draftCts?.Cancel();
+        _draftCts = new CancellationTokenSource();
+        _ = SaveDraftLaterAsync(user, text, _draftCts.Token);
+    }
+
+    private async Task SaveDraftLaterAsync(string user, string text, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(700, token);
+            await _chatManager.SaveDraftAsync(user, text);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (IsCurrent(user))
+                {
+                    DraftLabel.IsVisible = text.Length > 0;
+                }
+            });
+        }
+        catch
+        {
+            // Отмена или ошибка сохранения черновика не критичны.
+        }
+    }
+
+    private async void OnSendClicked(object? sender, EventArgs e)
+    {
+        var user = _username;
+        if (user is null || _sending || _sendingAttachment)
+        {
+            return;
+        }
+
+        var text = (MessageEntry.Text ?? string.Empty).Trim();
+        if (text.Length == 0)
+        {
+            return;
+        }
+
+        _sending = true;
+        var replyTarget = _replyingTo;
+        var isEditing = _editingMessageId is not null;
+        MessageEntry.Text = string.Empty;
+        try
+        {
+            if (isEditing)
+            {
+                await _chatManager.EditMessageAsync(user, _editingMessageId!, text);
+                _editingMessageId = null;
+                EditBar.IsVisible = false;
+            }
+            else
+            {
+                await _chatManager.SendMessageAsync(
+                    user,
+                    text,
+                    replyToMessageId: replyTarget?.Id,
+                    replyToText: replyTarget?.ReplyQuoteText,
+                    replyToFileName: replyTarget?.ReplyToFileName);
+                _replyingTo = null;
+                ReplyBar.IsVisible = false;
+            }
+
+            if (!_chatManager.IsOnline)
+            {
+                ShowHint("Офлайн: сообщение сохранено и будет отправлено после подключения.", isError: false);
+            }
+
+            ScrollToBottom();
+        }
+        catch (Exception ex)
+        {
+            if (IsCurrent(user))
+            {
+                MessageEntry.Text = text;
+            }
+
+            ShowHint($"Не удалось отправить: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _sending = false;
+        }
+    }
+
+    private async void OnAttachClicked(object? sender, EventArgs e)
+    {
+        var user = _username;
+        var page = HostPage;
+        if (user is null || page is null || _sendingAttachment)
+        {
+            return;
+        }
+
+        var choice = await page.DisplayActionSheet("Прикрепить", "Отмена", null, AttachPhoto, AttachFile, "Голосовое сообщение", "Видеокружок");
+
+        if (choice == AttachPhoto)
+        {
+            // MediaPicker не умеет мультивыбор — системный диалог выбора
+            // файлов; тип фото определяется по расширению в ResolveContentType.
+            var files = await FilePicker.Default.PickMultipleAsync(
+                new PickOptions { PickerTitle = "Выберите фото или GIF" });
+            await SendPickedFilesAsync(user, files, messageKind: null);
+        }
+        else if (choice == AttachFile)
+        {
+            var files = await FilePicker.Default.PickMultipleAsync(
+                new PickOptions { PickerTitle = "Выберите файлы" });
+            await SendPickedFilesAsync(user, files, MessageKinds.File);
+        }
+        else if (choice == "Голосовое сообщение")
+        {
+            var recorded = await RecordVoiceMessageAsync(page);
+            if (recorded is null)
+            {
+                return;
+            }
+
+            await SendOneAttachmentAsync(
+                user, "voice.m4a", recorded.Value.ContentType, recorded.Value.Data, MessageKinds.Voice);
+        }
+        else if (choice == "Видеокружок")
+        {
+            var recorded = await RecordVideoCircleAsync(page);
+            if (recorded is null)
+            {
+                return;
+            }
+
+            await SendOneAttachmentAsync(
+                user, "circle.mp4", recorded.Value.ContentType, recorded.Value.Data, MessageKinds.VideoCircle);
+        }
+    }
+
+    /// <summary>
+    /// Читает выбранные файлы и отправляет их одной очередью: фото
+    /// пережимаются, слишком большие пропускаются с подсказкой.
+    /// </summary>
+    private async Task SendPickedFilesAsync(
+        string user, IEnumerable<FileResult>? files, string? messageKind)
+    {
+        var picked = files?.ToList() ?? new List<FileResult>();
+        if (picked.Count == 0 || !IsCurrent(user))
+        {
+            return;
+        }
+
+        var items = new List<(string FileName, byte[] Data, string ContentType, string? Kind)>();
+        foreach (var file in picked)
+        {
+            var data = await ReadAttachmentAsync(file);
+            if (data is null)
+            {
+                ShowHint(
+                    $"«{file.FileName}» слишком большой. Максимум — {MediaLimits.MaxBytes / (1024 * 1024)} МБ.",
+                    isError: true);
+                continue;
+            }
+
+            var contentType = ResolveContentType(file);
+            var kind = messageKind
+                ?? (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : MessageKinds.File);
+            items.Add((file.FileName, data, contentType, kind));
+        }
+
+        await SendAttachmentsAsync(user, items);
+    }
+
+    /// <summary>Отправка одного вложения (записанные голосовое/кружок).</summary>
+    private Task SendOneAttachmentAsync(
+        string user, string fileName, string contentType, byte[] data, string? messageKind) =>
+        SendAttachmentsAsync(user, new[] { (fileName, data, contentType, messageKind) });
+
+    /// <summary>
+    /// Ставит вложения в очередь отправки: фото пережимаются, слишком большие
+    /// пропускаются с подсказкой. Загрузка каждого файла идет в фоне с
+    /// индикатором прогресса и кнопкой отмены в панели очереди.
+    /// </summary>
+    private async Task SendAttachmentsAsync(
+        string user,
+        IReadOnlyList<(string FileName, byte[] Data, string ContentType, string? Kind)> items)
+    {
+        if (items.Count == 0 || !IsCurrent(user))
+        {
+            return;
+        }
+
+        _sendingAttachment = true;
+        try
+        {
+            foreach (var (fileName, data, contentType, kind) in items)
+            {
+                var prepared = kind is null
+                    ? MediaCompression.CompressImage(data, contentType)
+                    : (Data: data, ContentType: contentType);
+
+                _pendingMedia.Add(new PendingMediaItem
+                {
+                    FileName = fileName,
+                    Data = prepared.Data,
+                    ContentType = prepared.ContentType,
+                    MessageKind = kind
+                });
+            }
+
+            SendQueuePanel.IsVisible = true;
+            _ = ProcessMediaQueueAsync();
+        }
+        finally
+        {
+            // _sendingAttachment сбрасывается в ProcessMediaQueueAsync,
+            // когда очередь полностью опустеет.
+        }
+    }
+
+    /// <summary>
+    /// Последовательно загружает файлы из очереди. Каждый файл — отдельный
+    /// элемент с прогрессом; отмена любого элемента удаляет его и локальное
+    /// сообщение, которое уже было сохранено как ставящееся в очередь.
+    /// </summary>
+    private async Task ProcessMediaQueueAsync()
+    {
+        if (_processingMediaQueue)
+        {
+            return;
+        }
+
+        _processingMediaQueue = true;
+        try
+        {
+            while (_pendingMedia.Count > 0)
+            {
+                var item = _pendingMedia[0];
+
+                if (item.Cts.Token.IsCancellationRequested)
+                {
+                    await RemoveQueuedItemAsync(item);
+                    continue;
+                }
+
+                // Отчёт о прогрессе приходит из сетевого потока — маршалим в UI-поток.
+                var progress = new Progress<int>(p =>
+                    MainThread.BeginInvokeOnMainThread(() => item.Progress = p));
+
+                try
+                {
+                    if (_username is null)
+                    {
+                        break;
+                    }
+
+                    await _chatManager.SendMediaAsync(
+                        _username,
+                        item.FileName,
+                        item.ContentType,
+                        item.Data,
+                        clientMessageId: item.Id,
+                        progress: progress,
+                        cancellationToken: item.Cts.Token);
+
+                    item.Progress = 100;
+                    item.Status = "Готово";
+                    await Task.Delay(350);
+                    // Успех — убираем только из панели очереди, сообщение в чате остаётся.
+                    await RemoveFromQueueAsync(item);
+                }
+                catch (OperationCanceledException)
+                {
+                    await RemoveQueuedItemAsync(item);
+                }
+                catch (Exception ex)
+                {
+                    item.Status = "Ошибка";
+                    MainThread.BeginInvokeOnMainThread(() =>
+                        ShowHint($"Не удалось отправить «{item.FileName}»: {ex.Message}", isError: true));
+                    await RemoveQueuedItemAsync(item);
+                }
+            }
+        }
+        finally
+        {
+            _processingMediaQueue = false;
+            _sendingAttachment = false;
+            SendQueuePanel.IsVisible = false;
+        }
+    }
+
+    private async Task RemoveQueuedItemAsync(PendingMediaItem item)
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            _pendingMedia.Remove(item);
+
+            var message = _messages.FirstOrDefault(m => m.Id == item.Id);
+            if (message is not null)
+            {
+                _messages.Remove(message);
+            }
+
+            SendQueuePanel.IsVisible = _pendingMedia.Count > 0;
+        });
+
+        try
+        {
+            await _chatManager.DeleteMessageAsync(item.Id);
+        }
+        catch
+        {
+            // Локальная копия уже убрана из интерфейса.
+        }
+    }
+
+    /// <summary>Убрать элемент только из панели очереди (сообщение в чате остаётся).</summary>
+    private async Task RemoveFromQueueAsync(PendingMediaItem item)
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            _pendingMedia.Remove(item);
+            SendQueuePanel.IsVisible = _pendingMedia.Count > 0;
+        });
+    }
+
+    private void OnCancelMediaClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button { CommandParameter: string id })
+        {
+            var item = _pendingMedia.FirstOrDefault(i => i.Id == id);
+            if (item is not null)
+            {
+                item.Cts.Cancel();
+            }
+        }
+    }
+
+    /// <summary>📄 — экспортировать переписку в самостоятельный HTML-файл.</summary>
+    private async void OnExportChatClicked(object sender, EventArgs e)
+    {
+        var user = _username;
+        if (user is null)
+        {
+            return;
+        }
+
+        if (_messages.Count == 0)
+        {
+            ShowHint("Нет сообщений для экспорта.", isError: true);
+            return;
+        }
+
+        try
+        {
+            var html = BuildExportHtml(user, _messages.ToList());
+            var fileName = $"SecureChat_{user}_{DateTime.Now:yyyyMMdd_HHmm}.html";
+            var path = Path.Combine(FileSystem.CacheDirectory, fileName);
+            await File.WriteAllTextAsync(path, html, System.Text.Encoding.UTF8);
+
+            await Launcher.Default.OpenAsync(new OpenFileRequest(fileName, new ReadOnlyFile(path)));
+            ShowHint("Экспорт сохранён и открыт в браузере.", isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось экспортировать переписку: {ex.Message}", isError: true);
+        }
+    }
+
+    /// <summary>
+    /// Собирает автономную HTML-страницу переписки: даты, пузыри слева/справа,
+    /// цитаты ответов, отметки «переслано/отредактировано» и реакции.
+    /// </summary>
+    private static string BuildExportHtml(string username, IReadOnlyList<MessageVm> messages)
+    {
+        static string Escape(string value) => System.Net.WebUtility.HtmlEncode(value);
+
+        const string css = """
+            * { box-sizing: border-box; }
+            body {
+                margin: 0; padding: 24px;
+                background: #0e1621; color: #e9edf5;
+                font: 15px/1.45 -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+            }
+            h1 { font-size: 20px; margin: 0 0 4px; }
+            .meta { color: #7d8b9e; font-size: 13px; margin-bottom: 20px; }
+            .day { text-align: center; margin: 22px 0 12px; }
+            .day span {
+                background: #182533; color: #7d8b9e;
+                padding: 4px 12px; border-radius: 14px; font-size: 12px;
+            }
+            .msg {
+                max-width: 640px; padding: 8px 12px; border-radius: 12px;
+                margin: 6px 0;
+            }
+            .msg.them { background: #182533; }
+            .msg.me { background: #2b5278; margin-left: auto; }
+            .sender { font-size: 12px; color: #6ab2f2; font-weight: 600; margin-bottom: 2px; }
+            .quote {
+                border-left: 3px solid #6ab2f2; padding: 2px 8px; margin-bottom: 4px;
+                color: #9db2c9; font-size: 13px;
+                background: rgba(255,255,255,0.05); border-radius: 4px;
+            }
+            .text { white-space: pre-wrap; word-break: break-word; }
+            .tag { color: #9db2c9; font-size: 12px; }
+            .time { text-align: right; font-size: 11px; color: #7d8b9e; margin-top: 4px; }
+            .reactions { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+            .reactions span {
+                background: rgba(255,255,255,0.08); border-radius: 10px;
+                padding: 1px 8px; font-size: 12px;
+            }
+            """;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<!DOCTYPE html>");
+        sb.AppendLine("<html lang=\"ru\"><head><meta charset=\"utf-8\">");
+        sb.AppendLine($"<title>Переписка с {Escape(username)} — SecureChat</title>");
+        sb.AppendLine($"<style>{css}</style></head><body>");
+        sb.AppendLine($"<h1>Переписка с {Escape(username)}</h1>");
+        sb.AppendLine(
+            $"<div class=\"meta\">SecureChat · экспортировано {DateTime.Now:dd.MM.yyyy HH:mm} · сообщений: {messages.Count}</div>");
+
+        foreach (var message in messages)
+        {
+            if (message.HasDateLabel)
+            {
+                sb.AppendLine($"<div class=\"day\"><span>{Escape(message.DateLabel)}</span></div>");
+            }
+
+            var body = message.Kind switch
+            {
+                MessageKinds.Voice => "🎤 Голосовое сообщение",
+                MessageKinds.VideoCircle => "📹 Видеокружок",
+                MessageKinds.Image => "📷 Фото",
+                MessageKinds.File => $"📎 {message.FileName} ({message.FileSizeText})",
+                _ => message.DisplayText
+            };
+
+            var quote = message.HasReplyQuote
+                ? $"<div class=\"quote\">{Escape(message.ReplyQuoteText)}</div>"
+                : string.Empty;
+
+            var flags = string.Empty;
+            if (message.IsForwarded)
+            {
+                flags += " <span class=\"tag\">↪ Переслано</span>";
+            }
+
+            if (message.IsEdited)
+            {
+                flags += " <span class=\"tag\">(отредактировано)</span>";
+            }
+
+            var reactions = string.Empty;
+            if (message.HasReactions)
+            {
+                var chips = string.Join(
+                    " ",
+                    message.ReactionChips.Select(c => $"{c.Emoji} {c.CountText}"));
+                reactions = $"<div class=\"reactions\"><span>{chips}</span></div>";
+            }
+
+            var sender = message.IsMine ? "Вы" : message.SenderDisplay;
+            sb.AppendLine(
+                $"<div class=\"msg {(message.IsMine ? "me" : "them")}\">" +
+                $"<div class=\"sender\">{Escape(sender)}</div>" +
+                $"<div class=\"text\">{quote}{Escape(body)}{flags}</div>" +
+                $"{reactions}" +
+                $"<div class=\"time\">{message.TimeText}</div>" +
+                "</div>");
+        }
+
+        sb.AppendLine("</body></html>");
+        return sb.ToString();
+    }
+
+#if WINDOWS
+    private static ChatView? _activeDropTarget;
+    private static bool _windowHooksInstalled;
+    private bool _pasteHooked;
+
+    /// <summary>
+    /// Однократно подключает перетаскивание файлов в окно приложения
+    /// и вставку из буфера (Ctrl+V). Файлы уходят в активный чат.
+    /// </summary>
+    private void EnsureWindowHooks()
+    {
+        _activeDropTarget = this;
+
+        if (_windowHooksInstalled)
+        {
+            HookPasteAccelerator();
+            return;
+        }
+
+        if (HostPage?.Window?.Handler?.PlatformView is not Microsoft.UI.Xaml.Window platformWindow ||
+            platformWindow.Content is not { } content)
+        {
+            return;
+        }
+
+        _windowHooksInstalled = true;
+
+        content.AddHandler(
+            Microsoft.UI.Xaml.UIElement.DragOverEvent,
+            new Microsoft.UI.Xaml.DragEventHandler(OnWindowDragOver),
+            true);
+        content.AddHandler(
+            Microsoft.UI.Xaml.UIElement.DropEvent,
+            new Microsoft.UI.Xaml.DragEventHandler(OnWindowDrop),
+            true);
+
+        HookPasteAccelerator();
+    }
+
+    private static void OnWindowDragOver(object sender, Microsoft.UI.Xaml.DragEventArgs e)
+    {
+        try
+        {
+            var hasFiles = e.DataView.Contains(
+                Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems);
+            e.AcceptedOperation = hasFiles
+                ? Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy
+                : Windows.ApplicationModel.DataTransfer.DataPackageOperation.None;
+            if (hasFiles)
+            {
+                e.DragUIOverride.Caption = "Отправить как вложение";
+            }
+        }
+        catch
+        {
+            e.AcceptedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.None;
+        }
+    }
+
+    private static async void OnWindowDrop(object sender, Microsoft.UI.Xaml.DragEventArgs e)
+    {
+        var target = _activeDropTarget;
+        if (target is null ||
+            !target.IsLoaded ||
+            !e.DataView.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems))
+        {
+            return;
+        }
+
+        try
+        {
+            var items = await e.DataView.GetStorageItemsAsync();
+            var files = new List<(string Name, string Path)>();
+            foreach (var item in items)
+            {
+                if (item is Windows.Storage.StorageFile file && !string.IsNullOrEmpty(file.Path))
+                {
+                    files.Add((file.Name, file.Path));
+                }
+            }
+
+            if (files.Count > 0)
+            {
+                await target.SendDroppedFilesAsync(files);
+            }
+        }
+        catch
+        {
+            // Ошибки чтения конкретных файлов показываются подсказкой.
+        }
+    }
+
+    /// <summary>Файлы из drag & drop или буфера уходят как вложения чата.</summary>
+    private async Task SendDroppedFilesAsync(IReadOnlyList<(string Name, string Path)> files)
+    {
+        var user = _username;
+        if (user is null || _sendingAttachment || !IsCurrent(user))
+        {
+            return;
+        }
+
+        var items = new List<(string FileName, byte[] Data, string ContentType, string? Kind)>();
+        foreach (var (name, path) in files)
+        {
+            byte[] data;
+            try
+            {
+                data = await File.ReadAllBytesAsync(path);
+            }
+            catch
+            {
+                ShowHint($"Не удалось прочитать «{name}».", isError: true);
+                continue;
+            }
+
+            if (data.Length == 0)
+            {
+                continue;
+            }
+
+            if (data.Length > MediaLimits.MaxBytes)
+            {
+                ShowHint(
+                    $"«{name}» слишком большой. Максимум — {MediaLimits.MaxBytes / (1024 * 1024)} МБ.",
+                    isError: true);
+                continue;
+            }
+
+            var contentType = ResolveContentType(name);
+            var kind = contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
+                ? null
+                : MessageKinds.File;
+            items.Add((name, data, contentType, kind));
+        }
+
+        await SendAttachmentsAsync(user, items);
+    }
+
+    /// <summary>Ctrl+V в поле ввода: файлы из буфера вставляются вложениями.</summary>
+    private void HookPasteAccelerator()
+    {
+        if (_pasteHooked ||
+            MessageEntry?.Handler?.PlatformView is not Microsoft.UI.Xaml.UIElement input)
+        {
+            return;
+        }
+
+        _pasteHooked = true;
+
+        var accelerator = new Microsoft.UI.Xaml.Input.KeyboardAccelerator
+        {
+            Key = Windows.System.VirtualKey.V,
+            Modifiers = Windows.System.VirtualKeyModifiers.Control
+        };
+        accelerator.Invoked += OnPasteAcceleratorInvoked;
+        input.KeyboardAccelerators.Add(accelerator);
+    }
+
+    private async void OnPasteAcceleratorInvoked(
+        Microsoft.UI.Xaml.Input.KeyboardAccelerator sender,
+        Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+    {
+        try
+        {
+            var content = Windows.ApplicationModel.DataTransfer.Clipboard.GetContent();
+            if (!content.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems))
+            {
+                // В буфере текст или картинка-изображение — обычная вставка.
+                return;
+            }
+
+            // Файлы в буфере — подавляем текстовую вставку, уходим вложениями.
+            args.Handled = true;
+
+            var items = await content.GetStorageItemsAsync();
+            var files = new List<(string Name, string Path)>();
+            foreach (var item in items)
+            {
+                if (item is Windows.Storage.StorageFile file && !string.IsNullOrEmpty(file.Path))
+                {
+                    files.Add((file.Name, file.Path));
+                }
+            }
+
+            if (files.Count > 0)
+            {
+                await SendDroppedFilesAsync(files);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось вставить из буфера: {ex.Message}", isError: true);
+        }
+    }
+#endif
+
+    private static async Task<byte[]?> ReadAttachmentAsync(FileResult file)
+    {
+        await using var stream = await file.OpenReadAsync();
+        if (stream.CanSeek && stream.Length > MediaLimits.MaxBytes)
+        {
+            return null;
+        }
+
+        using var buffer = new MemoryStream();
+        var chunk = new byte[81920];
+        while (true)
+        {
+            var read = await stream.ReadAsync(chunk);
+            if (read == 0)
+            {
+                break;
+            }
+
+            if (buffer.Length + read > MediaLimits.MaxBytes)
+            {
+                return null;
+            }
+
+            buffer.Write(chunk, 0, read);
+        }
+
+        return buffer.ToArray();
+    }
+
+    private static string ResolveContentType(FileResult file)
+    {
+        if (!string.IsNullOrWhiteSpace(file.ContentType) &&
+            !string.Equals(file.ContentType, "application/octet-stream", StringComparison.OrdinalIgnoreCase))
+        {
+            return file.ContentType;
+        }
+
+        return ResolveContentType(file.FileName);
+    }
+
+    private static string ResolveContentType(string fileName) =>
+        Path.GetExtension(fileName).ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            ".bmp" => "image/bmp",
+            ".heic" => "image/heic",
+            ".mp4" => "video/mp4",
+            ".mp3" => "audio/mpeg",
+            ".pdf" => "application/pdf",
+            ".doc" => "application/msword",
+            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".xls" => "application/vnd.ms-excel",
+            ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            _ => "application/octet-stream"
+        };
+
+    private void OnSearchInChatClicked(object sender, EventArgs e)
+    {
+        MessageSearchBar.IsVisible = !MessageSearchBar.IsVisible;
+        if (MessageSearchBar.IsVisible)
+        {
+            MessageSearchBar.Focus();
+        }
+        else
+        {
+            MessageSearchBar.Text = string.Empty;
+        }
+    }
+
+    private void OnMessageSearchChanged(object? sender, TextChangedEventArgs e)
+    {
+        _messageQuery = (e.NewTextValue ?? string.Empty).Trim();
+        RefreshDerived();
+    }
+
+    private void OnInfoPanelClicked(object sender, EventArgs e)
+    {
+        if (InfoPanel.IsVisible)
+        {
+            InfoPanel.IsVisible = false;
+            return;
+        }
+
+        ShowInfoTab(ProfileTab);
+    }
+
+    private void OnCloseInfoPanelClicked(object sender, EventArgs e) => InfoPanel.IsVisible = false;
+
+    private void OnProfileTabClicked(object sender, EventArgs e) => ShowInfoTab(ProfileTab);
+
+    private void OnMediaTabClicked(object sender, EventArgs e) => ShowInfoTab(MediaTab);
+
+    private void OnPinnedTabClicked(object sender, EventArgs e) => ShowInfoTab(PinnedTab);
+
+    private void ShowInfoTab(string tab)
+    {
+        InfoPanel.IsVisible = true;
+        ProfileSection.IsVisible = tab == ProfileTab;
+        MediaSection.IsVisible = tab == MediaTab;
+        PinnedSection.IsVisible = tab == PinnedTab;
+        InfoPanelTitle.Text = tab switch
+        {
+            ProfileTab => "Профиль",
+            MediaTab => "Медиа и файлы",
+            _ => "Закреплённые"
+        };
+    }
+
+    private void OnSettingsClicked(object sender, EventArgs e) => SettingsRequested?.Invoke();
+
+    private void OnCloseClicked(object sender, EventArgs e) => CloseRequested?.Invoke();
+
+    private void OnBubbleTapped(object? sender, TappedEventArgs e)
+    {
+        if (GetMessage(sender) is { } message)
+        {
+            SelectMessage(message);
+        }
+    }
+
+    private void OnBubblePointerPressed(object? sender, PointerEventArgs e)
+    {
+        if (GetMessage(sender) is not { } message)
+        {
+            return;
+        }
+
+        _menuPosition = e.GetPosition(this) ?? default;
+
+#if WINDOWS
+        object? platformArgs = e.PlatformArgs;
+        if (platformArgs is Microsoft.UI.Xaml.Input.PointerRoutedEventArgs args &&
+            args.GetCurrentPoint(null).Properties.IsRightButtonPressed)
+        {
+            ShowContextMenu(message);
+        }
+#else
+        // Длинное нажатие открывает контекстное меню.
+        _longPressCts = new CancellationTokenSource();
+        _ = ShowContextMenuAfterLongPress(message, _longPressCts.Token);
+#endif
+    }
+
+    private void SelectMessage(MessageVm message)
+    {
+        if (_selected is not null)
+        {
+            _selected.IsSelected = false;
+        }
+
+        _selected = ReferenceEquals(_selected, message) ? null : message;
+        if (_selected is not null)
+        {
+            _selected.IsSelected = true;
+        }
+    }
+
+    private async void OnActionCopyClicked(object sender, EventArgs e)
+    {
+        if (GetMessage(sender) is { } message)
+        {
+            await CopyMessageAsync(message);
+        }
+    }
+
+    private void OnActionReplyClicked(object sender, EventArgs e)
+    {
+        if (GetMessage(sender) is { } message)
+        {
+            ReplyTo(message);
+        }
+    }
+
+    private async void OnActionReactionClicked(object sender, EventArgs e)
+    {
+        if (GetMessage(sender) is { } message)
+        {
+            await PickReactionAsync(message);
+        }
+    }
+
+    private async void OnActionForwardClicked(object sender, EventArgs e)
+    {
+        if (GetMessage(sender) is { } message)
+        {
+            await ForwardAsync(message);
+        }
+    }
+
+    private async void OnActionPinClicked(object sender, EventArgs e)
+    {
+        if (GetMessage(sender) is { } message)
+        {
+            await TogglePinAsync(message);
+        }
+    }
+
+    private void OnActionEditClicked(object sender, EventArgs e)
+    {
+        if (GetMessage(sender) is { } message)
+        {
+            StartEdit(message);
+        }
+    }
+
+    private async void OnActionDeleteClicked(object sender, EventArgs e)
+    {
+        if (GetMessage(sender) is { } message)
+        {
+            await DeleteAsync(message);
+        }
+    }
+
+    private void OnUrlClicked(object? sender, EventArgs e)
+    {
+        string? url = null;
+        if (sender is Button b)
+        {
+            url = b.Text;
+        }
+        else if (sender is Label l)
+        {
+            url = l.Text;
+        }
+
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            _ = OpenUrlAsync(url);
+        }
+    }
+
+    /// <summary>Открывает ссылку: сначала во встроенном браузере, при неудаче — в системном.</summary>
+    private async Task OpenUrlAsync(string url)
+    {
+        var page = HostPage;
+        if (page is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await page.Navigation.PushAsync(new BrowserPage(url));
+        }
+        catch
+        {
+            // Встроенная навигация недоступна — открываем в системном браузере.
+            try
+            {
+                await Browser.Default.OpenAsync(url, BrowserLaunchMode.SystemPreferred);
+            }
+            catch (Exception ex)
+            {
+                ShowHint($"Не удалось открыть ссылку: {ex.Message}", isError: true);
+            }
+        }
+    }
+
+    private void OnLinkPreviewTapped(object? sender, EventArgs e)
+    {
+        if (sender is Border { BindingContext: MessageVm message } &&
+            message.LinkPreview is { } preview)
+        {
+            _ = OpenUrlAsync(preview.Url);
+        }
+    }
+
+    private async Task CopyUrlsAsync(MessageVm message)
+    {
+        try
+        {
+            await Clipboard.Default.SetTextAsync(string.Join("\n", message.Urls));
+            ShowHint($"Ссылк{(message.Urls.Count > 1 ? "и" : "а")} скопированы.", isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось скопировать: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task CopyMessageLinkAsync(MessageVm message)
+    {
+        try
+        {
+            var link = DeepLink.BuildMessageLink("11", _username!, message.Id);
+            await Clipboard.Default.SetTextAsync(link);
+            ShowHint("Ссылка на сообщение скопирована.", isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось скопировать ссылку: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task CopyMessageAsync(MessageVm message)
+    {
+        try
+        {
+            await Clipboard.Default.SetTextAsync(
+                message.Kind is MessageKinds.Text or MessageKinds.Sticker ? message.Text : message.FileName);
+            ShowHint("Скопировано.", isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось скопировать: {ex.Message}", isError: true);
+        }
+    }
+
+    private void ReplyTo(MessageVm message)
+    {
+        _replyingTo = message;
+        _editingMessageId = null;
+        EditBar.IsVisible = false;
+
+        var preview = string.IsNullOrWhiteSpace(message.ReplyQuoteText)
+            ? message.FileName
+            : message.ReplyQuoteText;
+        ReplyPreviewLabel.Text = $"↩ Ответ на «{Shorten(preview, 70)}»";
+        ReplyBar.IsVisible = true;
+        MessageEntry.Focus();
+    }
+
+    private void OnCancelReplyClicked(object sender, EventArgs e)
+    {
+        _replyingTo = null;
+        ReplyBar.IsVisible = false;
+        MessageEntry.Focus();
+    }
+
+    private void OnCancelEditClicked(object sender, EventArgs e)
+    {
+        _editingMessageId = null;
+        EditBar.IsVisible = false;
+        MessageEntry.Text = string.Empty;
+        MessageEntry.Focus();
+    }
+
+    private async Task ShowContextMenuAfterLongPress(MessageVm message, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(600, token);
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
+            MainThread.BeginInvokeOnMainThread(() => ShowContextMenu(message));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void StartEdit(MessageVm message)
+    {
+        if (message.Kind != MessageKinds.Text)
+        {
+            ShowHint("Редактирование доступно только для текстовых сообщений.", isError: true);
+            return;
+        }
+
+        _editingMessageId = message.Id;
+        _replyingTo = null;
+        ReplyBar.IsVisible = false;
+        EditPreviewLabel.Text = $"✏️ Редактирование · {message.TimeText}";
+        EditBar.IsVisible = true;
+        MessageEntry.Text = message.Text;
+        MessageEntry.Focus();
+    }
+
+    private void OnBubblePointerReleased(object? sender, PointerEventArgs e)
+    {
+        _longPressCts?.Cancel();
+        _longPressCts = null;
+    }
+
+    private void OnBubblePointerExited(object? sender, PointerEventArgs e)
+    {
+        _longPressCts?.Cancel();
+        _longPressCts = null;
+    }
+
+    private async Task PickReactionAsync(MessageVm message)
+    {
+        var page = HostPage;
+        if (page is null || _username is null)
+        {
+            return;
+        }
+
+        var choice = await page.DisplayActionSheet("Реакция:", "Отмена", null, ReactionEmojis);
+        if (string.IsNullOrEmpty(choice) || choice == "Отмена")
+        {
+            return;
+        }
+
+        try
+        {
+            await _chatManager.ToggleReactionAsync(message.Id, choice);
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Ошибка реакции: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task ForwardAsync(MessageVm message)
+    {
+        var page = HostPage;
+        if (page is null || _username is null)
+        {
+            return;
+        }
+
+        var targets = (await _chatManager.GetConversationsAsync())
+            .Where(item => !string.Equals(item.Username, _username, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (targets.Count == 0)
+        {
+            ShowHint("Нет других чатов для пересылки.", isError: false);
+            return;
+        }
+
+        var choice = await page.DisplayActionSheet(
+            "Переслать в:",
+            "Отмена",
+            null,
+            targets.Select(item => item.Username).ToArray());
+        var target = targets.FirstOrDefault(item => string.Equals(item.Username, choice, StringComparison.Ordinal));
+        if (target is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (message.Kind is MessageKinds.Text or MessageKinds.Sticker)
+            {
+                await _chatManager.SendMessageToUserAsync(
+                    target.UserId,
+                    target.Username,
+                    message.Text,
+                    target.EncryptionPublicKey,
+                    isForwarded: true,
+                    kind: message.Kind);
+            }
+            else
+            {
+                var bytes = await _chatManager.GetLocalMediaAsync(message.Id);
+                if (bytes is null)
+                {
+                    ShowHint("Вложение ещё не загружено на устройство.", isError: true);
+                    return;
+                }
+
+                await _chatManager.SendMediaAsync(
+                    target.Username,
+                    message.FileName,
+                    message.ContentType,
+                    bytes,
+                    isForwarded: true);
+            }
+
+            ShowHint($"Переслано в {target.Username}.", isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось переслать: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task TogglePinAsync(MessageVm message)
+    {
+        try
+        {
+            await _chatManager.TogglePinnedAsync(message.Id, !message.IsPinned);
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось закрепить: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task DeleteAsync(MessageVm message)
+    {
+        var page = HostPage;
+        if (page is null)
+        {
+            return;
+        }
+
+        var confirmed = await page.DisplayAlert(
+            "Удалить сообщение?",
+            "Сообщение будет удалено локально.",
+            "Удалить",
+            "Отмена");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            await _chatManager.DeleteMessageAsync(message.Id);
+            _messages.Remove(message);
+            if (ReferenceEquals(_selected, message))
+            {
+                _selected = null;
+            }
+
+            RefreshDerived();
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось удалить сообщение: {ex.Message}", isError: true);
+        }
+    }
+
+    private async void OnOpenImageClicked(object sender, EventArgs e)
+    {
+        var message = GetMessage(sender);
+        var page = HostPage;
+        if (message is null || page is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var bytes = await _chatManager.GetLocalMediaAsync(message.Id);
+            if (bytes is null && !string.IsNullOrEmpty(_username))
+            {
+                if (!_chatManager.IsOnline)
+                {
+                    ShowHint("Нет подключения: фото загрузится, когда связь восстановится.", isError: true);
+                    return;
+                }
+
+                await _chatManager.EnsureMediaAsync(_username, message.Id);
+                bytes = await _chatManager.GetLocalMediaAsync(message.Id);
+            }
+
+            if (bytes is null)
+            {
+                ShowHint("Изображение ещё не загружено.", isError: true);
+                return;
+            }
+
+            await page.Navigation.PushModalAsync(
+                new NavigationPage(new ImageViewerPage(bytes, message.FileName)));
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось открыть фото: {ex.Message}", isError: true);
+        }
+    }
+
+    private async void OnMediaActionClicked(object sender, EventArgs e)
+    {
+        var message = GetMessage(sender);
+        var user = _username;
+        if (message is null || user is null)
+        {
+            return;
+        }
+
+        // Голосовые и видеокружки имеют свои инлайн-обработчики, не открываем в MediaPlayer
+        if (message.IsVoice || message.IsVideoCircle)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!message.MediaDownloaded)
+            {
+                if (!_chatManager.IsOnline)
+                {
+                    ShowHint("Нет подключения: вложение загрузится, когда связь восстановится.", isError: true);
+                    return;
+                }
+
+                await _chatManager.EnsureMediaAsync(user, message.Id);
+            }
+
+            var bytes = await _chatManager.GetLocalMediaAsync(message.Id);
+            var page = HostPage;
+            if (bytes is null || page is null)
+            {
+                ShowHint("Вложение недоступно на этом устройстве.", isError: true);
+                return;
+            }
+
+            var path = Path.Combine(FileSystem.CacheDirectory, message.Id + Path.GetExtension(message.FileName));
+            await File.WriteAllBytesAsync(path, bytes);
+
+            // Видео и аудио открываем во встроенном плеере, остальное — системным приложением.
+            if (IsPlayableMedia(message.ContentType, message.FileName))
+            {
+                await page.Navigation.PushModalAsync(
+                    new NavigationPage(new MediaPlayerPage(path, message.FileName, message.ContentType)));
+                return;
+            }
+
+            await Launcher.Default.OpenAsync(new OpenFileRequest(message.FileName, new ReadOnlyFile(path)));
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось открыть вложение: {ex.Message}", isError: true);
+        }
+    }
+
+    private async void OnPlayVoiceClicked(object sender, EventArgs e)
+    {
+#if ANDROID || WINDOWS
+        if (GetMessage(sender) is not { } message || string.IsNullOrEmpty(_username))
+        {
+            return;
+        }
+
+        // Нажатие на то же сообщение — пауза или продолжение воспроизведения.
+        if (_voicePlayingMessageId == message.Id && _voicePlayer != null)
+        {
+            if (_voicePlayer.IsPlaying)
+            {
+                _voicePlayer.Pause();
+                message.IsPlaying = false;
+                _voiceProgressTimer?.Stop();
+            }
+            else
+            {
+                _voicePlayer.Play();
+                message.IsPlaying = true;
+                StartVoiceProgressTimer(message);
+            }
+            return;
+        }
+
+        // Останавливаем текущее воспроизведение (если играло другое сообщение).
+        StopVoicePlayback();
+
+        try
+        {
+            if (!message.MediaDownloaded)
+            {
+                if (!_chatManager.IsOnline)
+                {
+                    ShowHint("Нет подключения: голосовое загрузится, когда связь восстановится.", isError: true);
+                    return;
+                }
+
+                await _chatManager.EnsureMediaAsync(_username, message.Id);
+            }
+
+            var bytes = await _chatManager.GetLocalMediaAsync(message.Id);
+            if (bytes is null)
+            {
+                ShowHint("Голосовое недоступно на этом устройстве.", isError: true);
+                return;
+            }
+
+            var path = Path.Combine(FileSystem.CacheDirectory, message.Id + ".m4a");
+            await File.WriteAllBytesAsync(path, bytes);
+
+            var player = CreateVoicePlayer()
+                ?? throw new InvalidOperationException("Воспроизведение не поддерживается на этой платформе.");
+
+            await player.OpenAsync(path);
+            message.UpdatePlayback(0, player.DurationSeconds);
+
+            player.Completed += (_, _) =>
+                MainThread.BeginInvokeOnMainThread(StopVoicePlayback);
+
+            _voicePlayer = player;
+            _voicePlayingMessageId = message.Id;
+            _voiceProgressMessageId = message.Id;
+            message.IsPlaying = true;
+            player.Play();
+            StartVoiceProgressTimer(message);
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось воспроизвести голосовое: {ex.Message}", isError: true);
+        }
+#else
+        await Task.CompletedTask;
+        ShowHint("Воспроизведение голосовых на этой платформе недоступно.", isError: true);
+#endif
+    }
+
+    private static IVoicePlayer? CreateVoicePlayer()
+    {
+#if ANDROID
+        return new VoicePlayerAndroid();
+#elif WINDOWS
+        return new VoicePlayerWindows();
+#else
+        return null;
+#endif
+    }
+
+#if ANDROID || WINDOWS
+    private void StartVoiceProgressTimer(MessageVm message)
+    {
+        _voiceProgressTimer?.Stop();
+        _voiceProgressTimer = new System.Timers.Timer(250);
+        _voiceProgressTimer.Elapsed += (_, _) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                var player = _voicePlayer;
+                if (player is null || _voicePlayingMessageId != message.Id)
+                {
+                    return;
+                }
+
+                try
+                {
+                    var duration = player.DurationSeconds;
+                    if (duration > 0)
+                    {
+                        message.UpdatePlayback(player.PositionSeconds, duration);
+                    }
+                }
+                catch
+                {
+                    // Плеер мог быть освобождён между тиками таймера.
+                }
+            });
+        };
+        _voiceProgressTimer.Start();
+    }
+#endif
+
+    private void OnVoiceProgressTapped(object sender, TappedEventArgs e)
+    {
+#if ANDROID || WINDOWS
+        if (sender is not View view ||
+            view.BindingContext is not MessageVm message ||
+            _voicePlayer is null ||
+            _voicePlayingMessageId != message.Id)
+        {
+            return;
+        }
+
+        var duration = _voicePlayer.DurationSeconds;
+        if (duration <= 0 || view.Width <= 0)
+        {
+            return;
+        }
+
+        var point = e.GetPosition(view);
+        if (point is null)
+        {
+            return;
+        }
+
+        // Перемотка по координате касания относительно ширины аудиодорожки.
+        var ratio = Math.Clamp(point.Value.X / view.Width, 0, 1);
+        var position = ratio * duration;
+        _voicePlayer.SeekSeconds(position);
+        message.UpdatePlayback(position, duration);
+#endif
+    }
+
+    private async void OnPlayVideoCircleClicked(object sender, EventArgs e)
+    {
+        if (GetMessage(sender) is not { } message || string.IsNullOrEmpty(_username))
+        {
+            return;
+        }
+
+        try
+        {
+            if (!message.MediaDownloaded)
+            {
+                if (!_chatManager.IsOnline)
+                {
+                    ShowHint("Нет подключения: видеокружок загрузится, когда связь восстановится.", isError: true);
+                    return;
+                }
+
+                await _chatManager.EnsureMediaAsync(_username, message.Id);
+            }
+
+            var bytes = await _chatManager.GetLocalMediaAsync(message.Id);
+            var page = HostPage;
+            if (bytes is null || page is null)
+            {
+                ShowHint("Видеокружок недоступен на этом устройстве.", isError: true);
+                return;
+            }
+
+            var path = Path.Combine(FileSystem.CacheDirectory, message.Id + ".mp4");
+            await File.WriteAllBytesAsync(path, bytes);
+
+            await page.Navigation.PushModalAsync(
+                new NavigationPage(new MediaPlayerPage(path, message.FileName, message.ContentType, isVideoCircle: true)));
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось открыть видеокружок: {ex.Message}", isError: true);
+        }
+    }
+
+    private void StopVoicePlayback()
+    {
+#if ANDROID || WINDOWS
+        if (_voicePlayer != null)
+        {
+            try
+            {
+                _voicePlayer.Release();
+            }
+            catch
+            {
+                // Игнорируем
+            }
+            _voicePlayer = null;
+        }
+        _voicePlayingMessageId = null;
+
+        // Сбрасываем состояние воспроизведения на сообщении
+        if (_voiceProgressMessageId != null)
+        {
+            var msg = _messages.FirstOrDefault(m => m.Id == _voiceProgressMessageId);
+            msg?.ResetPlayback();
+            _voiceProgressMessageId = null;
+        }
+
+        _voiceProgressTimer?.Stop();
+        _voiceProgressTimer = null;
+#endif
+    }
+
+    private static bool IsPlayableMedia(string contentType, string fileName)
+    {
+        if (contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase) ||
+            contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return Path.GetExtension(fileName).ToLowerInvariant() is
+            ".mp4" or ".mov" or ".webm" or ".mkv" or ".mp3" or ".m4a" or ".wav" or ".ogg";
+    }
+
+    private void OnMediaItemTapped(object sender, TappedEventArgs e)
+    {
+        if (GetMessage(sender) is { } message)
+        {
+            ScrollToMessage(message);
+        }
+    }
+
+    private void OnPinnedItemTapped(object sender, TappedEventArgs e)
+    {
+        if (GetMessage(sender) is { } message)
+        {
+            ScrollToMessage(message);
+        }
+    }
+
+    private void OnPinnedBannerTapped(object sender, TappedEventArgs e)
+    {
+        var pinned = GetPinned();
+        if (pinned.Count > 0)
+        {
+            ScrollToMessage(pinned[Math.Clamp(_pinnedIndex, 0, pinned.Count - 1)]);
+        }
+    }
+
+    private void OnPinnedUpClicked(object sender, EventArgs e) => MovePinned(-1);
+
+    private void OnPinnedDownClicked(object sender, EventArgs e) => MovePinned(1);
+
+    private void MovePinned(int delta)
+    {
+        var pinned = GetPinned();
+        if (pinned.Count == 0)
+        {
+            return;
+        }
+
+        _pinnedIndex = Math.Clamp(_pinnedIndex + delta, 0, pinned.Count - 1);
+        RefreshSidePanels();
+        ScrollToMessage(pinned[_pinnedIndex]);
+    }
+
+    private async void OnUnpinBannerClicked(object sender, EventArgs e)
+    {
+        var pinned = GetPinned();
+        if (pinned.Count == 0)
+        {
+            return;
+        }
+
+        await TogglePinAsync(pinned[Math.Clamp(_pinnedIndex, 0, pinned.Count - 1)]);
+    }
+
+    private void OnContextMenuDismissed(object sender, TappedEventArgs e) => HideContextMenu();
+
+    private void ShowContextMenu(MessageVm message)
+    {
+        ContextMenuItems.Children.Clear();
+        AddMenuItem("📋 Копировать", () => CopyMessageAsync(message));
+        AddMenuItem("↩ Ответить", () => { ReplyTo(message); return Task.CompletedTask; });
+        AddMenuItem("😊 Реакция", () => PickReactionAsync(message));
+        AddMenuItem("🔄 Переслать", () => ForwardAsync(message));
+        AddMenuItem(message.IsPinned ? "📌 Открепить" : "📌 Закрепить", () => TogglePinAsync(message));
+        if (message.IsMine)
+        {
+            if (message.Kind == MessageKinds.Text)
+            {
+                AddMenuItem("✏️ Редактировать", () => { StartEdit(message); return Task.CompletedTask; });
+            }
+
+            AddMenuItem("🗑️ Удалить", () => DeleteAsync(message));
+        }
+        if (message.HasUrls)
+        {
+            foreach (var url in message.Urls.Take(3))
+            {
+                var u = url;
+                AddMenuItem($"🔗 {Shorten(u, 38)}", () => OpenUrlAsync(u));
+            }
+            AddMenuItem("📋 Копировать ссылку", () => CopyUrlsAsync(message));
+        }
+        AddMenuItem("🔗 Ссылка на сообщение", () => CopyMessageLinkAsync(message));
+        if (!string.Equals(_username, ChatManager.SelfChatUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            AddMenuItem(message.IsArchived ? "📤 Разархивировать" : "📦 Архивировать",
+                () => ToggleArchiveAsync(message));
+        }
+        AddMenuItem("ℹ️ Информация", () => ShowMessageInfo(message));
+
+        ClampContextMenuPosition();
+        ContextMenuOverlay.IsVisible = true;
+    }
+
+    private async Task ToggleArchiveAsync(MessageVm message)
+    {
+        if (_username is null)
+        {
+            return;
+        }
+
+        if (string.Equals(_username, ChatManager.SelfChatUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            HideContextMenu();
+            if (HostPage is not null)
+            {
+                await HostPage.DisplayAlert("Избранное",
+                    "Это служебный чат для сохранения сообщений. Его нельзя заархивировать.", "OK");
+            }
+            return;
+        }
+
+        await _chatManager.ArchiveConversationAsync(_username, !message.IsArchived);
+        HideContextMenu();
+    }
+
+    private void ClampContextMenuPosition()
+    {
+        if (Width <= 0 || Height <= 0)
+        {
+            return;
+        }
+
+        var x = Math.Clamp(_menuPosition.X, 0, Math.Max(0, Width - 260));
+        var y = Math.Clamp(_menuPosition.Y, 0, Math.Max(0, Height - 260));
+        ContextMenuBorder.Margin = new Thickness(x, y, 0, 0);
+    }
+
+    private async Task ShowMessageInfo(MessageVm message)
+    {
+        HideContextMenu();
+        var page = HostPage;
+        if (page is null)
+        {
+            return;
+        }
+
+        var kindLabel = message.Kind switch
+        {
+            MessageKinds.Image => "Изображение",
+            MessageKinds.Voice => "Голосовое сообщение",
+            MessageKinds.VideoCircle => "Видеокружок",
+            MessageKinds.File => "Файл",
+            MessageKinds.Sticker => "Стикер",
+            _ => "Текст"
+        };
+
+        var text = new StringBuilder();
+        text.AppendLine($"Тип: {kindLabel}");
+        text.AppendLine($"Отправитель: {message.SenderDisplay}");
+        text.AppendLine($"Время: {message.TimeText} {message.LocalDate:dd.MM.yyyy}");
+        text.AppendLine($"Статус: {message.DeliveryStatus}");
+        if (!string.IsNullOrEmpty(message.FileName))
+        {
+            text.AppendLine($"Файл: {message.FileName} ({message.FileSizeText})");
+        }
+        if (message.IsForwarded)
+        {
+            text.AppendLine("Переслано: да");
+        }
+        if (message.IsEdited)
+        {
+            text.AppendLine("Отредактировано: да");
+        }
+        text.AppendLine($"Идентификатор: {message.Id}");
+
+        await page.DisplayAlert("Информация о сообщении", text.ToString(), "OK");
+    }
+
+    private void AddMenuItem(string text, Func<Task> action)
+    {
+        var button = new Button
+        {
+            Text = text,
+            BackgroundColor = Colors.Transparent,
+            TextColor = Res("TextPrimary"),
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        button.Clicked += async (_, _) =>
+        {
+            HideContextMenu();
+            await action();
+        };
+        ContextMenuItems.Children.Add(button);
+    }
+
+    private void HideContextMenu()
+    {
+        ContextMenuOverlay.IsVisible = false;
+        ContextMenuItems.Children.Clear();
+    }
+
+    private static MessageVm? GetMessage(object? sender) => sender switch
+    {
+        Button { CommandParameter: MessageVm button } => button,
+        BindableObject { BindingContext: MessageVm item } => item,
+        _ => null
+    };
+
+    private void ScrollToMessage(MessageVm message) =>
+        MessagesView.ScrollTo(message, position: ScrollToPosition.Center, animate: true);
+
+    private async Task EnsurePreviewAsync(MessageVm message)
+    {
+        if (message.LinkPreview is not null || message.Urls.Count == 0)
+        {
+            return;
+        }
+
+        var preview = await _previewService.GetPreviewAsync(message.Urls[0]);
+        if (preview is not null)
+        {
+            MainThread.BeginInvokeOnMainThread(() => message.LinkPreview = preview);
+        }
+    }
+
+    private void ScrollToBottom()
+    {
+        if (_messages.Count > 0)
+        {
+            MessagesView.ScrollTo(_messages[^1], position: ScrollToPosition.End, animate: false);
+        }
+    }
+
+    private void ShowHint(string text, bool isError)
+    {
+        HintLabel.Text = text;
+        HintLabel.TextColor = Res(isError ? "Danger" : "TextMuted");
+        HintLabel.IsVisible = true;
+
+        _hintCts?.Cancel();
+        _hintCts = new CancellationTokenSource();
+        _ = HideHintLaterAsync(isError ? 6000 : 4000, _hintCts.Token);
+    }
+
+    private void HideHint()
+    {
+        _hintCts?.Cancel();
+        HintLabel.IsVisible = false;
+    }
+
+    private async Task HideHintLaterAsync(int delayMs, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(delayMs, token);
+            MainThread.BeginInvokeOnMainThread(() => HintLabel.IsVisible = false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Новая подсказка заменила предыдущую.
+        }
+    }
+
+    private static Color Res(string key) => (Color)Application.Current!.Resources[key];
+
+    private static ImageSource? AvatarSource(string? base64)
+    {
+        if (string.IsNullOrWhiteSpace(base64))
+        {
+            return null;
+        }
+
+        try
+        {
+            var bytes = Convert.FromBase64String(base64);
+            return ImageSource.FromStream(() => new MemoryStream(bytes));
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
+
+    private static string FormatDateLabel(DateTime date, DateTime today)
+    {
+        if (date == today)
+        {
+            return "Сегодня";
+        }
+
+        if (date == today.AddDays(-1))
+        {
+            return "Вчера";
+        }
+
+        return date.ToString("d MMMM yyyy", RuCulture);
+    }
+
+    private static string Shorten(string text, int maxLength) =>
+        text.Length <= maxLength ? text : text[..maxLength] + "…";
+
+    private async Task<(byte[] Data, string ContentType)?> RecordVoiceMessageAsync(Page page)
+    {
+#if WINDOWS
+        if (!await WindowsRecording.EnsureMicrophoneAllowedAsync(page))
+        {
+            return null;
+        }
+#else
+        // Запрашиваем право на микрофон перед записью.
+        try
+        {
+            var status = await Permissions.RequestAsync<Permissions.Microphone>();
+            if (status != PermissionStatus.Granted)
+            {
+                ShowHint("Нет права на запись аудио. Разрешите доступ к микрофону в настройках.", isError: true);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось запросить право на микрофон: {ex.Message}", isError: true);
+            return null;
+        }
+#endif
+
+        var cts = new CancellationTokenSource();
+        var recordingTask = _audioRecorder.RecordAsync(cts.Token);
+        var startedAt = DateTime.UtcNow;
+
+        var timerLabel = new Label
+        {
+            Text = "0:00",
+            FontSize = 34,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White,
+            HorizontalOptions = LayoutOptions.Center
+        };
+
+        var statusLabel = new Label
+        {
+            Text = "Идёт запись",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#B3FFFFFF"),
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var redDot = new BoxView
+        {
+            WidthRequest = 9,
+            HeightRequest = 9,
+            CornerRadius = 5,
+            Color = Res("Danger"),
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var sendButton = new Button
+        {
+            Text = "Отправить",
+            BackgroundColor = Res("Accent"),
+            TextColor = Colors.White,
+            CornerRadius = 18,
+            HeightRequest = 38,
+            FontSize = 13,
+            Padding = new Thickness(16, 0)
+        };
+
+        var cancelButton = new Button
+        {
+            Text = "Отмена",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#B3FFFFFF"),
+            CornerRadius = 18,
+            HeightRequest = 38,
+            FontSize = 13,
+            Padding = new Thickness(16, 0)
+        };
+
+        var card = new Border
+        {
+            BackgroundColor = Res("Surface"),
+            StrokeThickness = 0,
+            Padding = new Thickness(24, 20),
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 24 },
+            Content = new VerticalStackLayout
+            {
+                Spacing = 16,
+                Children =
+                {
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 8,
+                        HorizontalOptions = LayoutOptions.Center,
+                        Children = { redDot, statusLabel }
+                    },
+                    timerLabel,
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 8,
+                        HorizontalOptions = LayoutOptions.Center,
+                        Children = { cancelButton, sendButton }
+                    }
+                }
+            }
+        };
+
+        var recordingPage = new ContentPage
+        {
+            BackgroundColor = Color.FromArgb("#B3000000"),
+            Content = new Grid { Children = { card } }
+        };
+
+        var result = new TaskCompletionSource<bool>();
+        var finished = false;
+        var timer = Dispatcher.CreateTimer();
+        timer.Interval = TimeSpan.FromSeconds(1);
+        timer.Tick += (_, _) =>
+        {
+            var elapsed = DateTime.UtcNow - startedAt;
+            timerLabel.Text = elapsed.TotalHours >= 1
+                ? $"{(int)elapsed.TotalHours}:{elapsed.Minutes:00}:{elapsed.Seconds:00}"
+                : $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:00}";
+        };
+
+        void Finish(bool send)
+        {
+            if (finished)
+            {
+                return;
+            }
+
+            finished = true;
+            timer.Stop();
+            cts.Cancel();
+            result.TrySetResult(send);
+        }
+
+        sendButton.Clicked += (_, _) => Finish(true);
+        cancelButton.Clicked += (_, _) => Finish(false);
+        recordingPage.Disappearing += (_, _) => Finish(false);
+
+        timer.Start();
+        await page.Navigation.PushModalAsync(recordingPage);
+
+        var send = await result.Task;
+        if (recordingPage.Navigation.ModalStack.Contains(recordingPage))
+        {
+            await page.Navigation.PopModalAsync();
+        }
+        timer.Stop();
+
+        string? path = null;
+        try
+        {
+            path = await recordingTask;
+        }
+        catch (Exception ex) when (send)
+        {
+            ShowHint($"Ошибка записи голосового: {ex.Message}", isError: true);
+        }
+        catch
+        {
+            // Отмена записи — ожидаемая ситуация.
+        }
+
+        if (!send || string.IsNullOrEmpty(path))
+        {
+            DeleteQuietly(path);
+            return null;
+        }
+
+        try
+        {
+            var data = await File.ReadAllBytesAsync(path);
+            DeleteQuietly(path);
+            return (data, "audio/mp4");
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось прочитать запись: {ex.Message}", isError: true);
+            return null;
+        }
+    }
+
+    private static void DeleteQuietly(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(path);
+        }
+        catch
+        {
+            // Временный файл мог быть уже удалён.
+        }
+    }
+
+    private async Task<(byte[] Data, string ContentType)?> RecordVideoCircleAsync(Page page)
+    {
+#if WINDOWS || ANDROID
+#if WINDOWS
+        if (!await WindowsRecording.EnsureCameraReadyAsync(page))
+        {
+            return null;
+        }
+#endif
+        try
+        {
+            var status = await Permissions.RequestAsync<Permissions.Camera>();
+            if (status != PermissionStatus.Granted)
+            {
+                ShowHint("Нет права на камеру. Разрешите доступ к камере в настройках.", isError: true);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось запросить право на камеру: {ex.Message}", isError: true);
+            return null;
+        }
+
+        try
+        {
+            // Открываем системную камеру: у неё есть предпросмотр, запись,
+            // остановка и подтверждение — пользователь видит, что записывает.
+            var captured = await MediaPicker.Default.CaptureVideoAsync(new MediaPickerOptions
+            {
+                Title = "Запись видеокружка"
+            });
+
+            if (captured is null)
+            {
+                return null;
+            }
+
+            await using var stream = await captured.OpenReadAsync();
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+
+            if (buffer.Length == 0)
+            {
+                ShowHint("Камера вернула пустой видеофайл.", isError: true);
+                return null;
+            }
+
+            if (buffer.Length > MediaLimits.MaxBytes)
+            {
+                ShowHint($"Видео слишком большое. Максимум — {MediaLimits.MaxBytes / (1024 * 1024)} МБ.", isError: true);
+                return null;
+            }
+
+            var contentType = !string.IsNullOrWhiteSpace(captured.ContentType) &&
+                              captured.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase)
+                ? captured.ContentType
+                : "video/mp4";
+
+            return (buffer.ToArray(), contentType);
+        }
+        catch (FeatureNotSupportedException)
+        {
+            ShowHint("На устройстве нет приложения камеры, поддерживающего запись видео.", isError: true);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось записать видео: {ex.Message}", isError: true);
+            return null;
+        }
+#else
+        await Task.CompletedTask;
+        ShowHint("Запись видеокружков на этой платформе недоступна.", isError: true);
+        return null;
+#endif
+    }
+}
+

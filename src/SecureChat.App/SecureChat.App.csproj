@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net9.0-android;net9.0-windows10.0.19041.0</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>SecureChat.App</RootNamespace>
+    <AssemblyName>SecureChat.App</AssemblyName>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <MauiVersion>9.0.120</MauiVersion>
+
+    <ApplicationTitle>SecureChat</ApplicationTitle>
+    <ApplicationId>com.securechat.app</ApplicationId>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
+    <AndroidAbi Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">x86;arm64-v8a;x86_64</AndroidAbi>
+    <!-- Mono требует, чтобы нативные библиотеки в APK хранились без сжатия
+         (lib/<abi>/*.so MUST BE STORED), иначе приложение падает при старте. -->
+    <AndroidStoreUncompressedFileExtensions Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">.so;.dll;.pdb</AndroidStoreUncompressedFileExtensions>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+
+    <!-- Запуск Windows-версии без установки MSIX-пакета. -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#0B1220" />
+    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#0B1220" BaseSize="128,128" />
+    <MauiImage Include="Resources\Images\*" />
+    <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.8" />
+
+  </ItemGroup>
+
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250909003" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SecureChat.Core\SecureChat.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    Нативные файлы Windows App Runtime берём из установленного в системе
+    пакета (Windows App Runtime 1.8). Если в системе стоит более новая версия
+    фреймворка, чем тянет workload MAUI, бутстрап не находит совместимый
+    набор и приложение падает с STATUS_DLL_NOT_FOUND (0xC0000135).
+  -->
+  <Target Name="CopyInstalledWinAppSdkRuntime" AfterTargets="Build" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+    <PropertyGroup>
+      <_WinAppSdkRuntimeGlob>$(ProgramFiles)\WindowsApps\Microsoft.WindowsAppRuntime.1.8_*_x64__*</_WinAppSdkRuntimeGlob>
+      <_WinAppSdkOutDir>$(OutDir)</_WinAppSdkOutDir>
+    </PropertyGroup>
+    <Exec Condition="Exists('$(_WinAppSdkRuntimeGlob)')" Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;Get-ChildItem -Path '$(_WinAppSdkRuntimeGlob)' -Filter '*.dll' -File -ErrorAction SilentlyContinue | Copy-Item -Destination '$(_WinAppSdkOutDir)' -Force&quot;" ContinueOnError="true" StandardOutputImportance="low" />
+  </Target>
+
+</Project>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Pages.BrowserPage"
+             Title="Браузер">
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Адресная строка -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*,Auto"
+              ColumnSpacing="8"
+              Padding="12,10"
+              BackgroundColor="{DynamicResource Surface}">
+            <Button Grid.Column="0"
+                    Text="◀"
+                    Style="{DynamicResource IconButton}"
+                    Clicked="OnBackClicked" />
+            <Entry Grid.Column="1"
+                   x:Name="AddressEntry"
+                   Placeholder="https://example.com"
+                   Keyboard="Url"
+                   ReturnType="Go"
+                   Completed="OnNavigate" />
+            <Button Grid.Column="2"
+                    Text="➤"
+                    Style="{DynamicResource IconButton}"
+                    Clicked="OnNavigate" />
+        </Grid>
+
+        <!-- Страница -->
+        <WebView Grid.Row="1"
+                 x:Name="BrowserWebView"
+                 Navigating="OnNavigating"
+                 Navigated="OnNavigated" />
+
+        <!-- Панель инструментов -->
+        <Border Grid.Row="2"
+                BackgroundColor="{DynamicResource Surface}"
+                StrokeThickness="0"
+                Padding="10,8">
+            <HorizontalStackLayout Spacing="6">
+                <Button Text="🏠"
+                        Style="{DynamicResource GhostButton}"
+                        Clicked="OnHomeClicked"
+                        ToolTipProperties.Text="Домашняя страница" />
+                <Button Text="↻"
+                        Style="{DynamicResource GhostButton}"
+                        Clicked="OnReloadClicked"
+                        ToolTipProperties.Text="Обновить" />
+                <Button Text="←"
+                        Style="{DynamicResource GhostButton}"
+                        Clicked="OnBackClicked"
+                        ToolTipProperties.Text="Назад" />
+                <Button Text="→"
+                        Style="{DynamicResource GhostButton}"
+                        Clicked="OnForwardClicked"
+                        ToolTipProperties.Text="Вперёд" />
+                <Button Text="⧉"
+                        Style="{DynamicResource GhostButton}"
+                        Clicked="OnOpenExternalClicked"
+                        ToolTipProperties.Text="Открыть в системном браузере" />
+            </HorizontalStackLayout>
+        </Border>
+    </Grid>
+</ContentPage>

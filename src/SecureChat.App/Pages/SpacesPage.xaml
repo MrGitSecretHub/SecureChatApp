@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:SecureChat.App.Views"
+             x:Class="SecureChat.App.Pages.SpacesPage"
+             Title="Группы и сообщества">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+        <!-- Шапка -->
+        <VerticalStackLayout Grid.Row="0"
+                             Padding="16,14,16,4"
+                             Spacing="2">
+            <Label Text="Пространства" Style="{DynamicResource H1}" />
+            <Label Text="Группы, каналы и форумы с сквозным шифрованием."
+                   Style="{DynamicResource Caption}" />
+        </VerticalStackLayout>
+
+        <!-- Фильтр по типу -->
+        <HorizontalStackLayout Grid.Row="1"
+                               Padding="16,8"
+                               Spacing="8">
+            <Button x:Name="AllFilterButton"
+                    Text="Все"
+                    Clicked="OnFilterClicked"
+                    Style="{DynamicResource GhostButton}" />
+            <Button x:Name="GroupsFilterButton"
+                    Text="Группы"
+                    Clicked="OnFilterClicked"
+                    Style="{DynamicResource GhostButton}" />
+            <Button x:Name="ChannelsFilterButton"
+                    Text="Каналы"
+                    Clicked="OnFilterClicked"
+                    Style="{DynamicResource GhostButton}" />
+            <Button x:Name="ForumsFilterButton"
+                    Text="Форумы"
+                    Clicked="OnFilterClicked"
+                    Style="{DynamicResource GhostButton}" />
+        </HorizontalStackLayout>
+
+        <Label x:Name="OfflineLabel"
+               Grid.Row="2"
+               Margin="16,0,16,8"
+               FontSize="12"
+               TextColor="{DynamicResource Warning}"
+               LineBreakMode="WordWrap"
+               IsVisible="False"
+               Text="⚡ Пространства недоступны в офлайн-режиме. Подключитесь к серверу, чтобы загрузить список." />
+
+        <CollectionView Grid.Row="3"
+                        x:Name="SpacesView"
+                        SelectionMode="Single"
+                        SelectionChanged="OnSpaceSelected"
+                        BackgroundColor="Transparent">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
+                    <Label Text="📢"
+                           Style="{DynamicResource EmptyStateIcon}" />
+                    <Label Text="Пространств пока нет"
+                           Style="{DynamicResource EmptyStateTitle}" />
+                    <Label Text="Создайте группу, канал или форум, чтобы общаться сообществом."
+                           Style="{DynamicResource EmptyStateCaption}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="views:SpaceVm">
+                    <Border Style="{DynamicResource Card}"
+                            Margin="12,6"
+                            Padding="14">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border WidthRequest="42"
+                                    HeightRequest="42"
+                                    BackgroundColor="{DynamicResource AccentSoft}"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <Ellipse />
+                                </Border.StrokeShape>
+                                <Label Text="{Binding Icon}"
+                                       FontSize="19"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                <Label Text="{Binding Name}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource TextPrimary}"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding Description}"
+                                       FontSize="12"
+                                       TextColor="{DynamicResource TextMuted}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="2" />
+                                <Label Text="{Binding MembersText}"
+                                       FontSize="11"
+                                       TextColor="{DynamicResource TextDisabled}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
+                                <Label Text="{Binding TypeBadge}"
+                                       FontSize="10"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource Accent}" />
+                                <Label Text="{Binding TimeText}"
+                                       FontSize="10"
+                                       TextColor="{DynamicResource TextDisabled}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Button Grid.Row="4"
+                Text="Создать группу, канал или сообщество"
+                Style="{DynamicResource PrimaryButton}"
+                Margin="16"
+                Clicked="OnCreateClicked" />
+    </Grid>
+</ContentPage>

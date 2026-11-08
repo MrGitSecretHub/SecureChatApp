@@ -1,0 +1,51 @@
+# Build output
+bin/
+obj/
+out/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# MAUI / Android
+*.apk
+*.aab
+*.keystore
+*.jks
+Platforms/Android/Resources/Resource.designer.cs
+
+# Server runtime data
+src/SecureChat.Server/App_Data/
+*.db
+*.db-shm
+*.db-wal
+
+# Backup copies of server data and signing secrets
+src/SecureChat.Server/_data_backup_*/
+keys/
+keystore.props
+*.pfx
+
+# Local tools, screenshots and logs (not part of the project)
+/.mimocode/
+/App_Data/
+/artifacts/
+/mimo.exe
+/hfs-windows-x64-3.3.4/
+/hfs-windows-x64-3.3.4.zip
+/server-*.log
+/VoiceVideoBlock.txt
+*.log
+
+# Test and publish output
+TestResults/
+*.trx
+coverage.*
+publish/
+
+# OS
+Thumbs.db
+.DS_Store

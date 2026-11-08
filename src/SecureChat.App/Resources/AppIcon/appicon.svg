@@ -1,0 +1,23 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0044aa;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bubbleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#f0f0f0;stop-opacity:0.95" />
+    </linearGradient>
+  </defs>
+  <!-- Фон: закругленный квадрат -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bgGradient)" />
+  
+  <!-- Пузырь сообщения (левый уголок) -->
+  <path d="M280 320 C280 260 340 220 400 220 H720 C780 220 840 260 840 320 V620 C840 680 780 720 720 720 H340 C280 720 220 680 220 620 V320 Z" fill="url(#bubbleGradient)" />
+  
+  <!-- Замочек внутри пузыря -->
+  <path d="M440 440 L600 440 L600 520 L440 520 Z" fill="#0066ff" />
+  <path d="M480 480 L560 480 L560 520 L480 520 Z" fill="#0044aa" />
+  <circle cx="520" cy="560" r="30" fill="#ffffff" />
+  <path d="M500 560 L520 580 L540 560" stroke="#0066ff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

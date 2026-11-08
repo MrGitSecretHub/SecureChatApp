@@ -1,0 +1,152 @@
+using System.Collections.ObjectModel;
+using SecureChat.App.Services;
+using SecureChat.App.Views;
+using SecureChat.Core.Contracts;
+
+namespace SecureChat.App.Pages;
+
+/// <summary>Список групп, каналов, сообществ и форумов.</summary>
+public partial class SpacesPage : ContentPage
+{
+    private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
+    private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
+    private readonly ObservableCollection<SpaceVm> _items = new();
+    private List<SpaceDto> _all = new();
+    private string _filter = "all";
+
+    public SpacesPage()
+    {
+        InitializeComponent();
+        SpacesView.ItemsSource = _items;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        _spaces.Subscribe();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_chatManager.IsOffline)
+        {
+            OfflineLabel.IsVisible = true;
+            return;
+        }
+
+        try
+        {
+            _all = await _spaces.ListAsync();
+            OfflineLabel.IsVisible = false;
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            OfflineLabel.Text = $"Не удалось загрузить пространства: {ex.Message}";
+            OfflineLabel.IsVisible = true;
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        _items.Clear();
+        foreach (var space in _all)
+        {
+            if (_filter != "all" && space.Type != _filter)
+            {
+                continue;
+            }
+
+            _items.Add(SpaceVm.From(space));
+        }
+    }
+
+    private void OnFilterClicked(object sender, EventArgs e)
+    {
+        _filter = sender switch
+        {
+            Button { Text: "Группы" } => SpaceTypes.Group,
+            Button { Text: "Каналы" } => SpaceTypes.Channel,
+            Button { Text: "Форумы" } => SpaceTypes.Forum,
+            _ => "all"
+        };
+
+        ApplyFilter();
+    }
+
+    private async void OnSpaceSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is not SpaceVm item)
+        {
+            return;
+        }
+
+        SpacesView.SelectedItem = null;
+        await Navigation.PushAsync(new SpaceChatPage(item.Id, item.Name, item.Type, item.CanPost));
+    }
+
+    private async void OnCreateClicked(object sender, EventArgs e)
+    {
+        var name = await DisplayPromptAsync(
+            "Новое пространство",
+            "Введите название:",
+            "Создать",
+            "Отмена",
+            maxLength: 64,
+            keyboard: Keyboard.Text);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        var typeChoice = await DisplayActionSheet(
+            "Тип пространства:",
+            "Отмена",
+            null,
+            "👥 Группа — общий чат, пишут все участники",
+            "📢 Канал — объявления, пишут только админы",
+            "🧵 Форум — темы с обсуждениями",
+            "🌐 Сообщество — публичная площадка с каналами");
+        if (string.IsNullOrWhiteSpace(typeChoice) || typeChoice == "Отмена")
+        {
+            return;
+        }
+
+        var type = typeChoice switch
+        {
+            var value when value.StartsWith("📢") => SpaceTypes.Channel,
+            var value when value.StartsWith("🧵") => SpaceTypes.Forum,
+            var value when value.StartsWith("🌐") => SpaceTypes.Community,
+            _ => SpaceTypes.Group
+        };
+
+        var description = await DisplayPromptAsync(
+            "Описание",
+            "Коротко о пространстве (необязательно):",
+            "Далее",
+            "Пропустить",
+            maxLength: 200,
+            keyboard: Keyboard.Text);
+
+        try
+        {
+            var created = await _spaces.CreateAsync(
+                name,
+                type,
+                description ?? string.Empty,
+                isPublic: type is SpaceTypes.Channel or SpaceTypes.Community or SpaceTypes.Forum,
+                members: Array.Empty<string>());
+
+            if (created is not null)
+            {
+                await LoadAsync();
+                await DisplayAlert("Готово", $"Пространство «{created.Name}» создано.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
+}

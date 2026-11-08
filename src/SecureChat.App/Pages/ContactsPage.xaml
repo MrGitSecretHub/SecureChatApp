@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Pages.ContactsPage"
+             Title="Контакты">
+    <Grid Padding="16" RowDefinitions="Auto,Auto,*" RowSpacing="12">
+
+        <!-- Шапка -->
+        <VerticalStackLayout Spacing="2">
+            <Label Text="Контакты" Style="{DynamicResource H1}" />
+            <Label Text="Сверьте отпечаток ключа с собеседником по другому каналу."
+                   Style="{DynamicResource Caption}" />
+        </VerticalStackLayout>
+
+        <!-- Поиск/добавление -->
+        <Border Grid.Row="1" Style="{DynamicResource Card}" Padding="12">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Entry x:Name="UsernameEntry"
+                       Placeholder="Имя пользователя, например bob"
+                       IsSpellCheckEnabled="False"
+                       Completed="OnAddClicked" />
+                <Button Grid.Column="1"
+                        x:Name="AddButton"
+                        Text="Добавить"
+                        Clicked="OnAddClicked" />
+            </Grid>
+        </Border>
+
+        <!-- Список -->
+        <CollectionView x:Name="ContactsView"
+                        Grid.Row="2"
+                        SelectionMode="Single"
+                        SelectionChanged="OnContactSelected">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
+                    <Label Text="👥"
+                           Style="{DynamicResource EmptyStateIcon}" />
+                    <Label Text="Список контактов пуст"
+                           Style="{DynamicResource EmptyStateTitle}" />
+                    <Label Text="Добавьте собеседника по имени пользователя."
+                           Style="{DynamicResource EmptyStateCaption}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{DynamicResource Card}" Margin="0,4" Padding="12">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+
+                            <!-- Аватар -->
+                            <Border WidthRequest="42"
+                                    HeightRequest="42"
+                                    StrokeThickness="0"
+                                    BackgroundColor="{DynamicResource AccentSoft}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="21" />
+                                </Border.StrokeShape>
+                                <Label Text="{Binding Initial}"
+                                       FontAttributes="Bold"
+                                       FontSize="16"
+                                       TextColor="{DynamicResource Accent}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                <Label Text="{Binding Username}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource TextPrimary}" />
+                                <Label Text="{Binding Fingerprint}"
+                                       Style="{DynamicResource Caption}"
+                                       FontFamily="{DynamicResource FontFamilyMono}"
+                                       LineBreakMode="CharacterWrap" />
+                                <Label Text="⚠ Ключ контакта изменился — проверьте отпечаток!"
+                                       FontSize="11"
+                                       TextColor="{DynamicResource Danger}"
+                                       IsVisible="{Binding KeysChanged}" />
+                            </VerticalStackLayout>
+
+                            <Button Grid.Column="2"
+                                    Text="→"
+                                    Style="{DynamicResource IconButton}"
+                                    VerticalOptions="Center"
+                                    CommandParameter="{Binding .}"
+                                    Clicked="OnOpenChatClicked" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

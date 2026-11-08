@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:SecureChat.App.Views"
+             x:Class="SecureChat.App.Pages.SpaceSettingsPage"
+             Title="Настройки пространства">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="14" MaximumWidthRequest="760">
+
+            <!-- Основное -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Пространство" Style="{DynamicResource H2}" />
+
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <Border WidthRequest="56"
+                                HeightRequest="56"
+                                BackgroundColor="{DynamicResource AccentSoft}"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <Ellipse />
+                            </Border.StrokeShape>
+                            <Label x:Name="SpaceIconLabel"
+                                   FontSize="24"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                            <Label x:Name="SpaceNameLabel"
+                                   FontSize="17"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource TextPrimary}" />
+                            <Label x:Name="SpaceTypeLabel"
+                                   FontSize="12"
+                                   TextColor="{DynamicResource TextMuted}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Название" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Entry x:Name="NameEntry" />
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Описание" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Editor x:Name="DescriptionEditor"
+                                HeightRequest="80"
+                                AutoSize="TextChanges"
+                                Placeholder="Коротко о пространстве"
+                                PlaceholderColor="{DynamicResource TextMuted}" />
+                    </VerticalStackLayout>
+
+                    <Button Text="Сохранить"
+                            Style="{DynamicResource PrimaryButton}"
+                            Clicked="OnSaveClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Участники -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Участники" Style="{DynamicResource H2}" />
+                    <Label x:Name="MembersHintLabel"
+                           Style="{DynamicResource Caption}" />
+
+                    <CollectionView x:Name="MembersView"
+                                    SelectionMode="Single"
+                                    SelectionChanged="OnMemberTapped"
+                                    HeightRequest="260">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="views:SpaceMemberVm">
+                                <Grid Padding="8,6" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                    <Border WidthRequest="34"
+                                            HeightRequest="34"
+                                            BackgroundColor="{Binding AvatarColor}">
+                                        <Border.StrokeShape>
+                                            <Ellipse />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding Initial}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="White"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="{Binding Username}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{DynamicResource TextPrimary}" />
+                                        <Label Text="{Binding StatusText}"
+                                               FontSize="11"
+                                               TextColor="{DynamicResource TextMuted}" />
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="{Binding RoleText}"
+                                               FontSize="11"
+                                               TextColor="{DynamicResource Accent}" />
+                                        <Label Text="{Binding CanPostText}"
+                                               FontSize="10"
+                                               TextColor="{DynamicResource TextDisabled}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Button Text="Добавить участника по логину"
+                            Style="{DynamicResource SecondaryButton}"
+                            Clicked="OnAddMemberClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Опасная зона -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Действия" Style="{DynamicResource H2}" />
+                    <Button x:Name="LeaveButton"
+                            Text="Покинуть пространство"
+                            Style="{DynamicResource SecondaryButton}"
+                            Clicked="OnLeaveClicked" />
+                    <Button x:Name="DeleteButton"
+                            Text="Удалить пространство"
+                            Style="{DynamicResource DangerButton}"
+                            Clicked="OnDeleteClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

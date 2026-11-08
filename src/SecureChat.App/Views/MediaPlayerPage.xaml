@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Views.MediaPlayerPage"
+             Title="{Binding Title}"
+             BackgroundColor="#000000">
+    <Grid>
+        <WebView x:Name="MediaWebView"
+                 HorizontalOptions="Fill"
+                 VerticalOptions="Fill" />
+
+        <Button Text="✕"
+                Style="{DynamicResource SecondaryButton}"
+                FontSize="18"
+                Padding="10"
+                WidthRequest="44"
+                HeightRequest="44"
+                HorizontalOptions="End"
+                VerticalOptions="Start"
+                Margin="12"
+                Clicked="OnCloseClicked" />
+    </Grid>
+</ContentPage>

@@ -1,0 +1,1247 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:SecureChat.App.Views"
+             x:Class="SecureChat.App.Views.ChatView">
+    <ContentView.Resources>
+        <ResourceDictionary>
+            <views:EditedToLabelConverter x:Key="EditedToLabelConverter" />
+            <views:DeliveryToDotsConverter x:Key="DeliveryToDotsConverter" />
+            <views:PausePlayConverter x:Key="PausePlayConverter" />
+            <views:PercentToDoubleConverter x:Key="PercentToDoubleConverter" />
+
+            <DataTemplate x:Key="PendingMediaItemTemplate">
+                <Grid ColumnDefinitions="36,Auto,*,32" ColumnSpacing="6" Padding="4">
+                    <Label Grid.Column="0"
+                           Text="{Binding KindEmoji}"
+                           FontSize="18"
+                           VerticalOptions="Center" />
+                    <VerticalStackLayout Grid.Column="1" Spacing="0">
+                        <Label Text="{Binding FileName}"
+                               FontSize="12"
+                               TextColor="{DynamicResource TextPrimary}"
+                               LineBreakMode="TailTruncation"
+                               MaxLines="1" />
+                        <Label Text="{Binding Status}"
+                               FontSize="11"
+                               TextColor="{DynamicResource TextMuted}" />
+                    </VerticalStackLayout>
+                    <ProgressBar Grid.Column="2"
+                                 Progress="{Binding Progress, Converter={StaticResource PercentToDoubleConverter}}"
+                                 HeightRequest="6"
+                                 VerticalOptions="Center" />
+                    <Button Grid.Column="3"
+                            Text="✕"
+                            Style="{DynamicResource IconButton}"
+                            Clicked="OnCancelMediaClicked"
+                            CommandParameter="{Binding Id}"
+                            WidthRequest="32"
+                            HeightRequest="32"
+                            VerticalOptions="Center" />
+                </Grid>
+            </DataTemplate>
+
+            <DataTemplate x:Key="UrlItemTemplate">
+                <Label Text="{Binding .}"
+                       TextColor="{DynamicResource Accent}"
+                       FontSize="12"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1"
+                       HorizontalOptions="Start">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnUrlClicked" />
+                    </Label.GestureRecognizers>
+                </Label>
+            </DataTemplate>
+
+            <Style x:Key="BubbleActionButton" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="TextColor" Value="{DynamicResource TextMuted}" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="MinimumWidthRequest" Value="0" />
+                <Setter Property="MinimumHeightRequest" Value="0" />
+                <Setter Property="WidthRequest" Value="30" />
+                <Setter Property="HeightRequest" Value="26" />
+            </Style>
+        </ResourceDictionary>
+    </ContentView.Resources>
+
+    <Grid x:Name="RootLayout" ColumnDefinitions="*,Auto">
+
+        <!-- КОЛОНКА ПЕРЕПИСКИ -->
+        <Grid Grid.Column="0"
+              RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto"
+              BackgroundColor="{DynamicResource PageBackground}">
+
+            <!-- Шапка: собеседник и действия -->
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto"
+                  ColumnSpacing="6"
+                  Padding="14,10"
+                  BackgroundColor="{DynamicResource Surface}">
+
+                <Border Grid.Column="0"
+                        WidthRequest="42"
+                        HeightRequest="42"
+                        BackgroundColor="{DynamicResource Accent}"
+                        StrokeThickness="0"
+                        VerticalOptions="Center">
+                    <Border.StrokeShape>
+                        <Ellipse />
+                    </Border.StrokeShape>
+                    <Image x:Name="ContactAvatar"
+                           WidthRequest="42"
+                           HeightRequest="42"
+                           Aspect="AspectFill" />
+                </Border>
+
+                <VerticalStackLayout Grid.Column="1"
+                                     Spacing="2"
+                                     Margin="4,0,0,0"
+                                     VerticalOptions="Center">
+                    <Label x:Name="ContactLabel"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{DynamicResource TextPrimary}"
+                           LineBreakMode="TailTruncation" />
+                    <Label x:Name="ContactStatusLabel"
+                           FontSize="12"
+                           TextColor="{DynamicResource TextMuted}"
+                           LineBreakMode="TailTruncation" />
+                </VerticalStackLayout>
+
+                <Button Grid.Column="2"
+                        Text="🔍"
+                        Style="{DynamicResource IconButton}"
+                        Clicked="OnSearchInChatClicked"
+                        ToolTipProperties.Text="Поиск по переписке" />
+                <Button Grid.Column="3"
+                        x:Name="InfoPanelButton"
+                        Text="ℹ️"
+                        Style="{DynamicResource IconButton}"
+                        Clicked="OnInfoPanelClicked"
+                        ToolTipProperties.Text="Профиль, медиа и закреплённые" />
+                <Button Grid.Column="4"
+                        Text="⚙️"
+                        Style="{DynamicResource IconButton}"
+                        Clicked="OnSettingsClicked"
+                        ToolTipProperties.Text="Профиль и настройки" />
+                <Button Grid.Column="5"
+                        x:Name="CloseChatButton"
+                        Text="✕"
+                        Style="{DynamicResource IconButton}"
+                        Clicked="OnCloseClicked"
+                        ToolTipProperties.Text="Закрыть чат (Esc)" />
+            </Grid>
+
+            <BoxView Grid.Row="1"
+                     HeightRequest="1"
+                     BackgroundColor="{DynamicResource BorderColor}" />
+
+            <!-- Поиск по переписке -->
+            <SearchBar Grid.Row="2"
+                       x:Name="MessageSearchBar"
+                       Placeholder="Поиск в переписке"
+                       IsVisible="False"
+                       Margin="10,6"
+                       TextChanged="OnMessageSearchChanged" />
+
+            <!-- Предупреждение о ключе и офлайн-режим -->
+            <VerticalStackLayout Grid.Row="3"
+                                 Spacing="6"
+                                 Padding="12,6,12,0">
+                <Label x:Name="KeyWarningLabel"
+                       FontSize="12"
+                       TextColor="{DynamicResource Danger}"
+                       Text="⚠ Ключ контакта изменился. Сверьте новый отпечаток с собеседником."
+                       IsVisible="False"
+                       LineBreakMode="WordWrap" />
+
+                <Border x:Name="OfflineBanner"
+                        IsVisible="False"
+                        BackgroundColor="{DynamicResource SurfaceAlt}"
+                        Stroke="{DynamicResource Warning}"
+                        StrokeThickness="1"
+                        Padding="10,5">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+                    <Label FontSize="11"
+                           TextColor="{DynamicResource Warning}"
+                           Text="⚡ Офлайн-режим: сообщения сохраняются на устройстве и отправятся после подключения."
+                           LineBreakMode="WordWrap" />
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- ЗАКРЕПЛЁННЫЕ СООБЩЕНИЯ: один компактный виджет -->
+            <Border Grid.Row="1"
+                    x:Name="PinnedSectionInline"
+                    IsVisible="False"
+                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                    StrokeThickness="0"
+                    Margin="12,6,12,4"
+                    Padding="0,6,6,6">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnPinnedBannerTapped" />
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="Auto,*,Auto"
+                      ColumnSpacing="8">
+                    <BoxView Grid.Column="0"
+                             WidthRequest="3"
+                             CornerRadius="2"
+                             BackgroundColor="{DynamicResource Accent}"
+                             VerticalOptions="Fill" />
+                    <VerticalStackLayout Grid.Column="1"
+                                         Spacing="1"
+                                         VerticalOptions="Center">
+                        <HorizontalStackLayout Spacing="6">
+                            <Label Text="Закреплённое сообщение"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource Accent}"
+                                   VerticalOptions="Center" />
+                            <Border BackgroundColor="{DynamicResource Surface}"
+                                    StrokeThickness="0"
+                                    Padding="5,0"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Label x:Name="PinnedCountLabelInline"
+                                       FontSize="9"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource Accent}"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </HorizontalStackLayout>
+                        <Label x:Name="PinnedLabelInline"
+                               FontSize="12"
+                               TextColor="{DynamicResource TextPrimary}"
+                               LineBreakMode="TailTruncation"
+                               MaxLines="1" />
+                    </VerticalStackLayout>
+                    <HorizontalStackLayout Grid.Column="2"
+                                           Spacing="2"
+                                           VerticalOptions="Center">
+                        <Button Text="↑"
+                                FontSize="13"
+                                WidthRequest="26"
+                                HeightRequest="26"
+                                Padding="0"
+                                MinimumWidthRequest="0"
+                                MinimumHeightRequest="0"
+                                BackgroundColor="Transparent"
+                                TextColor="{DynamicResource Accent}"
+                                CornerRadius="6"
+                                Clicked="OnPinnedUpClicked"
+                                ToolTipProperties.Text="Предыдущее закреплённое" />
+                        <Button Text="↓"
+                                FontSize="13"
+                                WidthRequest="26"
+                                HeightRequest="26"
+                                Padding="0"
+                                MinimumWidthRequest="0"
+                                MinimumHeightRequest="0"
+                                BackgroundColor="Transparent"
+                                TextColor="{DynamicResource Accent}"
+                                CornerRadius="6"
+                                Clicked="OnPinnedDownClicked"
+                                ToolTipProperties.Text="Следующее закреплённое" />
+                        <Button Text="✕"
+                                FontSize="13"
+                                WidthRequest="26"
+                                HeightRequest="26"
+                                Padding="0"
+                                MinimumWidthRequest="0"
+                                MinimumHeightRequest="0"
+                                BackgroundColor="Transparent"
+                                TextColor="{DynamicResource TextMuted}"
+                                CornerRadius="6"
+                                Clicked="OnUnpinBannerClicked"
+                                ToolTipProperties.Text="Открепить" />
+                    </HorizontalStackLayout>
+                </Grid>
+            </Border>
+
+            <!-- Сообщения -->
+            <CollectionView Grid.Row="4"
+                            x:Name="MessagesView"
+                            SelectionMode="None"
+                            ItemsUpdatingScrollMode="KeepLastItemInView"
+                            BackgroundColor="Transparent">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24,32" Spacing="8" VerticalOptions="Center">
+                        <Label Text="✉️"
+                               Style="{DynamicResource EmptyStateIcon}" />
+                        <Label Text="Нет сообщений"
+                               Style="{DynamicResource EmptyStateTitle}" />
+                        <Label Text="Напишите первым — сообщение уйдёт в сквозное шифрование."
+                               Style="{DynamicResource EmptyStateCaption}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="views:MessageVm">
+                        <VerticalStackLayout IsVisible="{Binding MatchesSearch}"
+                                             Spacing="0">
+
+                            <!-- Разделитель дат -->
+                            <Border IsVisible="{Binding HasDateLabel}"
+                                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                                    StrokeThickness="0"
+                                    Padding="12,3"
+                                    Margin="0,10,0,6"
+                                    HorizontalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <Label Text="{Binding DateLabel}"
+                                       FontSize="11"
+                                       TextColor="{DynamicResource TextMuted}" />
+                            </Border>
+
+                            <Grid ColumnDefinitions="36,*"
+                                  ColumnSpacing="6"
+                                  Padding="14,2">
+
+                                <!-- Аватар собеседника (у первого сообщения в серии) -->
+                                <Grid Grid.Column="0"
+                                      WidthRequest="30"
+                                      HeightRequest="30"
+                                      VerticalOptions="End"
+                                      IsVisible="{Binding ShowAvatar}">
+                                    <!-- Цветной круг с буквой (fallback) -->
+                                    <Border BackgroundColor="{Binding SenderAvatarColor}"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <Ellipse />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding SenderInitial}"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="White"
+                                               VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <!-- Реальный фото-аватар (если загружен) -->
+                                    <Image Source="{Binding SenderAvatarImageSource}"
+                                           Aspect="AspectFill"
+                                           WidthRequest="30"
+                                           HeightRequest="30">
+                                        <Image.Clip>
+                                            <EllipseGeometry />
+                                        </Image.Clip>
+                                    </Image>
+                                </Grid>
+
+                                <!-- Пузырь сообщения -->
+                                <Border x:Name="BubbleBorder"
+                                        Grid.Column="1"
+                                        Style="{Binding BubbleStyle}"
+                                        VerticalOptions="Start">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnBubbleTapped" />
+                                        <PointerGestureRecognizer PointerPressed="OnBubblePointerPressed"
+                                                                  PointerReleased="OnBubblePointerReleased"
+                                                                  PointerExited="OnBubblePointerExited" />
+                                    </Border.GestureRecognizers>
+
+                                    <VerticalStackLayout Spacing="4">
+
+                                        <!-- Цитата ответа -->
+                                        <Border IsVisible="{Binding HasReplyQuote}"
+                                                BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                StrokeThickness="0"
+                                                Padding="8"
+                                                Margin="0,0,0,2">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="8" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="1">
+                                                <Label Text="↩ Ответ"
+                                                       FontSize="12"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{DynamicResource Accent}" />
+                                                <Label Text="{Binding ReplyQuoteText}"
+                                                       FontSize="12"
+                                                       FontAttributes="Italic"
+                                                       TextColor="{DynamicResource TextMuted}"
+                                                       LineBreakMode="TailTruncation"
+                                                       MaxLines="2" />
+                                            </VerticalStackLayout>
+                                        </Border>
+
+                                        <Label IsVisible="{Binding IsForwarded}"
+                                               Text="↪ Переслано"
+                                               FontSize="11"
+                                               FontAttributes="Italic"
+                                               TextColor="{DynamicResource TextMuted}" />
+
+                                        <!-- Текст сообщения -->
+                                        <Label Text="{Binding DisplayText}"
+                                               Style="{Binding TextStyle}"
+                                               LineBreakMode="WordWrap"
+                                               IsVisible="{Binding ShowText}" />
+
+                                        <!-- Ссылки в сообщении (кликабельные чипы, пока нет превью) -->
+                                        <StackLayout IsVisible="{Binding ShowUrlChips}"
+                                                     BindableLayout.ItemsSource="{Binding Urls}"
+                                                     BindableLayout.ItemTemplate="{StaticResource UrlItemTemplate}"
+                                                     Spacing="4"
+                                                     Margin="0,6,0,0"
+                                                     HorizontalOptions="Start" />
+
+                                        <!-- Превью ссылки (Open Graph) -->
+                                        <Border IsVisible="{Binding HasLinkPreview}"
+                                                BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                StrokeThickness="0"
+                                                Padding="10"
+                                                HorizontalOptions="Start">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="10" />
+                                            </Border.StrokeShape>
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnLinkPreviewTapped" />
+                                            </Border.GestureRecognizers>
+                                            <Grid ColumnDefinitions="70,*" ColumnSpacing="10">
+                                                <Image Source="{Binding LinkPreview.ImageSource}"
+                                                       Aspect="AspectFill"
+                                                       WidthRequest="70"
+                                                       HeightRequest="60"
+                                                       HorizontalOptions="Start"
+                                                       VerticalOptions="Start" />
+                                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                    <Label Text="{Binding LinkPreview.Title}"
+                                                           FontSize="13"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{DynamicResource TextPrimary}"
+                                                           LineBreakMode="TailTruncation"
+                                                           MaxLines="2" />
+                                                    <Label Text="{Binding LinkPreview.Description}"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           LineBreakMode="TailTruncation"
+                                                           MaxLines="2" />
+                                                    <Label Text="{Binding LinkPreview.Domain}"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           LineBreakMode="TailTruncation" />
+                                                </VerticalStackLayout>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Изображение -->
+                                        <Grid IsVisible="{Binding IsImage}"
+                                              RowDefinitions="Auto,Auto"
+                                              RowSpacing="4">
+                                            <Border IsVisible="{Binding IsImagePending}"
+                                                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                    StrokeThickness="0"
+                                                    Padding="20,14">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="10" />
+                                                </Border.StrokeShape>
+                                                <Label Text="Загрузка изображения…"
+                                                       FontSize="12"
+                                                       TextColor="{DynamicResource TextMuted}" />
+                                            </Border>
+                                            <Grid IsVisible="{Binding IsImageReady}">
+                                                <Image Source="{Binding ImageSource}"
+                                                       Aspect="AspectFit"
+                                                       MaximumWidthRequest="340"
+                                                       MaximumHeightRequest="240"
+                                                       HorizontalOptions="Start" />
+                                                <Border IsVisible="{Binding IsGif}"
+                                                        BackgroundColor="#000000B0"
+                                                        StrokeThickness="0"
+                                                        Padding="7,2"
+                                                        Margin="0,0,0,6"
+                                                        HorizontalOptions="Start"
+                                                        VerticalOptions="End">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="6" />
+                                                    </Border.StrokeShape>
+                                                    <Label Text="GIF"
+                                                           FontSize="11"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White" />
+                                                </Border>
+                                            </Grid>
+                                            <Button Grid.Row="1"
+                                                    Text="Посмотреть"
+                                                    IsVisible="{Binding IsImageReady}"
+                                                    Style="{DynamicResource GhostButton}"
+                                                    FontSize="12"
+                                                    Padding="8,2"
+                                                    HeightRequest="28"
+                                                    HorizontalOptions="Start"
+                                                    CommandParameter="{Binding .}"
+                                                    Clicked="OnOpenImageClicked" />
+                                        </Grid>
+
+                                        <!-- Файл -->
+                                        <Border IsVisible="{Binding IsFile}"
+                                                BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                StrokeThickness="0"
+                                                Padding="10">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="10" />
+                                            </Border.StrokeShape>
+                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                                <Label Grid.Column="0"
+                                                       Text="📄"
+                                                       FontSize="20"
+                                                       VerticalOptions="Center" />
+                                                <VerticalStackLayout Grid.Column="1"
+                                                                     Spacing="2"
+                                                                     VerticalOptions="Center">
+                                                    <Label Text="{Binding FileName}"
+                                                           FontSize="13"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{DynamicResource TextPrimary}"
+                                                           LineBreakMode="MiddleTruncation" />
+                                                    <Label Text="{Binding FileSizeText}"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}" />
+                                                    <Label Text="Загрузка…"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           IsVisible="{Binding IsFilePending}" />
+                                                </VerticalStackLayout>
+                                                <Button Grid.Column="2"
+                                                        Text="{Binding ActionButtonText}"
+                                                        IsVisible="{Binding CanOpenFile}"
+                                                        Style="{DynamicResource GhostButton}"
+                                                        FontSize="12"
+                                                        Padding="8,2"
+                                                        HeightRequest="28"
+                                                        VerticalOptions="Center"
+                                                        CommandParameter="{Binding .}"
+                                                        Clicked="OnMediaActionClicked" />
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Голосовое сообщение (инлайн-плеер) -->
+                                        <Border IsVisible="{Binding IsVoice}"
+                                                BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                StrokeThickness="0"
+                                                Padding="10,8">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="20" />
+                                            </Border.StrokeShape>
+                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                                <Label Grid.Column="0"
+                                                        Text="🎙️"
+                                                        FontSize="16"
+                                                        VerticalOptions="Center" />
+                                                <VerticalStackLayout Grid.Column="1"
+                                                                   Spacing="0"
+                                                                   VerticalOptions="Center">
+                                                    <Border HeightRequest="24"
+                                                            Padding="0,10"
+                                                            BackgroundColor="Transparent"
+                                                            StrokeThickness="0">
+                                                        <Border.GestureRecognizers>
+                                                            <TapGestureRecognizer Tapped="OnVoiceProgressTapped" />
+                                                        </Border.GestureRecognizers>
+                                                        <ProgressBar Progress="{Binding PlaybackProgress, Converter={StaticResource PercentToDoubleConverter}}"
+                                                                     HeightRequest="4"
+                                                                     VerticalOptions="Center"
+                                                                     ProgressColor="{DynamicResource Accent}"
+                                                                     BackgroundColor="{DynamicResource BorderColor}" />
+                                                    </Border>
+                                                    <Grid ColumnDefinitions="Auto,*"
+                                                          ColumnSpacing="6"
+                                                          Margin="0,-2,0,0">
+                                                        <Label Text="{Binding PlaybackTimeText}"
+                                                               FontSize="11"
+                                                               TextColor="{DynamicResource TextMuted}"
+                                                               VerticalOptions="Center" />
+                                                        <Label Grid.Column="1"
+                                                               Text="{Binding PlaybackDurationText}"
+                                                               FontSize="11"
+                                                               TextColor="{DynamicResource TextMuted}"
+                                                               HorizontalTextAlignment="End"
+                                                               VerticalOptions="Center" />
+                                                    </Grid>
+                                                </VerticalStackLayout>
+                                                <Button Grid.Column="2"
+                                                        x:Name="PlayVoiceButton"
+                                                        Text="{Binding IsPlaying, Converter={StaticResource PausePlayConverter}}"
+                                                        FontSize="14"
+                                                        WidthRequest="32"
+                                                        HeightRequest="32"
+                                                        Padding="0"
+                                                        MinimumWidthRequest="0"
+                                                        MinimumHeightRequest="0"
+                                                        BackgroundColor="{DynamicResource Accent}"
+                                                        TextColor="White"
+                                                        CornerRadius="16"
+                                                        VerticalOptions="Center"
+                                                        CommandParameter="{Binding .}"
+                                                        Clicked="OnPlayVoiceClicked" />
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Видеокружок -->
+                                        <Border IsVisible="{Binding IsVideoCircle}"
+                                                BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                StrokeThickness="0"
+                                                Padding="8,6">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="20" />
+                                            </Border.StrokeShape>
+                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                <Label Grid.Column="0"
+                                                        Text="📹"
+                                                        FontSize="16"
+                                                        VerticalOptions="Center" />
+                                                <Label Grid.Column="1"
+                                                        Text="{Binding FileName, StringFormat='Видеокружок · {0}'}"
+                                                        FontSize="12"
+                                                        TextColor="{DynamicResource TextPrimary}"
+                                                        VerticalOptions="Center" />
+                                                <Button Grid.Column="2"
+                                                        Text="▶"
+                                                        FontSize="14"
+                                                        WidthRequest="32"
+                                                        HeightRequest="32"
+                                                        Padding="0"
+                                                        MinimumWidthRequest="0"
+                                                        MinimumHeightRequest="0"
+                                                        BackgroundColor="{DynamicResource Accent}"
+                                                        TextColor="White"
+                                                        CornerRadius="16"
+                                                        VerticalOptions="Center"
+                                                        CommandParameter="{Binding .}"
+                                                        Clicked="OnPlayVideoCircleClicked" />
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Реакции: каждый эмодзи — отдельный чип со счётчиком -->
+                                        <CollectionView IsVisible="{Binding HasReactions}"
+                                                        ItemsSource="{Binding ReactionChips}"
+                                                        HeightRequest="26"
+                                                        SelectionMode="None"
+                                                        HorizontalOptions="Start">
+                                            <CollectionView.ItemsLayout>
+                                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="4" />
+                                            </CollectionView.ItemsLayout>
+                                            <CollectionView.ItemTemplate>
+                                                <DataTemplate x:DataType="views:ReactionChipVm">
+                                                    <Border Padding="6,1"
+                                                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                            StrokeThickness="0"
+                                                            VerticalOptions="Center">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="10" />
+                                                        </Border.StrokeShape>
+                                                        <HorizontalStackLayout Spacing="3">
+                                                            <Label Text="{Binding Emoji}"
+                                                                   FontSize="12"
+                                                                   VerticalOptions="Center" />
+                                                            <Label Text="{Binding CountText}"
+                                                                   FontSize="11"
+                                                                   FontAttributes="Bold"
+                                                                   TextColor="{DynamicResource Accent}"
+                                                                   VerticalOptions="Center" />
+                                                        </HorizontalStackLayout>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </CollectionView.ItemTemplate>
+                                        </CollectionView>
+
+                                        <!-- Панель действий: видна у выделенного сообщения -->
+                                        <HorizontalStackLayout IsVisible="{Binding IsSelected}"
+                                                               Spacing="2"
+                                                               Margin="0,4,0,0"
+                                                               HorizontalOptions="End">
+                                            <Button Style="{StaticResource BubbleActionButton}"
+                                                    Text="📋"
+                                                    CommandParameter="{Binding .}"
+                                                    Clicked="OnActionCopyClicked"
+                                                    ToolTipProperties.Text="Копировать" />
+                                            <Button Style="{StaticResource BubbleActionButton}"
+                                                    Text="↩️"
+                                                    CommandParameter="{Binding .}"
+                                                    Clicked="OnActionReplyClicked"
+                                                    ToolTipProperties.Text="Ответить" />
+                                            <Button Style="{StaticResource BubbleActionButton}"
+                                                    Text="😊"
+                                                    CommandParameter="{Binding .}"
+                                                    Clicked="OnActionReactionClicked"
+                                                    ToolTipProperties.Text="Реакция" />
+                                            <Button Style="{StaticResource BubbleActionButton}"
+                                                    Text="↪️"
+                                                    CommandParameter="{Binding .}"
+                                                    Clicked="OnActionForwardClicked"
+                                                    ToolTipProperties.Text="Переслать" />
+                                            <Button Style="{StaticResource BubbleActionButton}"
+                                                    Text="📌"
+                                                    CommandParameter="{Binding .}"
+                                                    Clicked="OnActionPinClicked"
+                                                    ToolTipProperties.Text="Закрепить или открепить" />
+                                            <Button Style="{StaticResource BubbleActionButton}"
+                                                    Text="✏️"
+                                                    IsVisible="{Binding IsMine}"
+                                                    CommandParameter="{Binding .}"
+                                                    Clicked="OnActionEditClicked"
+                                                    ToolTipProperties.Text="Редактировать" />
+                                            <Button Style="{StaticResource BubbleActionButton}"
+                                                    Text="🗑️"
+                                                    TextColor="{DynamicResource Danger}"
+                                                    IsVisible="{Binding IsMine}"
+                                                    CommandParameter="{Binding .}"
+                                                    Clicked="OnActionDeleteClicked"
+                                                    ToolTipProperties.Text="Удалить" />
+                                        </HorizontalStackLayout>
+
+                                        <!-- Мета: закреплено, черновик, изменено, время, статус доставки -->
+                                        <HorizontalStackLayout Spacing="5"
+                                                               Margin="0,2,0,0"
+                                                               HorizontalOptions="End">
+                                            <Label Text="📌"
+                                                   FontSize="10"
+                                                   VerticalOptions="Center"
+                                                   IsVisible="{Binding IsPinned}" />
+                                            <Label Text="📝 черновик"
+                                                   FontSize="11"
+                                                   FontAttributes="Italic"
+                                                   TextColor="{DynamicResource TextMuted}"
+                                                   VerticalOptions="Center"
+                                                   IsVisible="{Binding IsDraft}" />
+                                            <Label Text="{Binding EditedText, Converter={StaticResource EditedToLabelConverter}}"
+                                                   Style="{StaticResource EditedLabel}"
+                                                   FontAttributes="Italic"
+                                                   TextColor="{Binding MetaColor}"
+                                                   VerticalOptions="Center"
+                                                   IsVisible="{Binding IsEdited}" />
+                                            <Label Text="{Binding TimeText}"
+                                                   FontSize="11"
+                                                   TextColor="{Binding MetaColor}"
+                                                   VerticalOptions="Center"
+                                                   IsVisible="{DynamicResource ShowTimestamps}" />
+                                            <Label Text="{Binding DeliveryStatus, Converter={StaticResource DeliveryToDotsConverter}}"
+                                                   Style="{StaticResource DeliveryDots}"
+                                                   TextColor="{Binding DeliveryColor}"
+                                                   VerticalOptions="Center"
+                                                   IsVisible="{Binding IsMine}" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Подсказка и черновик -->
+            <VerticalStackLayout Grid.Row="5"
+                                 Padding="16,0,16,4">
+                <Label x:Name="HintLabel"
+                       FontSize="12"
+                       TextColor="{DynamicResource TextMuted}"
+                       IsVisible="False"
+                       LineBreakMode="WordWrap" />
+                <Label x:Name="DraftLabel"
+                       FontSize="12"
+                       FontAttributes="Italic"
+                       TextColor="{DynamicResource Warning}"
+                       Text="📝 Черновик сохранён"
+                       IsVisible="False" />
+            </VerticalStackLayout>
+
+            <!-- Поле ввода -->
+            <Border Grid.Row="7"
+                    BackgroundColor="{DynamicResource Surface}"
+                    StrokeThickness="0"
+                    Padding="12,10">
+                <VerticalStackLayout Spacing="8">
+                    <!-- Очередь отправки вложений: прогресс и отмена (как в Telegram) -->
+                    <Border x:Name="SendQueuePanel"
+                            IsVisible="False"
+                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                            StrokeThickness="0"
+                            Padding="8,6">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding PendingMedia}"
+                                             Spacing="4">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="36,Auto,*,32" ColumnSpacing="6" Padding="4">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding KindEmoji}"
+                                               FontSize="18"
+                                               VerticalOptions="Center" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="0">
+                                            <Label Text="{Binding FileName}"
+                                                   FontSize="12"
+                                                   TextColor="{DynamicResource TextPrimary}"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1" />
+                                            <Label Text="{Binding Status}"
+                                                   FontSize="11"
+                                                   TextColor="{DynamicResource TextMuted}" />
+                                        </VerticalStackLayout>
+                                        <ProgressBar Grid.Column="2"
+                                                     Progress="{Binding Progress, Converter={StaticResource PercentToDoubleConverter}}"
+                                                     HeightRequest="6"
+                                                     VerticalOptions="Center" />
+                                        <Button Grid.Column="3"
+                                                Text="✕"
+                                                Style="{DynamicResource IconButton}"
+                                                Clicked="OnCancelMediaClicked"
+                                                CommandParameter="{Binding Id}"
+                                                WidthRequest="32"
+                                                HeightRequest="32"
+                                                VerticalOptions="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Эмодзи-панель (показывается по кнопке 😊) -->
+                    <views:EmojiPickerView x:Name="EmojiPicker"
+                                           IsVisible="False"
+                                           EmojiPicked="OnEmojiPicked" />
+
+                    <!-- Панель ответа на сообщение -->
+                    <Border x:Name="ReplyBar"
+                            IsVisible="False"
+                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                            StrokeThickness="0"
+                            Padding="10,8">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label x:Name="ReplyPreviewLabel"
+                                   Text="↩ Ответ на «…»"
+                                   FontSize="13"
+                                   TextColor="{DynamicResource TextPrimary}"
+                                   LineBreakMode="TailTruncation"
+                                   VerticalOptions="Center" />
+                            <Button x:Name="CancelReplyButton"
+                                    Text="✕"
+                                    Style="{DynamicResource IconButton}"
+                                    Clicked="OnCancelReplyClicked"
+                                    ToolTipProperties.Text="Отменить ответ"
+                                    WidthRequest="34"
+                                    HeightRequest="34"
+                                    VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Панель редактирования сообщения -->
+                    <Border x:Name="EditBar"
+                            IsVisible="False"
+                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                            StrokeThickness="0"
+                            Padding="10,8">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label x:Name="EditPreviewLabel"
+                                   Text="✏️ Редактирование"
+                                   FontSize="13"
+                                   TextColor="{DynamicResource TextPrimary}"
+                                   VerticalOptions="Center" />
+                            <Button x:Name="CancelEditButton"
+                                    Text="✕"
+                                    Style="{DynamicResource IconButton}"
+                                    Clicked="OnCancelEditClicked"
+                                    ToolTipProperties.Text="Отменить редактирование"
+                                    WidthRequest="34"
+                                    HeightRequest="34"
+                                    VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                        <HorizontalStackLayout Grid.Column="0"
+                                               Spacing="8"
+                                               VerticalOptions="End">
+                            <Button x:Name="AttachButton"
+                                    Text="📎"
+                                    Style="{DynamicResource IconButton}"
+                                    VerticalOptions="End"
+                                    Clicked="OnAttachClicked"
+                                    ToolTipProperties.Text="Прикрепить фото или файл" />
+                            <Button x:Name="EmojiButton"
+                                    Text="😊"
+                                    Style="{DynamicResource IconButton}"
+                                    VerticalOptions="End"
+                                    Clicked="OnEmojiButtonClicked"
+                                    ToolTipProperties.Text="Эмодзи" />
+                        </HorizontalStackLayout>
+
+                        <Border Grid.Column="1"
+                                BackgroundColor="{DynamicResource SurfaceAlt}"
+                                StrokeThickness="0"
+                                Padding="14,0"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="20" />
+                            </Border.StrokeShape>
+                            <Entry x:Name="MessageEntry"
+                                   Placeholder="Напишите сообщение…"
+                                   BackgroundColor="Transparent"
+                                   HeightRequest="42"
+                                   VerticalOptions="Center"
+                                   ReturnType="Send"
+                                   Completed="OnSendClicked"
+                                   TextChanged="OnMessageTextChanged" />
+                        </Border>
+
+                        <Button x:Name="SendButton"
+                                Grid.Column="2"
+                                Text="➤"
+                                Style="{DynamicResource PrimaryButton}"
+                                Clicked="OnSendClicked"
+                                WidthRequest="44"
+                                HeightRequest="44"
+                                CornerRadius="22"
+                                Padding="0"
+                                VerticalOptions="End"
+                                ToolTipProperties.Text="Отправить (Enter)" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <!-- ПРАВАЯ ПАНЕЛЬ: ПРОФИЛЬ / МЕДИА / ЗАКРЕПЛЁННЫЕ -->
+        <Border Grid.Column="0"
+                Grid.ColumnSpan="2"
+                x:Name="InfoPanel"
+                HorizontalOptions="End"
+                WidthRequest="320"
+                IsVisible="False"
+                BackgroundColor="{DynamicResource Surface}"
+                Stroke="{DynamicResource BorderColor}"
+                StrokeThickness="1">
+            <Grid RowDefinitions="Auto,*,Auto">
+
+                <Grid Grid.Row="0"
+                      ColumnDefinitions="*,Auto"
+                      Padding="14,10"
+                      BackgroundColor="{DynamicResource SurfaceAlt}">
+                    <Label x:Name="InfoPanelTitle"
+                           FontSize="15"
+                           FontAttributes="Bold"
+                           TextColor="{DynamicResource TextPrimary}"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="✕"
+                            Style="{DynamicResource IconButton}"
+                            Clicked="OnCloseInfoPanelClicked"
+                            ToolTipProperties.Text="Закрыть панель" />
+                </Grid>
+
+                <!-- ПРОФИЛЬ СОБЕСЕДНИКА -->
+                <ScrollView Grid.Row="1"
+                            x:Name="ProfileSection"
+                            IsVisible="False">
+                    <VerticalStackLayout Padding="16"
+                                         Spacing="14">
+                        <Border WidthRequest="84"
+                                HeightRequest="84"
+                                BackgroundColor="{DynamicResource Accent}"
+                                StrokeThickness="0">
+                            <Border.StrokeShape>
+                                <Ellipse />
+                            </Border.StrokeShape>
+                            <Image x:Name="ProfileAvatar"
+                                   WidthRequest="84"
+                                   HeightRequest="84"
+                                   Aspect="AspectFill" />
+                        </Border>
+
+                        <Label x:Name="ProfileName"
+                               FontSize="19"
+                               FontAttributes="Bold"
+                               TextColor="{DynamicResource TextPrimary}"
+                               HorizontalTextAlignment="Center" />
+
+                        <Label x:Name="ProfileStatus"
+                               FontSize="12"
+                               TextColor="{DynamicResource TextMuted}"
+                               HorizontalTextAlignment="Center" />
+
+                        <Label x:Name="ProfileBio"
+                               FontSize="13"
+                               TextColor="{DynamicResource TextSecondary}"
+                               LineBreakMode="WordWrap" />
+
+                        <BoxView HeightRequest="1"
+                                 BackgroundColor="{DynamicResource BorderColor}" />
+
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Отпечаток ключа"
+                                   Style="{DynamicResource SectionTitle}"
+                                   Margin="0" />
+                            <Label x:Name="ProfileFingerprint"
+                                   FontSize="11"
+                                   FontFamily="{DynamicResource FontFamilyMono}"
+                                   TextColor="{DynamicResource TextSecondary}"
+                                   LineBreakMode="CharacterWrap" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Идентификатор"
+                                   Style="{DynamicResource SectionTitle}"
+                                   Margin="0" />
+                            <Label x:Name="ProfileUserId"
+                                   FontSize="11"
+                                   FontFamily="{DynamicResource FontFamilyMono}"
+                                   TextColor="{DynamicResource TextMuted}"
+                                   LineBreakMode="CharacterWrap" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="В аккаунте с"
+                                   Style="{DynamicResource SectionTitle}"
+                                   Margin="0" />
+                            <Label x:Name="ProfileCreated"
+                                   FontSize="12"
+                                   TextColor="{DynamicResource TextSecondary}" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                <!-- МЕДИА И ФАЙЛЫ -->
+                <Grid Grid.Row="1"
+                      x:Name="MediaSection"
+                      IsVisible="False"
+                      RowDefinitions="Auto,*,Auto">
+                    <Label Grid.Row="0"
+                           Text="Медиа и файлы"
+                           Style="{DynamicResource SectionTitle}"
+                           Margin="16,12,16,6" />
+                    <CollectionView Grid.Row="1"
+                                    x:Name="MediaItemsView"
+                                    SelectionMode="None"
+                                    BackgroundColor="Transparent">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="views:MessageVm">
+                                <Grid Padding="12,8"
+                                      ColumnDefinitions="44,*"
+                                      ColumnSpacing="10">
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnMediaItemTapped" />
+                                    </Grid.GestureRecognizers>
+                                    <Border Grid.Column="0"
+                                            WidthRequest="44"
+                                            HeightRequest="44"
+                                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                                            StrokeThickness="0"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Grid>
+                                            <Image Source="{Binding ImageSource}"
+                                                   Aspect="AspectFill"
+                                                   IsVisible="{Binding IsImageReady}" />
+                                            <Label Text="📄"
+                                                   FontSize="20"
+                                                   VerticalTextAlignment="Center"
+                                                   IsVisible="{Binding IsFile}" />
+                                        </Grid>
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1"
+                                                         Spacing="2"
+                                                         VerticalOptions="Center">
+                                        <Label Text="{Binding FileName}"
+                                               FontSize="13"
+                                               FontAttributes="Bold"
+                                               TextColor="{DynamicResource TextPrimary}"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding FileSizeText}"
+                                               FontSize="11"
+                                               TextColor="{DynamicResource TextMuted}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <Label Grid.Row="2"
+                           x:Name="MediaEmptyLabel"
+                           Text="Нет вложений в этом чате"
+                           FontSize="12"
+                           TextColor="{DynamicResource TextMuted}"
+                           Margin="16"
+                           IsVisible="False" />
+                </Grid>
+
+                <!-- ЗАКРЕПЛЁННЫЕ СООБЩЕНИЯ -->
+                <Grid Grid.Row="1"
+                      x:Name="PinnedSection"
+                      IsVisible="False"
+                      RowDefinitions="Auto,Auto,Auto,*,Auto">
+                    <Label Grid.Row="0"
+                           Text="Закреплённые сообщения"
+                           Style="{DynamicResource SectionTitle}"
+                           Margin="16,12,16,6" />
+                    <Grid Grid.Row="1"
+                          ColumnDefinitions="*,Auto,Auto,*"
+                          ColumnSpacing="4"
+                          Margin="16,0,16,6">
+                        <Border Grid.Column="0"
+                                BackgroundColor="{DynamicResource Surface}"
+                                Stroke="{DynamicResource Accent}"
+                                StrokeThickness="1"
+                                Padding="6,2"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <HorizontalStackLayout Spacing="3">
+                                <Label Text="📌"
+                                       FontSize="9"
+                                       VerticalOptions="Center" />
+                                <Label x:Name="PinnedCountLabel"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource Accent}"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </Border>
+                        <Button Grid.Column="1"
+                                Text="↑"
+                                FontSize="13"
+                                WidthRequest="24" Padding="0" MinimumWidthRequest="0" MinimumHeightRequest="0"
+                                HeightRequest="24"
+                                BackgroundColor="{DynamicResource Accent}"
+                                TextColor="White"
+                                CornerRadius="6"
+                                Clicked="OnPinnedUpClicked"
+                                ToolTipProperties.Text="Предыдущее закреплённое" />
+                        <Button Grid.Column="2"
+                                Text="↓"
+                                FontSize="13"
+                                WidthRequest="24" Padding="0" MinimumWidthRequest="0" MinimumHeightRequest="0"
+                                HeightRequest="24"
+                                BackgroundColor="{DynamicResource Accent}"
+                                TextColor="White"
+                                CornerRadius="6"
+                                Clicked="OnPinnedDownClicked"
+                                ToolTipProperties.Text="Следующее закреплённое" />
+                    </Grid>
+                    <CollectionView Grid.Row="2"
+                                    x:Name="PinnedItemsView"
+                                    SelectionMode="None"
+                                    BackgroundColor="Transparent">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="views:MessageVm">
+                                <Border Margin="12,4"
+                                        Padding="10"
+                                        BackgroundColor="{DynamicResource SurfaceAlt}"
+                                        StrokeThickness="0">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnPinnedItemTapped" />
+                                    </Border.GestureRecognizers>
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="3">
+                                        <Label Text="{Binding DisplayText}"
+                                               FontSize="13"
+                                               TextColor="{DynamicResource TextPrimary}"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="3" />
+                                        <Label Text="{Binding PinnedAuthorText}"
+                                               FontSize="11"
+                                               FontAttributes="Bold"
+                                               TextColor="{DynamicResource Accent}"
+                                               Margin="0,2,0,0" />
+                                        <Label Text="{Binding TimeText}"
+                                               FontSize="11"
+                                               TextColor="{DynamicResource TextMuted}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <Label Grid.Row="3"
+                           x:Name="PinnedEmptyLabel"
+                           Text="Нет закреплённых сообщений"
+                           FontSize="12"
+                           TextColor="{DynamicResource TextMuted}"
+                           Margin="16"
+                           IsVisible="False" />
+                </Grid>
+
+                <!-- ПЕРЕКЛЮЧАТЕЛЬ ВКЛАДОК -->
+                <Grid Grid.Row="2"
+                      ColumnDefinitions="*,*,*,*"
+                      ColumnSpacing="6"
+                      Padding="10"
+                      BackgroundColor="{DynamicResource SurfaceAlt}">
+                    <Button Grid.Column="0"
+                            x:Name="ProfileTabButton"
+                            Text="💬"
+                            Style="{DynamicResource IconButton}"
+                            Clicked="OnProfileTabClicked"
+                            ToolTipProperties.Text="Профиль собеседника" />
+                    <Button Grid.Column="1"
+                            x:Name="MediaTabButton"
+                            Text="📎"
+                            Style="{DynamicResource IconButton}"
+                            Clicked="OnMediaTabClicked"
+                            ToolTipProperties.Text="Медиа и файлы" />
+                    <Button Grid.Column="2"
+                            x:Name="PinnedTabButton"
+                            Text="📌"
+                            Style="{DynamicResource IconButton}"
+                            Clicked="OnPinnedTabClicked"
+                            ToolTipProperties.Text="Закреплённые сообщения" />
+                    <Button Grid.Column="3"
+                            Text="📄"
+                            Style="{DynamicResource IconButton}"
+                            Clicked="OnExportChatClicked"
+                            ToolTipProperties.Text="Экспорт переписки в HTML" />
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Контекстное меню по правому клику -->
+        <Grid Grid.Column="0"
+              Grid.ColumnSpan="2"
+              x:Name="ContextMenuOverlay"
+              IsVisible="False">
+            <BoxView Color="#000000"
+                     Opacity="0.45">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnContextMenuDismissed" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <Border x:Name="ContextMenuBorder"
+                    WidthRequest="230"
+                    Padding="6"
+                    HorizontalOptions="Start"
+                    VerticalOptions="Start"
+                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                    Stroke="{DynamicResource BorderColor}"
+                    StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <VerticalStackLayout x:Name="ContextMenuItems"
+                                     Spacing="2" />
+            </Border>
+        </Grid>
+    </Grid>
+</ContentView>
+
+
+
+
+
+

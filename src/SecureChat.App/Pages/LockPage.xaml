@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Pages.LockPage"
+             NavigationPage.HasNavigationBar="False"
+             Title="SecureChat">
+    <Grid>
+        <VerticalStackLayout VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="14"
+                             WidthRequest="320">
+            <Border WidthRequest="72"
+                    HeightRequest="72"
+                    HorizontalOptions="Center"
+                    BackgroundColor="{DynamicResource Accent}"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+                <Label Text="🔒"
+                       FontSize="34"
+                       HorizontalTextAlignment="Center"
+                       VerticalTextAlignment="Center" />
+            </Border>
+            <Label Text="SecureChat заблокирован"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="{DynamicResource TextPrimary}"
+                   HorizontalTextAlignment="Center" />
+            <Label Text="Введите код-пароль, чтобы открыть переписку"
+                   FontSize="13"
+                   TextColor="{DynamicResource TextMuted}"
+                   HorizontalTextAlignment="Center" />
+            <Entry x:Name="PasscodeEntry"
+                   Placeholder="Код-пароль"
+                   IsPassword="True"
+                   ReturnType="Done"
+                   HorizontalTextAlignment="Center"
+                   Completed="OnUnlockClicked" />
+            <Label x:Name="ErrorLabel"
+                   Text="Неверный код-пароль"
+                   FontSize="12"
+                   TextColor="{DynamicResource Danger}"
+                   HorizontalTextAlignment="Center"
+                   IsVisible="False" />
+            <Button Text="Разблокировать"
+                    Style="{DynamicResource PrimaryButton}"
+                    Clicked="OnUnlockClicked" />
+            <Button Text="Выйти из аккаунта"
+                    Style="{DynamicResource GhostButton}"
+                    Clicked="OnLogoutClicked" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>
