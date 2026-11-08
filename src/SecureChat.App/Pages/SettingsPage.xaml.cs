@@ -9,7 +9,6 @@ public partial class SettingsPage : ContentPage
     private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
     private readonly ApiClient _apiClient = AppServices.Get<ApiClient>();
     private readonly LocalStore _localStore = AppServices.Get<LocalStore>();
-    private readonly SessionStore _sessionStore = AppServices.Get<SessionStore>();
     private CancellationTokenSource? _profileSyncCts;
 
     public SettingsPage()
@@ -447,13 +446,63 @@ public partial class SettingsPage : ContentPage
         App.SetRoot(new NavigationPage(AppServices.Get<LoginPage>()));
     }
 
+    private async void OnChangeAccountPasswordClicked(object sender, EventArgs e)
+    {
+        var current = await PasswordPromptPage.ShowAsync(
+            Navigation,
+            "Текущий пароль",
+            "Введите пароль, с которым вы входите в аккаунт.");
+        if (string.IsNullOrEmpty(current))
+        {
+            return;
+        }
+
+        var next = await PasswordPromptPage.ShowAsync(
+            Navigation,
+            "Новый пароль",
+            "Не менее 8 символов. Он понадобится при следующем входе.");
+        if (string.IsNullOrEmpty(next))
+        {
+            return;
+        }
+
+        var repeat = await PasswordPromptPage.ShowAsync(
+            Navigation,
+            "Повторите пароль",
+            "Введите новый пароль ещё раз.",
+            "Сменить пароль");
+        if (repeat is null)
+        {
+            return;
+        }
+
+        if (!string.Equals(next, repeat, StringComparison.Ordinal))
+        {
+            await DisplayAlert("Пароли не совпадают", "Новый пароль введён по-разному.", "OK");
+            return;
+        }
+
+        try
+        {
+            await _account.ChangePasswordAsync(current, next);
+            await DisplayAlert(
+                "Пароль изменён",
+                "Используйте новый пароль при следующем входе. Текущая сессия остаётся активной.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Не удалось сменить пароль", ex.Message, "OK");
+        }
+    }
+
     private async void OnDeleteClicked(object sender, EventArgs e)
     {
         var confirmed = await DisplayAlert(
-            "Удалить данные?",
-            "Будут удалены локальная история, ключи устройства и сохранённая сессия. " +
-            "Аккаунт на сервере останется, но войти в него с этого устройства будет нельзя.",
-            "Удалить",
+            "Удалить аккаунт навсегда?",
+            "С сервера будут удалены аккаунт, переписка и вложения. Локальная история " +
+            "и ключи устройства тоже будут стёрты. Восстановить данные невозможно.",
+            "Удалить навсегда",
             "Отмена");
 
         if (!confirmed)
@@ -461,11 +510,26 @@ public partial class SettingsPage : ContentPage
             return;
         }
 
-        await _chatManager.ShutdownAsync();
-        await _localStore.DeleteAllAsync();
-        await _sessionStore.ClearAllAsync();
-        _session.SignOut();
-        App.SetRoot(new NavigationPage(AppServices.Get<LoginPage>()));
+        var password = await PasswordPromptPage.ShowAsync(
+            Navigation,
+            "Подтвердите удаление",
+            "Введите пароль аккаунта. Это действие необратимо.",
+            "Удалить аккаунт");
+        if (string.IsNullOrEmpty(password))
+        {
+            return;
+        }
+
+        try
+        {
+            await _account.DeleteAccountAsync(password);
+            await _chatManager.ShutdownAsync();
+            App.SetRoot(new NavigationPage(AppServices.Get<LoginPage>()));
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Не удалось удалить аккаунт", ex.Message, "OK");
+        }
     }
 
     // ============================================================

@@ -152,6 +152,90 @@ public sealed class AuthController : ControllerBase
         });
     }
 
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var user = await _repository.GetUserByIdAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        if (!IsValidAuthSecret(request.CurrentAuthSecret) ||
+            !IsValidAuthSecret(request.NewAuthSecret))
+        {
+            return BadRequest(new ApiError { Error = "Некорректный auth-secret." });
+        }
+
+        if (!_hasher.Verify(request.CurrentAuthSecret, user.AuthHash, user.AuthSalt))
+        {
+            return Unauthorized(new ApiError { Error = "Текущий пароль неверен." });
+        }
+
+        if (string.Equals(
+                request.CurrentAuthSecret,
+                request.NewAuthSecret,
+                StringComparison.Ordinal))
+        {
+            return BadRequest(new ApiError
+            {
+                Error = "Новый пароль должен отличаться от текущего."
+            });
+        }
+
+        var (hash, salt) = _hasher.Hash(request.NewAuthSecret);
+        if (!await _repository.UpdateUserPasswordAsync(user.Id, hash, salt, cancellationToken))
+        {
+            return NotFound();
+        }
+
+        _logger.LogInformation("Пользователь {Username} сменил пароль", user.Username);
+        return NoContent();
+    }
+
+    /// <summary>Удаляет аккаунт и все связанные данные без возможности восстановления.</summary>
+    [HttpPost("delete-account")]
+    [Authorize]
+    public async Task<IActionResult> DeleteAccount(
+        [FromBody] DeleteAccountRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var user = await _repository.GetUserByIdAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        if (!IsValidAuthSecret(request.AuthSecret) ||
+            !_hasher.Verify(request.AuthSecret, user.AuthHash, user.AuthSalt))
+        {
+            return Unauthorized(new ApiError { Error = "Неверный пароль." });
+        }
+
+        if (!await _repository.DeleteUserAsync(user.Id, cancellationToken))
+        {
+            return NotFound();
+        }
+
+        _logger.LogInformation("Аккаунт {Username} удалён", user.Username);
+        return NoContent();
+    }
+
     private static bool IsValidEmail(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))

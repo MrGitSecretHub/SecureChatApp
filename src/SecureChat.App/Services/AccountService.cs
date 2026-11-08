@@ -227,6 +227,58 @@ public sealed class AccountService
         }
     }
 
+    /// <summary>Меняет пароль аккаунта. Текущая сессия на этом устройстве остаётся активной.</summary>
+    public async Task ChangePasswordAsync(string currentPassword, string newPassword)
+    {
+        if (string.IsNullOrEmpty(currentPassword))
+        {
+            throw new ArgumentException("Введите текущий пароль.");
+        }
+
+        if (newPassword.Length < 8)
+        {
+            throw new ArgumentException("Новый пароль должен содержать не менее 8 символов.");
+        }
+
+        if (string.Equals(currentPassword, newPassword, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Новый пароль должен отличаться от текущего.");
+        }
+
+        await _apiClient.ChangePasswordAsync(
+            _session.ServerUrl,
+            RequireToken(),
+            _session.Username,
+            currentPassword,
+            newPassword);
+    }
+
+    /// <summary>
+    /// Удаляет аккаунт на сервере, затем стирает локальную историю, ключи
+    /// устройства и сохранённую сессию. Действие необратимо.
+    /// </summary>
+    public async Task DeleteAccountAsync(string password)
+    {
+        if (string.IsNullOrEmpty(password))
+        {
+            throw new ArgumentException("Введите пароль.");
+        }
+
+        await _apiClient.DeleteAccountAsync(
+            _session.ServerUrl,
+            RequireToken(),
+            _session.Username,
+            password);
+
+        await _localStore.DeleteAllAsync();
+        await _sessionStore.ClearAllAsync();
+        _session.SignOut();
+    }
+
+    private string RequireToken() =>
+        _session.Token
+        ?? throw new InvalidOperationException("Сессия не активна. Войдите заново.");
+
     public async Task LogoutAsync()
     {
         await _sessionStore.ClearSessionAsync();

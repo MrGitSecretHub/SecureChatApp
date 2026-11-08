@@ -71,6 +71,58 @@ public sealed class ApiClient : IDisposable
         return await ReadAsync<AuthResponse>(response, cancellationToken);
     }
 
+    public async Task ChangePasswordAsync(
+        string serverUrl,
+        string token,
+        string username,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new ChangePasswordRequest
+        {
+            CurrentAuthSecret = Core.Crypto.AuthSecret.Derive(currentPassword, username),
+            NewAuthSecret = Core.Crypto.AuthSecret.Derive(newPassword, username)
+        };
+
+        using var message = new HttpRequestMessage(
+            HttpMethod.Post,
+            BuildUri(serverUrl, "api/auth/change-password"))
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await _http.SendAsync(message, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task DeleteAccountAsync(
+        string serverUrl,
+        string token,
+        string username,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new DeleteAccountRequest
+        {
+            AuthSecret = Core.Crypto.AuthSecret.Derive(password, username)
+        };
+
+        using var message = new HttpRequestMessage(
+            HttpMethod.Post,
+            BuildUri(serverUrl, "api/auth/delete-account"))
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await _http.SendAsync(message, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public async Task<UserProfileDto> GetUserAsync(
         string serverUrl,
         string token,

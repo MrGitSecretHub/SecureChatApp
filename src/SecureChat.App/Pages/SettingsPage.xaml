@@ -285,10 +285,13 @@
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="Аккаунт" Style="{DynamicResource H2}" />
+                    <Button Text="Сменить пароль аккаунта"
+                            Style="{DynamicResource SecondaryButton}"
+                            Clicked="OnChangeAccountPasswordClicked" />
                     <Button Text="Выйти из аккаунта"
                             Style="{DynamicResource SecondaryButton}"
                             Clicked="OnLogoutClicked" />
-                    <Button Text="Удалить аккаунт и данные с устройства"
+                    <Button Text="Удалить аккаунт навсегда"
                             Style="{DynamicResource DangerButton}"
                             Clicked="OnDeleteClicked" />
                 </VerticalStackLayout>
@@ -392,7 +395,7 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Label Text="SecureChat 1.0 — учебно-демонстрационное защищённое приложение."
+            <Label Text="SecureChat 1.1 — учебно-демонстрационное защищённое приложение."
                    Style="{DynamicResource Caption}"
                    HorizontalTextAlignment="Center" />
         </VerticalStackLayout>

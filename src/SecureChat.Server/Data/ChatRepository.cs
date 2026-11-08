@@ -400,6 +400,148 @@ public sealed class ChatRepository
         return await reader.ReadAsync(cancellationToken);
     }
 
+    /// <summary>Заменяет хеш и соль auth-secret после смены пароля.</summary>
+    public async Task<bool> UpdateUserPasswordAsync(
+        string userId,
+        byte[] authHash,
+        byte[] authSalt,
+        CancellationToken cancellationToken = default)
+    {
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                UPDATE Users
+                SET AuthHash = $hash, AuthSalt = $salt
+                WHERE Id = $userId;
+                """;
+            command.Parameters.AddWithValue("$hash", authHash);
+            command.Parameters.AddWithValue("$salt", authSalt);
+            command.Parameters.AddWithValue("$userId", userId);
+
+            return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Полностью удаляет аккаунт: переписку, вложения, членство в пространствах
+    /// и созданные пользователем пространства. Файлы вложений удаляются
+    /// после фиксации транзакции.
+    /// </summary>
+    public async Task<bool> DeleteUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            var mediaIds = new List<string>();
+
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+            await using var transaction = connection.BeginTransaction();
+
+            await using (var collect = connection.CreateCommand())
+            {
+                collect.Transaction = transaction;
+                collect.CommandText =
+                    "SELECT Id FROM Media WHERE SenderId = $userId OR RecipientId = $userId;";
+                collect.Parameters.AddWithValue("$userId", userId);
+
+                await using var reader = await collect.ExecuteReaderAsync(cancellationToken);
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    mediaIds.Add(reader.GetString(0));
+                }
+            }
+
+            // Пространства, которыми владел пользователь, удаляем целиком.
+            await ExecuteForUserAsync(connection, transaction, userId, cancellationToken, """
+                DELETE FROM SpaceMessageReactions
+                WHERE MessageId IN (
+                    SELECT Id FROM SpaceMessages
+                    WHERE SpaceId IN (SELECT Id FROM Spaces WHERE OwnerId = $userId));
+                DELETE FROM SpaceMessages
+                WHERE SpaceId IN (SELECT Id FROM Spaces WHERE OwnerId = $userId);
+                DELETE FROM Topics
+                WHERE SpaceId IN (SELECT Id FROM Spaces WHERE OwnerId = $userId);
+                DELETE FROM SpaceKeys
+                WHERE SpaceId IN (SELECT Id FROM Spaces WHERE OwnerId = $userId);
+                DELETE FROM SpaceMembers
+                WHERE SpaceId IN (SELECT Id FROM Spaces WHERE OwnerId = $userId);
+                DELETE FROM Spaces WHERE OwnerId = $userId;
+                """);
+
+            // Участие в чужих пространствах и собственные сообщения/реакции.
+            await ExecuteForUserAsync(connection, transaction, userId, cancellationToken, """
+                DELETE FROM SpaceMessageReactions
+                WHERE UserId = $userId
+                   OR MessageId IN (SELECT Id FROM SpaceMessages WHERE SenderId = $userId);
+                DELETE FROM SpaceMessages WHERE SenderId = $userId;
+                DELETE FROM SpaceKeys WHERE UserId = $userId;
+                DELETE FROM SpaceMembers WHERE UserId = $userId;
+                """);
+
+            // Личные чаты, вложения и бан.
+            await ExecuteForUserAsync(connection, transaction, userId, cancellationToken, """
+                DELETE FROM Messages WHERE SenderId = $userId OR RecipientId = $userId;
+                DELETE FROM Media WHERE SenderId = $userId OR RecipientId = $userId;
+                DELETE FROM BannedUsers WHERE UserId = $userId;
+                """);
+
+            bool deleted;
+            await using (var deleteUser = connection.CreateCommand())
+            {
+                deleteUser.Transaction = transaction;
+                deleteUser.CommandText = "DELETE FROM Users WHERE Id = $userId;";
+                deleteUser.Parameters.AddWithValue("$userId", userId);
+                deleted = await deleteUser.ExecuteNonQueryAsync(cancellationToken) > 0;
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+
+            foreach (var mediaId in mediaIds)
+            {
+                try
+                {
+                    File.Delete(GetMediaPath(mediaId));
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    _logger.LogWarning(ex, "Не удалось удалить вложение {MediaId}", mediaId);
+                }
+            }
+
+            return deleted;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    private static async Task ExecuteForUserAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        string userId,
+        CancellationToken cancellationToken,
+        string sql)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("$userId", userId);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     /// <summary>Обновляет публичный профиль пользователя.</summary>
     public async Task UpdateProfileAsync(
         string userId,

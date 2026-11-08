@@ -15,6 +15,19 @@ public sealed class LoginRequest
     public required string AuthSecret { get; set; }
 }
 
+/// <summary>Смена пароля аккаунта: текущий и новый auth-secret.</summary>
+public sealed class ChangePasswordRequest
+{
+    public required string CurrentAuthSecret { get; set; }
+    public required string NewAuthSecret { get; set; }
+}
+
+/// <summary>Удаление аккаунта: подтверждение паролем.</summary>
+public sealed class DeleteAccountRequest
+{
+    public required string AuthSecret { get; set; }
+}
+
 public sealed class AuthResponse
 {
     public required string Token { get; set; }
