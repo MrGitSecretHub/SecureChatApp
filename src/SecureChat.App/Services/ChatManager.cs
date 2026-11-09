@@ -103,6 +103,7 @@ public sealed class ChatManager
         IsOffline = _session.RestoredOffline;
         _started = true;
         EnsureReconnectLoop();
+        EnsureForegroundReconnect();
     }
 
     public async Task SetPresenceHiddenAsync(bool hidden)
@@ -150,6 +151,32 @@ public sealed class ChatManager
             _reconnectCts = new CancellationTokenSource();
             _reconnectTask = Task.Run(() => ReconnectLoopAsync(_reconnectCts.Token));
         }
+    }
+
+    private bool _foregroundHooked;
+
+    /// <summary>Возврат на передний план после простоя: если соединение
+    /// умерло, пока Android приостанавливал сеть, перезапускаем цикл, чтобы
+    /// попытка соединения произошла сразу, а не после паузы.</summary>
+    private void EnsureForegroundReconnect()
+    {
+        if (_foregroundHooked)
+        {
+            return;
+        }
+
+        _foregroundHooked = true;
+        AppLifecycle.EnteredForeground += OnEnteredForeground;
+    }
+
+    private void OnEnteredForeground()
+    {
+        if (!_started || _chatService.IsConnected)
+        {
+            return;
+        }
+
+        EnsureReconnectLoop();
     }
 
     /// <summary>
