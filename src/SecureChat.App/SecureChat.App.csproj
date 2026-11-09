@@ -48,6 +48,14 @@
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
   </ItemGroup>
 
+  <!-- Встроенные рингтоны: файлы физически лежат в raw-ресурсах Android, а
+       на Windows подписываются отдельным манифест-именем ringtone_*.wav. -->
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+    <EmbeddedResource Include="Platforms\Android\Resources\raw\ringtone_*.wav">
+      <LogicalName>%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\SecureChat.Core\SecureChat.Core.csproj" />
   </ItemGroup>

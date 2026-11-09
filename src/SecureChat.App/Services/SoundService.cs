@@ -1,8 +1,9 @@
 namespace SecureChat.App.Services;
 
 /// <summary>
-/// Короткий звук уведомления о новом сообщении. Используется системный звук
-/// платформы, поэтому приложение не тащит собственные аудиофайлы.
+/// Короткий звук уведомления о новом сообщении: выбранный встроенный рингтон
+/// (оригинальные синтезированные тоны) или системный звук платформы.
+/// Рингтон задаётся настройками (AppSession.RingtoneId, PrivacyStore).
 /// </summary>
 public sealed partial class SoundService
 {
@@ -11,6 +12,11 @@ public sealed partial class SoundService
     private const long MinIntervalMs = 1000;
 
     private long _lastPlayedMs;
+
+    private static string EffectiveRingtoneId =>
+        AppServices.Get<AppSession>().RingtoneId is { Length: > 0 } id
+            ? id
+            : Ringtones.DefaultId;
 
     public void PlayNotification()
     {
@@ -22,8 +28,13 @@ public sealed partial class SoundService
         }
 
         Interlocked.Exchange(ref _lastPlayedMs, now);
-        PlayNotificationCore();
+        PlayCore(EffectiveRingtoneId);
     }
 
-    private partial void PlayNotificationCore();
+    /// <summary>Прослушать конкретный рингтон (например, из настроек),
+    /// без ограничения частоты.</summary>
+    public void Play(string ringtoneId) =>
+        PlayCore(Ringtones.Normalize(ringtoneId));
+
+    private partial void PlayCore(string ringtoneId);
 }

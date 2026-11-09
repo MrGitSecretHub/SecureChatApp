@@ -75,6 +75,10 @@ public sealed class AppSession
     /// <summary>Звук уведомления при получении нового сообщения.</summary>
     public bool SoundsEnabled { get; set; } = true;
 
+    /// <summary>Выбранный рингтон уведомлений: «system» или идентификатор
+    /// одного из встроенных тонов (Ringtones.All).</summary>
+    public string RingtoneId { get; set; } = Ringtones.DefaultId;
+
     /// <summary>Принимать сообщения только от контактов.</summary>
     public bool AcceptOnlyFromContacts { get; set; } = false;
 

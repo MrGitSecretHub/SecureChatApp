@@ -36,6 +36,7 @@ public partial class SettingsPage : ContentPage
         TypingSwitch.IsToggled = _session.ShowTypingStatus;
         PreviewSwitch.IsToggled = _session.ShowNotificationPreview;
         SoundsSwitch.IsToggled = _session.SoundsEnabled;
+        RingtoneButton.Text = Ringtones.NameOf(_session.RingtoneId);
         ContactsOnlySwitch.IsToggled = _session.AcceptOnlyFromContacts;
         LinkPreviewSwitch.IsToggled = _session.LinkPreviewEnabled;
         RefreshBlockedList();
@@ -590,6 +591,38 @@ public partial class SettingsPage : ContentPage
         {
             AppServices.Get<SoundService>().PlayNotification();
         }
+    }
+
+    private async void OnRingtoneClicked(object sender, EventArgs e)
+    {
+        var options = Ringtones.All.Select(item => item.Name).ToArray();
+        var picked = await DisplayActionSheet(
+            "Рингтон уведомлений",
+            "Отмена",
+            null,
+            options);
+
+        if (string.IsNullOrEmpty(picked) || picked == "Отмена")
+        {
+            return;
+        }
+
+        var option = Ringtones.All.FirstOrDefault(item => item.Name == picked);
+        if (option is null)
+        {
+            return;
+        }
+
+        _session.RingtoneId = option.Id;
+        RingtoneButton.Text = option.Name;
+        await SavePrivacyAsync();
+
+        // У Android звук канала неизменяем: при смене тона пере-создаём канал,
+        // чтобы фоновые уведомления тоже звучали выбранным рингтоном.
+        AppServices.Get<NotificationService>().Initialize();
+
+        // Прослушать выбранный тон сразу.
+        AppServices.Get<SoundService>().Play(option.Id);
     }
 
     private async void OnContactsOnlyToggled(object sender, ToggledEventArgs e)

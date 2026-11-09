@@ -172,13 +172,28 @@
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
                             <Label Text="Звук уведомлений" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Короткий системный звук при новом сообщении"
+                            <Label Text="Короткий звук при новом сообщении"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="SoundsSwitch"
                                 Toggled="OnSoundsToggled"
                                 HorizontalOptions="End"
                                 VerticalOptions="Center" />
+                    </Grid>
+
+                    <!-- Приватность: рингтон уведомлений -->
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Рингтон уведомлений" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="Системный или один из встроенных тонов"
+                                   Style="{DynamicResource Caption}" />
+                        </VerticalStackLayout>
+                        <Button x:Name="RingtoneButton"
+                                Text="Системный"
+                                Style="{DynamicResource SecondaryButton}"
+                                MinimumWidthRequest="150"
+                                VerticalOptions="Center"
+                                Clicked="OnRingtoneClicked" />
                     </Grid>
 
                     <!-- Приватность: только контакты -->

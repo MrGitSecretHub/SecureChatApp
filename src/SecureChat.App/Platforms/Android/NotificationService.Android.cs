@@ -15,7 +15,7 @@ namespace SecureChat.App.Services;
 
 public sealed partial class NotificationService
 {
-    private const string ChannelId = "securechat.messages";
+    private const string ChannelIdBase = "securechat.messages";
     private const string ChannelName = "Сообщения SecureChat";
     private const string GroupKey = "securechat.messages.group";
     private const int SummaryNotificationId = 1;
@@ -23,14 +23,42 @@ public sealed partial class NotificationService
     private static readonly HashSet<string> ActiveChats = new(StringComparer.OrdinalIgnoreCase);
     private static bool _permissionRequested;
 
+    /// <summary>
+    /// Идентификатор канала зависит от выбранного рингтона: у Android звук
+    /// канала неизменяем, поэтому смена тона создаёт новый канал. «Системный»
+    /// использует базовый идентификатор.
+    /// </summary>
+    private static string ChannelId
+    {
+        get
+        {
+            string id;
+            try
+            {
+                id = AppServices.Get<AppSession>().RingtoneId;
+            }
+            catch
+            {
+                id = Ringtones.DefaultId;
+            }
+
+            var normalized = Ringtones.Normalize(id);
+            return normalized == Ringtones.DefaultId
+                ? ChannelIdBase
+                : $"{ChannelIdBase}_{normalized}";
+        }
+    }
+
     public partial void Initialize()
     {
         try
         {
             if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
             {
+                var context = Android.App.Application.Context;
+                var channelId = ChannelId;
                 var channel = new NotificationChannel(
-                    ChannelId,
+                    channelId,
                     ChannelName,
                     NotificationImportance.High)
                 {
@@ -40,9 +68,36 @@ public sealed partial class NotificationService
                 channel.LightColor = AndroidColor.ParseColor("#0088CC");
                 channel.EnableVibration(true);
 
-                var manager = (NotificationManager)Android.App.Application.Context
+                // Для встроенного тона назначаем его звуком канала, чтобы он
+                // звучал и для фоновых системных уведомлений.
+                if (channelId != ChannelIdBase)
+                {
+                    var builtIn = channelId.Substring(ChannelIdBase.Length + 1);
+                    var uri = Android.Net.Uri.Parse(
+                        $"android.resource://{context.PackageName}/raw/ringtone_{builtIn}");
+                    channel.SetSound(
+                        uri,
+                        new Android.Media.AudioAttributes.Builder()
+                            .SetUsage(Android.Media.AudioUsageKind.Notification)
+                            .SetContentType(Android.Media.AudioContentType.Sonification)
+                            .Build()!);
+                }
+
+                var manager = (NotificationManager)context
                     .GetSystemService(Context.NotificationService)!;
                 manager.CreateNotificationChannel(channel);
+
+                // Удаляем каналы прежней версии: звук канала нельзя изменить.
+                foreach (var existing in manager.NotificationChannels ?? Enumerable.Empty<NotificationChannel>())
+                {
+                    var existingId = existing.Id;
+                    if (existingId is not null
+                        && existingId.StartsWith(ChannelIdBase, StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(existingId, channelId, StringComparison.Ordinal))
+                    {
+                        manager.DeleteNotificationChannel(existingId);
+                    }
+                }
             }
         }
         catch

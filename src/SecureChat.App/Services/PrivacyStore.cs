@@ -20,6 +20,7 @@ public static class PrivacyStore
         session.ShowTypingStatus = await ReadFlagAsync(secrets, "privacy.typing", true);
         session.ShowNotificationPreview = await ReadFlagAsync(secrets, "privacy.preview", true);
         session.SoundsEnabled = await ReadFlagAsync(secrets, "privacy.sounds", true);
+        session.RingtoneId = Ringtones.Normalize(await secrets.GetAsync("privacy.ringtone"));
         session.AcceptOnlyFromContacts = await ReadFlagAsync(secrets, "privacy.contactsOnly", false);
 
         var blockedJson = await secrets.GetAsync(BlockedKey);
@@ -35,6 +36,7 @@ public static class PrivacyStore
         await WriteFlagAsync(secrets, "privacy.typing", session.ShowTypingStatus);
         await WriteFlagAsync(secrets, "privacy.preview", session.ShowNotificationPreview);
         await WriteFlagAsync(secrets, "privacy.sounds", session.SoundsEnabled);
+        await secrets.SetAsync("privacy.ringtone", session.RingtoneId);
         await WriteFlagAsync(secrets, "privacy.contactsOnly", session.AcceptOnlyFromContacts);
         await secrets.SetAsync(BlockedKey, JsonSerializer.Serialize(session.BlockedUsernames));
     }

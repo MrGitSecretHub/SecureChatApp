@@ -29,6 +29,11 @@ public partial class LoginPage : ContentPage
         try
         {
             await PrivacyStore.LoadAsync(AppServices.Get<AppSession>(), AppServices.Get<SecretStore>());
+
+            // Канал уведомлений мог быть создан до загрузки настроек — обновляем
+            // его звук под выбранный рингтон.
+            AppServices.Get<NotificationService>().Initialize();
+
             var saved = await _sessionStore.LoadSessionAsync();
             if (saved is not null)
             {
