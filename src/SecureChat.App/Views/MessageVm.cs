@@ -18,6 +18,7 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     private string _text = string.Empty;
     private string _fileName = string.Empty;
+    private byte[]? _gifBytes;
     private string _contentType = string.Empty;
     private long _mediaSize;
     private bool _mediaDownloaded;
@@ -408,6 +409,62 @@ public sealed class MessageVm : INotifyPropertyChanged
             Notify(nameof(IsImagePending));
         }
     }
+
+    /// <summary>Байты расшифрованного GIF (заполняются после скачивания).</summary>
+    public byte[]? GifBytes => _gifBytes;
+
+    /// <summary>Анимированный GIF: по content-type или по расширению файла.</summary>
+    public bool IsAnimatedGif =>
+        _contentType.StartsWith("image/gif", StringComparison.OrdinalIgnoreCase) ||
+        _fileName.EndsWith(".gif", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Обычная статичная картинка (не GIF).</summary>
+    public bool IsStaticImage => IsImage && !IsAnimatedGif;
+
+    /// <summary>Цвет подложки под GIF (в тон пузыря), HTML #RRGGBB.</summary>
+    public string GifSurfaceHex => ResolveBubbleHex(IsMine);
+
+    /// <summary>Картинка по байтам: ImageSource + хранение GIF-байтов для GifWebView.</summary>
+    public void SetImageBytes(byte[] bytes)
+    {
+        SetImage(ImageSource.FromStream(() => new MemoryStream(bytes)));
+        if (IsAnimatedGif)
+        {
+            _gifBytes = bytes;
+            Notify(nameof(GifBytes));
+        }
+    }
+
+    private static string ResolveBubbleHex(bool mine)
+    {
+        try
+        {
+            var style = StyleRes(mine ? "MessageBubbleMe" : "MessageBubbleThem");
+            var setter = style.Setters.FirstOrDefault(item =>
+                item.Property == Microsoft.Maui.Controls.Border.BackgroundColorProperty);
+
+            if (setter?.Value is Color color)
+            {
+                return HtmlHex(color);
+            }
+
+            if (setter?.Value is SolidColorBrush brush)
+            {
+                return HtmlHex(brush.Color);
+            }
+        }
+        catch
+        {
+            // Нет стиля — нейтральная подложка ниже.
+        }
+
+        return mine ? "#2B5278" : "#182533";
+    }
+
+    private static string HtmlHex(Color color) =>
+        $"#{(int)Math.Round(color.Red * 255):X2}" +
+        $"{(int)Math.Round(color.Green * 255):X2}" +
+        $"{(int)Math.Round(color.Blue * 255):X2}";
 
     public void Update(StoredMessage message, string ownName, string peerName)
     {

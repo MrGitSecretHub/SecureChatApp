@@ -22,9 +22,32 @@ public partial class ImageViewerPage : ContentPage
     {
         InitializeComponent();
 
-        Title = string.IsNullOrWhiteSpace(fileName) ? "Изображение" : $"Фото: {fileName}";
+        var isAnimatedGif = GifWebView.IsGifData(imageBytes);
+        Title = string.IsNullOrWhiteSpace(fileName)
+            ? (isAnimatedGif ? "GIF" : "Изображение")
+            : $"{(isAnimatedGif ? "GIF" : "Фото")}: {fileName}";
         BindingContext = this;
-        Image.Source = ImageSource.FromStream(() => new MemoryStream(imageBytes, writable: false));
+
+        if (isAnimatedGif)
+        {
+            // GIF анимируем через WebView; статичный Image остаётся пустым.
+            Image.IsVisible = false;
+            var gifView = new GifWebView
+            {
+                Bytes = imageBytes,
+                SurfaceHex = "#000000",
+                Fill = true,
+                HorizontalOptions = LayoutOptions.Fill,
+                VerticalOptions = LayoutOptions.Fill
+            };
+            var grid = (Microsoft.Maui.Controls.Grid)Content;
+            grid.Children.Insert(0, gifView);
+            ZoomHint.IsVisible = false;
+        }
+        else
+        {
+            Image.Source = ImageSource.FromStream(() => new MemoryStream(imageBytes, writable: false));
+        }
     }
 
     public ImageSource? Source => Image.Source;

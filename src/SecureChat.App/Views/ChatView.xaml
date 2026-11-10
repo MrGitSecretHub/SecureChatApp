@@ -449,26 +449,15 @@
                                                        TextColor="{DynamicResource TextMuted}" />
                                             </Border>
                                             <Grid IsVisible="{Binding IsImageReady}">
+                                                <views:GifWebView IsVisible="{Binding IsAnimatedGif}"
+                                                                  Bytes="{Binding GifBytes}"
+                                                                  SurfaceHex="{Binding GifSurfaceHex}" />
                                                 <Image Source="{Binding ImageSource}"
+                                                       IsVisible="{Binding IsStaticImage}"
                                                        Aspect="AspectFit"
                                                        MaximumWidthRequest="340"
                                                        MaximumHeightRequest="240"
                                                        HorizontalOptions="Start" />
-                                                <Border IsVisible="{Binding IsGif}"
-                                                        BackgroundColor="#000000B0"
-                                                        StrokeThickness="0"
-                                                        Padding="7,2"
-                                                        Margin="0,0,0,6"
-                                                        HorizontalOptions="Start"
-                                                        VerticalOptions="End">
-                                                    <Border.StrokeShape>
-                                                        <RoundRectangle CornerRadius="6" />
-                                                    </Border.StrokeShape>
-                                                    <Label Text="GIF"
-                                                           FontSize="11"
-                                                           FontAttributes="Bold"
-                                                           TextColor="White" />
-                                                </Border>
                                             </Grid>
                                             <Button Grid.Row="1"
                                                     Text="Посмотреть"

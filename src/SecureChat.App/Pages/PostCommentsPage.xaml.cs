@@ -64,6 +64,12 @@ public partial class PostCommentsPage : ContentPage
             _members = members;
             CommentEntry.SetMembers(members.Select(member => member.Username));
 
+            // Для подсветки @упоминаний и меню в комментариях.
+            SpaceMessageVm.SetFallbackMembers(
+                _spaceId,
+                members.Select(member => member.Username));
+
+
             _canModerate = members.Any(member =>
                 string.Equals(member.UserId, _myUserId, StringComparison.Ordinal) &&
                 (member.Role == SpaceRoles.Owner || member.Role == SpaceRoles.Admin));
@@ -227,7 +233,7 @@ public partial class PostCommentsPage : ContentPage
         }
     }
 
-    /// <summary>Нажали @упоминание в комментарии: открываем личный чат.</summary>
+    /// <summary>Нажали @упоминание в комментарии: показываем профиль.</summary>
     private async void OnMentionTapped(SpaceMessageVm comment, string username)
     {
         if (string.Equals(username, AppServices.Get<AppSession>().User?.Username,
@@ -238,7 +244,7 @@ public partial class PostCommentsPage : ContentPage
 
         try
         {
-            await Navigation.PushAsync(new ChatPage(username));
+            await Navigation.PushAsync(new UserProfilePage(username));
         }
         catch (Exception ex)
         {

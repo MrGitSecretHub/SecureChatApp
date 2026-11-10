@@ -18,7 +18,7 @@ public partial class MentionEntryView : ContentView
     }
 
     private readonly List<string> _usernames = new();
-    private bool _suppressMenuUpdate;
+    private string? _programmaticText;
     private int _tokenStart;
     private string _token = string.Empty;
 
@@ -54,8 +54,10 @@ public partial class MentionEntryView : ContentView
         get => InnerEntry.Text;
         set
         {
-            _suppressMenuUpdate = true;
-            InnerEntry.Text = value ?? string.Empty;
+            // Запоминаем программное значение: событие TextChanged может прийти,
+            // а может и не прийти — в обоих случаях меню не должно сбоить.
+            _programmaticText = value ?? string.Empty;
+            InnerEntry.Text = _programmaticText;
             HideMenu();
         }
     }
@@ -119,10 +121,16 @@ public partial class MentionEntryView : ContentView
 
     private void OnInnerTextChanged(object? sender, TextChangedEventArgs e)
     {
-        if (_suppressMenuUpdate)
+        if (_programmaticText is not null)
         {
-            _suppressMenuUpdate = false;
-            return;
+            // Все ещё программное значение (или его эхо) — меню не трогаем.
+            if (string.Equals(e.NewTextValue, _programmaticText, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            // Дальше текст уже менялся пользователем — меняем меню.
+            _programmaticText = null;
         }
 
         UpdateMenu();
@@ -238,8 +246,8 @@ public partial class MentionEntryView : ContentView
         var insertion = "@" + username + " ";
         var rebuilt = text[.._tokenStart] + insertion + text[Math.Min(caret, text.Length)..];
 
-        _suppressMenuUpdate = true;
-        InnerEntry.Text = rebuilt;
+        Text = rebuilt;
+
         try
         {
             InnerEntry.CursorPosition = Math.Min(_tokenStart + insertion.Length, rebuilt.Length);

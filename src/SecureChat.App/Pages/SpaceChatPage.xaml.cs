@@ -168,6 +168,12 @@ public partial class SpaceChatPage : ContentPage
             _members = members;
             MessageEntry.SetMembers(members.Select(member => member.Username));
 
+            // Для подсветки @упоминаний в сообщениях, отправленных до появления
+            // этой функции (payload старых версий не несёт список упомянутых).
+            SpaceMessageVm.SetFallbackMembers(
+                _spaceId,
+                members.Select(member => member.Username));
+
             var messages = await _spaces.GetMessagesAsync(_spaceId, _topicId);
 
             var commentCounts = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -381,7 +387,7 @@ public partial class SpaceChatPage : ContentPage
         }
     }
 
-    /// <summary>Нажали @упоминание в тексте сообщения: открываем личный чат.</summary>
+    /// <summary>Нажали @упоминание в тексте сообщения: показываем профиль.</summary>
     private async void OnMessageMentionTapped(SpaceMessageVm message, string username)
     {
         if (string.Equals(username, AppServices.Get<AppSession>().User?.Username,
@@ -392,7 +398,7 @@ public partial class SpaceChatPage : ContentPage
 
         try
         {
-            await Navigation.PushAsync(new ChatPage(username));
+            await Navigation.PushAsync(new UserProfilePage(username));
         }
         catch (Exception ex)
         {
@@ -706,7 +712,7 @@ public partial class SpaceChatPage : ContentPage
 
                 if (message.IsImage)
                 {
-                    message.SetImageBytes(bytes);
+                    message.SetImageContent(bytes);
                 }
             }
 

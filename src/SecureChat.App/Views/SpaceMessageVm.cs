@@ -22,11 +22,33 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     private bool _mediaDownloaded;
     private ImageSource? _imageSource;
     private FormattedString? _textFormatted;
+    private byte[]? _gifBytes;
     private readonly bool _isChannel;
     private int _commentsCount;
 
+    /// <summary>
+    /// Кэш логинов участников по пространствам (spaceId → логины). Нужен для
+    /// подсветки @упоминаний в сообщениях, отправленных старыми версиями
+    /// клиента, у которой payload не содержит списка упомянутых.
+    /// Заполняется страницами пространств через <see cref="SetFallbackMembers"/>.
+    /// </summary>
+    private static readonly Dictionary<string, HashSet<string>> FallbackMemberUsernames =
+        new(StringComparer.Ordinal);
+
+    public static void SetFallbackMembers(string spaceId, IEnumerable<string> usernames)
+    {
+        lock (FallbackMemberUsernames)
+        {
+            FallbackMemberUsernames[spaceId] =
+                new HashSet<string>(usernames ?? [], StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
     /// <summary>Идентификатор сообщения пространства (совпадает с DTO Id).</summary>
     public required string Id { get; init; }
+
+    /// <summary>Пространство, к которому относится сообщение (для фолбэк-подсветки упоминаний).</summary>
+    public string SpaceId { get; init; } = string.Empty;
 
     /// <summary>Тема форума, к которой относится сообщение (null — без темы).</summary>
     public string? TopicId { get; init; }
@@ -81,7 +103,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         }
 
         var formatted = new FormattedString();
-        foreach (var (chunk, mention) in SpaceMentions.Split(_text, Mentions))
+        foreach (var (chunk, mention) in SpaceMentions.Split(_text, RenderMentions()))
         {
             var span = new Span { Text = chunk };
 
@@ -89,6 +111,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             {
                 span.TextColor = ResolveAccent();
                 span.TextDecorations = TextDecorations.Underline;
+                span.FontAttributes = FontAttributes.Bold;
 
                 var target = this;
                 var recognizer = new TapGestureRecognizer { CommandParameter = mention };
@@ -99,6 +122,34 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             formatted.Spans.Add(span);
         }
 
+        _textFormatted = formatted;
+        HandleTextFormatted(formatted);
+    }
+
+    /// <summary>Имена для подсветки: из payload или (для старых сообщений) по текущим участникам.</summary>
+    private IReadOnlyCollection<string> RenderMentions()
+    {
+        if (Mentions.Count > 0)
+        {
+            return Mentions;
+        }
+
+        HashSet<string>? members;
+        lock (FallbackMemberUsernames)
+        {
+            FallbackMemberUsernames.TryGetValue(SpaceId, out members);
+        }
+
+        if (members is not { Count: > 0 })
+        {
+            return Array.Empty<string>();
+        }
+
+        return SpaceMentions.Parse(_text, members);
+    }
+
+    private void HandleTextFormatted(FormattedString formatted)
+    {
         _textFormatted = formatted;
         OnPropertyChanged(nameof(TextFormatted));
     }
@@ -184,6 +235,18 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     public bool IsFile => Kind == "file";
     public bool IsVoice => Kind == MessageKinds.Voice;
     public bool IsVideoCircle => Kind == MessageKinds.VideoCircle;
+
+    /// <summary>Анимированный GIF: рисуется через GifWebView, кадры идут сами.</summary>
+    public bool IsAnimatedGif { get; private set; }
+
+    /// <summary>Обычная статичная картинка (не GIF).</summary>
+    public bool IsStaticImage => IsImage && !IsAnimatedGif;
+
+    /// <summary>Байты расшифрованного GIF (заполняются после скачивания).</summary>
+    public byte[]? GifBytes => _gifBytes;
+
+    /// <summary>Цвет подложки под GIF (в тон пузыря), HTML #RRGGBB.</summary>
+    public string GifSurfaceHex { get; private set; } = "#3B4048";
 
     public bool IsImageReady => ImageSource is not null;
     public bool IsImagePending => IsImage && ImageSource is null;
@@ -299,6 +362,17 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     public void SetImageBytes(byte[] bytes) =>
         ImageSource = ImageSource.FromStream(() => new MemoryStream(bytes));
 
+    /// <summary>Для GIF дополнительно храним байты: их рисует GifWebView с полными кадрами.</summary>
+    public void SetImageContent(byte[] bytes)
+    {
+        SetImageBytes(bytes);
+        if (IsAnimatedGif)
+        {
+            _gifBytes = bytes;
+            OnPropertyChanged(nameof(GifBytes));
+        }
+    }
+
     public void SetReactions(IEnumerable<Reaction> reactions, string myUserId)
     {
         ReactionChips.Clear();
@@ -326,6 +400,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         var vm = new SpaceMessageVm(isChannel)
         {
             Id = source.Id,
+            SpaceId = source.SpaceId,
             TopicId = source.TopicId,
             SenderId = source.SenderId,
             Sender = source.SenderUsername,
@@ -349,10 +424,50 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         vm._isEdited = source.EditedAtUnixMs > 0;
         vm._isPinned = source.IsPinned;
         vm._canModerate = canModerate;
+        vm.IsAnimatedGif = IsGifMedia(payload.Media);
+        vm.GifSurfaceHex = ResolveBubbleHex(mine);
         vm.RebuildTextFormatted();
         vm.SetReactions(source.Reactions, myUserId);
         return vm;
     }
+
+    /// <summary>GIF-вложение: по типу содержимого или по расширению файла.</summary>
+    private static bool IsGifMedia(SpaceMediaAttachment? media) =>
+        media is not null &&
+        (media.ContentType.StartsWith("image/gif", StringComparison.OrdinalIgnoreCase) ||
+         media.FileName.EndsWith(".gif", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Подложка GIF — цвет текущего пузыря (я/не я), HTML #RRGGBB.</summary>
+    private static string ResolveBubbleHex(bool mine)
+    {
+        try
+        {
+            var style = (Style)Application.Current!.Resources[mine ? "MessageBubbleMe" : "MessageBubbleThem"];
+            var setter = style.Setters.FirstOrDefault(item =>
+                item.Property == Microsoft.Maui.Controls.Border.BackgroundColorProperty);
+
+            if (setter?.Value is Color color)
+            {
+                return ToHtmlHex(color);
+            }
+
+            if (setter?.Value is SolidColorBrush brush)
+            {
+                return ToHtmlHex(brush.Color);
+            }
+        }
+        catch
+        {
+            // Нет стиля — берём нейтральную подложку ниже.
+        }
+
+        return mine ? "#2B5278" : "#182533";
+    }
+
+    private static string ToHtmlHex(Color color) =>
+        $"#{(int)Math.Round(color.Red * 255):X2}" +
+        $"{(int)Math.Round(color.Green * 255):X2}" +
+        $"{(int)Math.Round(color.Blue * 255):X2}";
 
     public static SpaceMessageVm From(
         SpaceMessageDto source,

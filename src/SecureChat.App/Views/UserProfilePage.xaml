@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Views.UserProfilePage"
+             Title="Профиль">
+    <Grid RowDefinitions="*,Auto"
+          BackgroundColor="{DynamicResource PageBackground}">
+
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="16" Spacing="12">
+
+                <!-- Шапка профиля -->
+                <Border Style="{DynamicResource Card}" Padding="16">
+                    <VerticalStackLayout Spacing="10">
+                        <HorizontalStackLayout Spacing="14">
+                            <Grid WidthRequest="84" HeightRequest="84">
+                                <Border StrokeThickness="0"
+                                        BackgroundColor="{DynamicResource AccentSoft}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="42" />
+                                    </Border.StrokeShape>
+                                    <Label x:Name="InitialLabel"
+                                           Text="?"
+                                           FontSize="34"
+                                           FontAttributes="Bold"
+                                           TextColor="{DynamicResource Accent}"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Border>
+                                <Image x:Name="AvatarImage"
+                                       Aspect="AspectFill"
+                                       WidthRequest="84"
+                                       HeightRequest="84">
+                                    <Image.Clip>
+                                        <EllipseGeometry />
+                                    </Image.Clip>
+                                </Image>
+                            </Grid>
+
+                            <VerticalStackLayout Spacing="4"
+                                                 VerticalOptions="Center">
+                                <Label x:Name="NicknameLabel"
+                                       Text="…"
+                                       FontSize="20"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource TextPrimary}"
+                                       LineBreakMode="TailTruncation" />
+                                <Label x:Name="UsernameLabel"
+                                       Text="@…"
+                                       FontSize="14"
+                                       TextColor="{DynamicResource TextMuted}"
+                                       LineBreakMode="TailTruncation" />
+                                <HorizontalStackLayout Spacing="6">
+                                    <Border x:Name="StatusDot"
+                                            WidthRequest="10"
+                                            HeightRequest="10"
+                                            StrokeThickness="0"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <Ellipse />
+                                        </Border.StrokeShape>
+                                    </Border>
+                                    <Label x:Name="StatusLabel"
+                                           Text="Загрузка…"
+                                           FontSize="12"
+                                           TextColor="{DynamicResource TextMuted}" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+
+                        <!-- О себе -->
+                        <VerticalStackLayout x:Name="BioSection" Spacing="2" IsVisible="False">
+                            <Label Text="О себе"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource TextMuted}" />
+                            <Label x:Name="BioLabel"
+                                   FontSize="14"
+                                   TextColor="{DynamicResource TextPrimary}"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Отпечаток ключа -->
+                <Border x:Name="FingerprintCard"
+                        Style="{DynamicResource Card}"
+                        Padding="14"
+                        IsVisible="False">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Отпечаток ключа шифрования"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="{DynamicResource TextMuted}" />
+                        <Label x:Name="FingerprintLabel"
+                               Text="…"
+                               FontSize="13"
+                               TextColor="{DynamicResource TextPrimary}" />
+                        <Label Text="Сверьте его с участником лично: он подтверждает подлинность ключа."
+                               FontSize="11"
+                               TextColor="{DynamicResource TextMuted}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label x:Name="ErrorLabel"
+                       Text=""
+                       FontSize="12"
+                       TextColor="{DynamicResource Danger}"
+                       IsVisible="False"
+                       LineBreakMode="WordWrap" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Действие: начать чат -->
+        <VerticalStackLayout Grid.Row="1" Spacing="8" Margin="16,0,16,16">
+            <Button x:Name="StartChatButton"
+                    Text="💬 Начать чат"
+                    Style="{DynamicResource PrimaryButton}"
+                    HeightRequest="46"
+                    Clicked="OnStartChatClicked"
+                    ToolTipProperties.Text="Открыть личный чат с этим участником" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

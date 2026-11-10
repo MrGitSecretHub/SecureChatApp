@@ -376,7 +376,7 @@ public partial class ChatView : ContentView
 
             var copy = bytes;
             MainThread.BeginInvokeOnMainThread(() =>
-                item.SetImage(ImageSource.FromStream(() => new MemoryStream(copy))));
+                item.SetImageBytes(copy));
         }
     }
 
@@ -400,7 +400,7 @@ public partial class ChatView : ContentView
             if (bytes is not null)
             {
                 var copy = bytes;
-                message.SetImage(ImageSource.FromStream(() => new MemoryStream(copy)));
+                message.SetImageBytes(copy);
             }
 
             RefreshSidePanels();
