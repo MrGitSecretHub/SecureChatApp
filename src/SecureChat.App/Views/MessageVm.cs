@@ -77,6 +77,97 @@ public sealed class MessageVm : INotifyPropertyChanged
     /// <summary>Стикер — крупный эмодзи-глиф (Kind=Sticker), как большие эмодзи в Telegram.</summary>
     public bool IsSticker => Kind == MessageKinds.Sticker;
 
+    /// <summary>Видео-файл: Kind=File с video/*-типом.</summary>
+    public bool IsVideoFile => IsFile && ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Видео вообще (кружок или видео-файл).</summary>
+    public bool IsVideoMedia => IsVideoCircle || IsVideoFile;
+
+    /// <summary>Байты расшифрованного видео (заполняются после загрузки).</summary>
+    public byte[]? VideoBytes { get; private set; }
+
+    public bool IsVideoReady => IsVideoMedia && VideoBytes is not null;
+    public bool IsVideoPending => IsVideoMedia && VideoBytes is null;
+
+    /// <summary>Длительность видео из mp4-заголовка, «ММ:СС»; пусто — неизвестна.</summary>
+    public string VideoDurationText => _videoDurationText;
+
+    public bool HasVideoDuration => !string.IsNullOrEmpty(_videoDurationText);
+
+    private string _videoDurationText = string.Empty;
+
+    /// <summary>Заполняет встроенное видео в пузыре (и длительность из mp4).</summary>
+    public void SetVideoBytes(byte[] bytes)
+    {
+        if (bytes is not { Length: > 0 } data || VideoBytes is not null)
+        {
+            return;
+        }
+
+        VideoBytes = data;
+        _videoDurationText = ReadVideoDuration(data);
+        Notify(nameof(VideoBytes));
+        Notify(nameof(IsVideoReady));
+        Notify(nameof(IsVideoPending));
+        Notify(nameof(VideoDurationText));
+        Notify(nameof(HasVideoDuration));
+    }
+
+    /// <summary>Длительность mp4: ищем бокс mvhd (version 0/1). Big-endian по спецификации.</summary>
+    private static string ReadVideoDuration(byte[] data)
+    {
+        try
+        {
+            for (var i = 0; i + 36 < data.Length; i++)
+            {
+                if (data[i] != 'm' || data[i + 1] != 'v' || data[i + 2] != 'h' || data[i + 3] != 'd')
+                {
+                    continue;
+                }
+
+                long duration;
+                long timescale;
+                if (data[i + 4] == 1)
+                {
+                    // v1: creation(8) + modification(8) + timescale(4) + duration(8)
+                    timescale = ReadInt32BE(data, i + 24);
+                    duration = ReadInt64BE(data, i + 28);
+                }
+                else
+                {
+                    // v0: creation(4) + modification(4) + timescale(4) + duration(4)
+                    timescale = ReadInt32BE(data, i + 16);
+                    duration = ReadInt32BE(data, i + 20);
+                }
+
+                if (timescale <= 0 || duration < 0)
+                {
+                    return string.Empty;
+                }
+
+                var seconds = (long)Math.Round(duration / (double)timescale);
+                var time = TimeSpan.FromSeconds(seconds);
+                return time.TotalHours >= 1
+                    ? $"{(int)time.TotalHours:0}:{time.Minutes:00}:{time.Seconds:00}"
+                    : $"{time.Minutes:00}:{time.Seconds:00}";
+            }
+        }
+        catch
+        {
+            // Повреждённый/нестандартный заголовок — бейдж длительности просто скрыт.
+        }
+
+        return string.Empty;
+    }
+
+    private static uint ReadInt32BE(byte[] data, int index) =>
+        ((uint)data[index] << 24) | ((uint)data[index + 1] << 16) | ((uint)data[index + 2] << 8) | data[index + 3];
+
+    private static long ReadInt64BE(byte[] data, int index) =>
+        (((long)data[index] << 56) | ((long)data[index + 1] << 48) | ((long)data[index + 2] << 40) |
+         ((long)data[index + 3] << 32) | ((long)data[index + 4] << 24) | ((long)data[index + 5] << 16) |
+         ((long)data[index + 6] << 8) | data[index + 7]) & 0x7FFFFFFFFFFFFFFF;
+
     public bool ShowText => Kind == MessageKinds.Text;
     public bool CanOpenFile => IsFile;
 

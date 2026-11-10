@@ -560,6 +560,21 @@ public partial class ChatView : ContentView
             MainThread.BeginInvokeOnMainThread(() =>
                 item.SetImageBytes(copy));
         }
+
+        // Видео (кружки и видео-файлы): та же догрузка, что у картинок.
+        foreach (var item in items.Where(item => item.IsVideoMedia && !item.IsVideoReady))
+        {
+            var bytes = await _chatManager.GetLocalMediaAsync(item.Id);
+            if (bytes is null)
+            {
+                _ = _chatManager.EnsureMediaAsync(user, item.Id);
+                continue;
+            }
+
+            var copy = bytes;
+            MainThread.BeginInvokeOnMainThread(() =>
+                item.SetVideoBytes(copy));
+        }
     }
 
     private async Task ReloadMediaAsync(MessageVm message, string user)
@@ -567,7 +582,7 @@ public partial class ChatView : ContentView
         var conversation = await _chatManager.GetConversationAsync(user);
         var fresh = conversation?.Messages.FirstOrDefault(item => item.Id == message.Id);
         byte[]? bytes = null;
-        if (fresh is not null && message.IsImage)
+        if (fresh is not null && (message.IsImage || message.IsVideoMedia))
         {
             bytes = await _chatManager.GetLocalMediaAsync(message.Id);
         }
@@ -582,7 +597,14 @@ public partial class ChatView : ContentView
             if (bytes is not null)
             {
                 var copy = bytes;
-                message.SetImageBytes(copy);
+                if (message.IsImage)
+                {
+                    message.SetImageBytes(copy);
+                }
+                else if (message.IsVideoMedia)
+                {
+                    message.SetVideoBytes(copy);
+                }
             }
 
             RefreshSidePanels();

@@ -483,6 +483,20 @@
                                                     Clicked="OnOpenImageClicked" />
                                         </Grid>
 
+                                        <!-- Встроенное видео-файл: крупный плеер как в Telegram -->
+                                        <Grid IsVisible="{Binding IsVideoFile}"
+                                              Margin="0,2">
+                                            <views:GifWebView IsVisible="{Binding IsVideoReady}"
+                                                              MediaKind="Video"
+                                                              Bytes="{Binding VideoBytes}"
+                                                              MediaContentType="{Binding ContentType}"
+                                                              SurfaceHex="#000000" />
+                                            <Label IsVisible="{Binding IsVideoPending}"
+                                                   Text="Загрузка видео…"
+                                                   FontSize="12"
+                                                   TextColor="{DynamicResource TextMuted}" />
+                                        </Grid>
+
                                         <!-- Файл -->
                                         <Border IsVisible="{Binding IsFile}"
                                                 BackgroundColor="{DynamicResource SurfaceAlt}"
@@ -587,40 +601,44 @@
                                             </Grid>
                                         </Border>
 
-                                        <!-- Видеокружок -->
-                                        <Border IsVisible="{Binding IsVideoCircle}"
-                                                BackgroundColor="{DynamicResource SurfaceAlt}"
-                                                StrokeThickness="0"
-                                                Padding="8,6">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="20" />
-                                            </Border.StrokeShape>
-                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                                                <Label Grid.Column="0"
-                                                        Text="📹"
-                                                        FontSize="16"
-                                                        VerticalOptions="Center" />
-                                                <Label Grid.Column="1"
-                                                        Text="{Binding FileName, StringFormat='Видеокружок · {0}'}"
-                                                        FontSize="12"
-                                                        TextColor="{DynamicResource TextPrimary}"
-                                                        VerticalOptions="Center" />
-                                                <Button Grid.Column="2"
-                                                        Text="▶"
-                                                        FontSize="14"
-                                                        WidthRequest="32"
-                                                        HeightRequest="32"
-                                                        Padding="0"
-                                                        MinimumWidthRequest="0"
-                                                        MinimumHeightRequest="0"
-                                                        BackgroundColor="{DynamicResource Accent}"
-                                                        TextColor="White"
-                                                        CornerRadius="16"
-                                                        VerticalOptions="Center"
-                                                        CommandParameter="{Binding .}"
-                                                        Clicked="OnPlayVideoCircleClicked" />
-                                            </Grid>
-                                        </Border>
+                                        <!-- Видеокружок: встроенное видео, как в Telegram -->
+                                        <Grid IsVisible="{Binding IsVideoCircle}"
+                                              WidthRequest="240"
+                                              HeightRequest="240"
+                                              HorizontalOptions="Start"
+                                              Margin="0,2">
+                                            <views:GifWebView IsVisible="{Binding IsVideoReady}"
+                                                              MediaKind="VideoCircle"
+                                                              Bytes="{Binding VideoBytes}"
+                                                              MediaContentType="{Binding ContentType}"
+                                                              SurfaceHex="#000000" />
+                                            <!-- Бейдж длительности поверх видео -->
+                                            <Label IsVisible="{Binding HasVideoDuration}"
+                                                   Text="{Binding VideoDurationText}"
+                                                   FontSize="12"
+                                                   BackgroundColor="#CC000000"
+                                                   TextColor="White"
+                                                   Padding="7,2"
+                                                   HorizontalOptions="Start"
+                                                   VerticalOptions="Start"
+                                                   Margin="6,6,0,0" />
+                                            <!-- Пока видео грузится — карточка ожидания -->
+                                            <Border IsVisible="{Binding IsVideoPending}"
+                                                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                    StrokeThickness="0"
+                                                    Padding="10,8">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="12" />
+                                                </Border.StrokeShape>
+                                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                                    <Label Text="📹" FontSize="16" VerticalOptions="Center" />
+                                                    <Label Text="Загрузка видео…"
+                                                           FontSize="12"
+                                                           TextColor="{DynamicResource TextPrimary}"
+                                                           VerticalOptions="Center" />
+                                                </HorizontalStackLayout>
+                                            </Border>
+                                        </Grid>
 
                                         <!-- Реакции: каждый эмодзи — отдельный чип со счётчиком -->
                                         <CollectionView IsVisible="{Binding HasReactions}"

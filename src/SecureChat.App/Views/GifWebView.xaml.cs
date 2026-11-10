@@ -13,6 +13,10 @@ public partial class GifWebView : ContentView
     private const double CompactMaxWidth = 280;
     private const double CompactMaxHeight = 220;
 
+    /// <summary>Размеры встроенного видео.</summary>
+    private const double VideoMaxWidth = 280;
+    private const double VideoMaxHeight = 160;
+
     private byte[]? _bytes;
     private string _surfaceHex = "#3B4048";
 
@@ -61,6 +65,30 @@ public partial class GifWebView : ContentView
         set => SetValue(FillProperty, value);
     }
 
+    /// <summary>Что рисуем: "Gif" (по умолчанию), "Video" или "VideoCircle".</summary>
+    public static readonly BindableProperty MediaKindProperty =
+        BindableProperty.Create(
+            nameof(MediaKind), typeof(string), typeof(GifWebView),
+            defaultValue: "Gif", propertyChanged: OnContentChanged);
+
+    public string MediaKind
+    {
+        get => (string)GetValue(MediaKindProperty);
+        set => SetValue(MediaKindProperty, value);
+    }
+
+    /// <summary>MIME-тип медиа (для видео: "video/mp4"; пусто — считаем mp4).</summary>
+    public static readonly BindableProperty MediaContentTypeProperty =
+        BindableProperty.Create(
+            nameof(MediaContentType), typeof(string), typeof(GifWebView),
+            defaultValue: string.Empty, propertyChanged: OnContentChanged);
+
+    public string MediaContentType
+    {
+        get => (string)GetValue(MediaContentTypeProperty);
+        set => SetValue(MediaContentTypeProperty, value);
+    }
+
     private static void OnContentChanged(BindableObject bindable, object oldValue, object newValue)
     {
         if (bindable is GifWebView view)
@@ -78,6 +106,15 @@ public partial class GifWebView : ContentView
 
     private void Update()
     {
+        var isVideo = string.Equals(MediaKind, "Video", StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(MediaKind, "VideoCircle", StringComparison.OrdinalIgnoreCase);
+
+        if (isVideo)
+        {
+            UpdateVideo();
+            return;
+        }
+
         if (_bytes is not { Length: > 13 } data || !IsGifData(data))
         {
             GifView.Source = null;
@@ -111,6 +148,55 @@ public partial class GifWebView : ContentView
         {
             Html = BuildHtml(data, _surfaceHex)
         };
+    }
+
+    /// <summary>Видео в пузыре: прямоугольник 16:9 или квадрат (видеокружок), как в Telegram.</summary>
+    private void UpdateVideo()
+    {
+        if (_bytes is not { Length: > 16 })
+        {
+            GifView.Source = null;
+            return;
+        }
+
+        if (string.Equals(MediaKind, "VideoCircle", StringComparison.OrdinalIgnoreCase))
+        {
+            HorizontalOptions = LayoutOptions.Center;
+            WidthRequest = Math.Min(VideoMaxHeight, 240);
+            HeightRequest = Math.Min(VideoMaxHeight, 240);
+        }
+        else
+        {
+            HorizontalOptions = LayoutOptions.Start;
+            WidthRequest = VideoMaxWidth;
+            HeightRequest = VideoMaxHeight;
+        }
+
+        var contentType = string.IsNullOrWhiteSpace(MediaContentType)
+            ? "video/mp4"
+            : MediaContentType.Trim();
+
+        GifView.Source = new HtmlWebViewSource
+        {
+            Html = BuildVideoHtml(_bytes, contentType, _surfaceHex)
+        };
+    }
+
+    private static string BuildVideoHtml(byte[] video, string contentType, string surfaceHex)
+    {
+        var builder = new StringBuilder(video.Length * 4 / 3 + 512);
+        builder.Append(
+            "<!doctype html><html><head><meta charset='utf-8'>" +
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<style>html,body{margin:0;padding:0;width:100%;height:100%;" +
+            "background:#000;overflow:hidden}" +
+            "video{width:100%;height:100%;object-fit:contain;display:block}" +
+            "</style></head><body><video controls playsinline preload='metadata' src='data:");
+        builder.Append(contentType);
+        builder.Append(";base64,");
+        builder.Append(Convert.ToBase64String(video));
+        builder.Append("'></video></body></html>");
+        return builder.ToString();
     }
 
     private static string BuildHtml(byte[] gif, string surfaceHex)
