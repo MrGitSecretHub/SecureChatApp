@@ -91,6 +91,32 @@ public static class SpaceMentions
         return result;
     }
 
+    /// <summary>Все @username-токены в тексте (порядок текста, без дубликатов).
+    /// Нужно для личных чатов: там нет списка участников, подсвечиваем любой логин после «@» — как в Telegram.</summary>
+    public static List<string> AllTokens(string? text)
+    {
+        var result = new List<string>();
+        if (string.IsNullOrEmpty(text))
+        {
+            return result;
+        }
+
+        foreach (Match match in Token.Matches(text))
+        {
+            var name = match.Groups[1].Value;
+            if (!result.Contains(name, StringComparer.OrdinalIgnoreCase))
+            {
+                result.Add(name);
+                if (result.Count >= MaxMentions)
+                {
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
     /// <summary>Упомянули ли конкретного участника (учитывается логин участника, регистронезависимо).</summary>
     public static bool HasMentionFor(SpaceMessagePayload? payload, string username)
     {

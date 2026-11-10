@@ -151,7 +151,7 @@ public partial class ChatView : ContentView
         var position = Math.Clamp(MessageEntry.CursorPosition, 0, text.Length);
         MessageEntry.Text = text.Insert(position, emoji);
         MessageEntry.CursorPosition = Math.Min(position + emoji.Length, MessageEntry.Text.Length);
-        MessageEntry.Focus();
+        MessageEntry.FocusInput();
     }
 
     /// <summary>Нажата ⚙ — открыть профиль и настройки.</summary>
@@ -193,6 +193,8 @@ public partial class ChatView : ContentView
                 _scrollToMessageId = null;
             }
         }
+
+        _ = FillMentionMembersAsync();
 
         _suppressDraft = true;
         MessageEntry.Text = await _chatManager.GetDraftAsync(_username) ?? string.Empty;
@@ -291,7 +293,33 @@ public partial class ChatView : ContentView
 
     private MessageVm CreateMessageVm(StoredMessage stored, string peer)
     {
-        return new MessageVm(stored, _session.Username, peer);
+        var vm = new MessageVm(stored, _session.Username, peer);
+        vm.MentionTapped += OnMessageMentionTapped;
+        return vm;
+    }
+
+    /// <summary>Тап по @упоминанию в сообщении ЛС — открыть профиль участника, как в Telegram.</summary>
+    private async void OnMessageMentionTapped(MessageVm message, string username)
+    {
+        var page = HostPage;
+        if (page is null || string.IsNullOrWhiteSpace(username))
+        {
+            return;
+        }
+
+        if (string.Equals(username, _session.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        try
+        {
+            await page.Navigation.PushAsync(new UserProfilePage(username));
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось открыть профиль: {ex.Message}", isError: true);
+        }
     }
 
     private void InsertSorted(MessageVm message)
@@ -552,6 +580,36 @@ public partial class ChatView : ContentView
 
         SendTypingIfNeeded();
         ScheduleDraftSave(_username, e.NewTextValue ?? string.Empty);
+    }
+
+    private async Task FillMentionMembersAsync()
+    {
+        try
+        {
+            // В личном чате тоже есть @упоминания: список кандидатов — контакты
+            // (все переписки) и сам собеседник, как список контактов в Telegram.
+            var rows = await _chatManager.GetConversationsAsync();
+            var usernames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (!string.IsNullOrWhiteSpace(_username))
+            {
+                usernames.Add(_username);
+            }
+
+            foreach (var row in rows)
+            {
+                if (!string.IsNullOrWhiteSpace(row.Username))
+                {
+                    usernames.Add(row.Username);
+                }
+            }
+
+            MainThread.BeginInvokeOnMainThread(() => MessageEntry.SetMembers(usernames));
+        }
+        catch
+        {
+            // Меню @упоминаний — необязательное оформление: без списка
+            // участников оно просто не появится.
+        }
     }
 
     private void SendTypingIfNeeded()
@@ -1188,7 +1246,7 @@ public partial class ChatView : ContentView
     private void HookPasteAccelerator()
     {
         if (_pasteHooked ||
-            MessageEntry?.Handler?.PlatformView is not Microsoft.UI.Xaml.UIElement input)
+            MessageEntry.Editable.Handler?.PlatformView is not Microsoft.UI.Xaml.UIElement input)
         {
             return;
         }
@@ -1564,14 +1622,14 @@ public partial class ChatView : ContentView
             : message.ReplyQuoteText;
         ReplyPreviewLabel.Text = $"↩ Ответ на «{Shorten(preview, 70)}»";
         ReplyBar.IsVisible = true;
-        MessageEntry.Focus();
+        MessageEntry.FocusInput();
     }
 
     private void OnCancelReplyClicked(object sender, EventArgs e)
     {
         _replyingTo = null;
         ReplyBar.IsVisible = false;
-        MessageEntry.Focus();
+        MessageEntry.FocusInput();
     }
 
     private void OnCancelEditClicked(object sender, EventArgs e)
@@ -1579,7 +1637,7 @@ public partial class ChatView : ContentView
         _editingMessageId = null;
         EditBar.IsVisible = false;
         MessageEntry.Text = string.Empty;
-        MessageEntry.Focus();
+        MessageEntry.FocusInput();
     }
 
     private async Task ShowContextMenuAfterLongPress(MessageVm message, CancellationToken token)
@@ -1613,7 +1671,7 @@ public partial class ChatView : ContentView
         EditPreviewLabel.Text = $"✏️ Редактирование · {message.TimeText}";
         EditBar.IsVisible = true;
         MessageEntry.Text = message.Text;
-        MessageEntry.Focus();
+        MessageEntry.FocusInput();
     }
 
     private void OnBubblePointerReleased(object? sender, PointerEventArgs e)

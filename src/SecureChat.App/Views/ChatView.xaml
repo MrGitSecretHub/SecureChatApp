@@ -380,11 +380,15 @@
                                                FontAttributes="Italic"
                                                TextColor="{DynamicResource TextMuted}" />
 
-                                        <!-- Текст сообщения -->
+                                        <!-- Текст сообщения (или с подсветкой @упоминаний) -->
                                         <Label Text="{Binding DisplayText}"
                                                Style="{Binding TextStyle}"
                                                LineBreakMode="WordWrap"
-                                               IsVisible="{Binding ShowText}" />
+                                               IsVisible="{Binding ShowPlainText}" />
+                                        <Label FormattedText="{Binding TextFormatted}"
+                                               Style="{Binding TextStyle}"
+                                               LineBreakMode="WordWrap"
+                                               IsVisible="{Binding ShowRichText}" />
 
                                         <!-- Ссылки в сообщении (кликабельные чипы, пока нет превью) -->
                                         <StackLayout IsVisible="{Binding ShowUrlChips}"
@@ -871,23 +875,12 @@
                                     ToolTipProperties.Text="Эмодзи" />
                         </HorizontalStackLayout>
 
-                        <Border Grid.Column="1"
-                                BackgroundColor="{DynamicResource SurfaceAlt}"
-                                StrokeThickness="0"
-                                Padding="14,0"
-                                VerticalOptions="Center">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="20" />
-                            </Border.StrokeShape>
-                            <Entry x:Name="MessageEntry"
-                                   Placeholder="Напишите сообщение…"
-                                   BackgroundColor="Transparent"
-                                   HeightRequest="42"
-                                   VerticalOptions="Center"
-                                   ReturnType="Send"
-                                   Completed="OnSendClicked"
-                                   TextChanged="OnMessageTextChanged" />
-                        </Border>
+                        <views:MentionEntryView Grid.Column="1"
+                                                x:Name="MessageEntry"
+                                                VerticalOptions="Center"
+                                                Placeholder="Напишите сообщение…"
+                                                Completed="OnSendClicked"
+                                                TextChanged="OnMessageTextChanged" />
 
                         <Button x:Name="SendButton"
                                 Grid.Column="2"

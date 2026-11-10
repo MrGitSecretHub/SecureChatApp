@@ -32,10 +32,17 @@ public partial class MentionEntryView : ContentView
     public MentionEntryView()
     {
         InitializeComponent();
+        InnerEntry.TextChanged += (_, e) => TextChanged?.Invoke(this, e);
     }
 
     /// <summary>Отправка по Enter / кнопке Send.</summary>
     public event EventHandler? Completed;
+
+    /// <summary>Проброшенное событие изменения текста (черновики и «печатает»).</summary>
+    public event EventHandler<TextChangedEventArgs>? TextChanged;
+
+    /// <summary>Внутренний Entry: для платформенных хуков (Ctrl+V) и фокуса.</summary>
+    public Microsoft.Maui.Controls.Entry Editable => InnerEntry;
 
     /// <summary>Логины участников пространства для меню упоминаний.</summary>
     public void SetMembers(IEnumerable<string> usernames)

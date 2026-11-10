@@ -51,6 +51,31 @@ public sealed class SpaceMentionTests
     }
 
     [Fact]
+    public void AllTokens_ReturnsEveryUsernameInText()
+    {
+        var tokens = SpaceMentions.AllTokens("Привет @kiraDD и @bob! mail@example.com, но @kira");
+
+        // Всё после @ (только логинные символы), без дублей и e-mail-адресов.
+        Assert.Equal(new[] { "kiraDD", "bob", "kira" }, tokens);
+    }
+
+    [Fact]
+    public void AllTokens_EmptyText_ReturnsEmpty()
+    {
+        Assert.Empty(SpaceMentions.AllTokens(null));
+        Assert.Empty(SpaceMentions.AllTokens(""));
+        Assert.Empty(SpaceMentions.AllTokens("без упоминаний"));
+    }
+
+    [Fact]
+    public void AllTokens_HonorsMaxMentions()
+    {
+        var tokens = SpaceMentions.AllTokens("@a @b @c @d @e");
+
+        Assert.Equal(5, tokens.Count);
+    }
+
+    [Fact]
     public void Parse_LimitedToMaxMentions()
     {
         var known = Enumerable.Range(0, 30).Select(i => $"user{i}").ToArray();

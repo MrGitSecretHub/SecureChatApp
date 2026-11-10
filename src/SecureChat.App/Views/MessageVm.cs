@@ -17,6 +17,7 @@ public sealed class MessageVm : INotifyPropertyChanged
     };
 
     private string _text = string.Empty;
+    private FormattedString? _textFormatted;
     private string _fileName = string.Empty;
     private byte[]? _gifBytes;
     private string _contentType = string.Empty;
@@ -57,6 +58,9 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    /// <summary>Нажали на @упоминание в тексте: второй аргумент — логин упомянутого.</summary>
+    public event Action<MessageVm, string>? MentionTapped;
+
     public string Id { get; }
     public string Kind { get; }
     public bool IsMine { get; }
@@ -80,9 +84,67 @@ public sealed class MessageVm : INotifyPropertyChanged
             if (Set(ref _text, value))
             {
                 Notify(nameof(DisplayText));
+                RebuildMentions();
                 RebuildUrls(value);
             }
         }
+    }
+
+    /// <summary>Текст с выделенными @упоминаниями (null — показываем обычный DisplayText).</summary>
+    public FormattedString? TextFormatted => _textFormatted;
+
+    /// <summary>Показывать простой текст — когда упоминаний не нашлось.</summary>
+    public bool ShowPlainText => ShowText && _textFormatted is null;
+
+    /// <summary>Показывать текст с подсветкой упоминаний.</summary>
+    public bool ShowRichText => ShowText && _textFormatted is not null;
+
+    /// <summary>
+    /// Подсветка @упоминаний в тексте личного чата (как в Telegram: цвет темы
+    /// и подчёркивание в чужих сообщениях, светлый текст в своих — пузырь
+    /// акцентного цвета). Тап открывает профиль. Списка участников в ЛС нет,
+    /// поэтому подсвечиваем любой логин после «@».
+    /// </summary>
+    private void RebuildMentions()
+    {
+        var mentions = SpaceMentions.AllTokens(_text);
+
+        if (mentions.Count == 0)
+        {
+            if (_textFormatted is not null)
+            {
+                _textFormatted = null;
+                Notify(nameof(TextFormatted));
+                Notify(nameof(ShowPlainText));
+                Notify(nameof(ShowRichText));
+            }
+            return;
+        }
+
+        var formatted = new FormattedString();
+        foreach (var (chunk, mention) in SpaceMentions.Split(_text, mentions))
+        {
+            var span = new Span { Text = chunk };
+
+            if (mention is not null)
+            {
+                span.TextColor = IsMine ? Res("AccentText") : Res("Accent");
+                span.TextDecorations = TextDecorations.Underline;
+
+                span.GestureRecognizers.Add(new TapGestureRecognizer
+                {
+                    Command = new Command<string>(name => MentionTapped?.Invoke(this, name)),
+                    CommandParameter = mention
+                });
+            }
+
+            formatted.Spans.Add(span);
+        }
+
+        _textFormatted = formatted;
+        Notify(nameof(TextFormatted));
+        Notify(nameof(ShowPlainText));
+        Notify(nameof(ShowRichText));
     }
 
     private void RebuildUrls(string? text)

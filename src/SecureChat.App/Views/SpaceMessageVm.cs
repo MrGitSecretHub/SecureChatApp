@@ -109,8 +109,9 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
             if (mention is not null)
             {
-                // Акцентный цвет темы + подчёркивание; нажатие открывает профиль.
-                span.TextColor = ResolveAccent();
+                // Цвет темы + подчёркивание, как в Telegram. В своём пузыре фон
+                // акцентный — текст упоминания там светлый, иначе сливается.
+                span.TextColor = ResolveMentionColor();
                 span.TextDecorations = TextDecorations.Underline;
 
                 var target = this;
@@ -156,6 +157,17 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
     private static Color ResolveAccent() =>
         (Application.Current?.Resources["Accent"] as Color) ?? Color.FromArgb("#0088CC");
+
+    /// <summary>Цвет упоминания: в своём пузыре (акцентный фон) — светлый, в чужом — акцент.</summary>
+    private Color ResolveMentionColor()
+    {
+        if (IsMine)
+        {
+            return (Application.Current?.Resources["AccentText"] as Color) ?? Colors.White;
+        }
+
+        return ResolveAccent();
+    }
 
     public bool IsEdited
     {
