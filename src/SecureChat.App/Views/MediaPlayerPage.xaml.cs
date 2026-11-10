@@ -5,8 +5,10 @@ namespace SecureChat.App.Views;
 /// На Android файл встраивается в HTML как base64 data URI; на Windows этого
 /// нельзя сделать — WebView2 ограничивает NavigateToString 2 МБ, поэтому HTML
 /// пишется рядом с медиафайлом и открывается через file://.
-/// Управление (пауза, прогресс, перемотка, полный экран) реализовано
-/// в HTML/CSS/JS и работает одинаково на обеих платформах.
+/// Управление (пауза, перемотка ±10 с и двойным тапом, скорость 0,5–2×,
+/// громкость и звук, повтор, «картинка в картинке», полный экран) реализовано
+/// в HTML/CSS/JS и работает одинаково на обеих платформах. Громкость, скорость
+/// и повтор запоминаются в localStorage и восстанавливаются при след. открытии.
 /// </summary>
 public partial class MediaPlayerPage : ContentPage
 {
@@ -59,7 +61,11 @@ public partial class MediaPlayerPage : ContentPage
             : $"""<video id="player" playsinline webkit-playsinline preload="metadata" src="{mediaSrc}"{(isVideoCircle ? " loop" : string.Empty)}></video>""";
 
         var bodyClass = isAudio ? "audio-mode" : isVideoCircle ? "circle-mode" : "video-mode";
+        // Кнопки настроек: полный экран и PiP — только видео; повтор не нужен
+        // для кружков (они и так повторяются).
         var fullscreenClass = isAudio ? "hidden" : string.Empty;
+        var pipClass = isAudio ? "hidden" : string.Empty;
+        var loopClass = isVideoCircle ? "hidden" : string.Empty;
 
         return $$"""
 <!DOCTYPE html>
@@ -121,38 +127,68 @@ public partial class MediaPlayerPage : ContentPage
         #bigPlay.hidden { opacity: 0; pointer-events: none; }
         #controls {
             position: absolute; left: 0; right: 0; bottom: 0;
-            display: flex; align-items: center; gap: 10px;
-            padding: 18px 14px calc(14px + env(safe-area-inset-bottom));
+            display: flex; flex-direction: column; gap: 2px;
+            padding: 14px 14px calc(12px + env(safe-area-inset-bottom));
             background: linear-gradient(to top, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0));
             z-index: 4;
         }
+        .row {
+            display: flex; align-items: center; gap: 7px; min-height: 34px;
+        }
+        .row.extra { justify-content: flex-end; min-height: 30px; }
         #controls button {
-            flex: 0 0 auto; width: 34px; height: 34px;
+            flex: 0 0 auto; width: 32px; height: 32px;
             border: 0; border-radius: 50%; padding: 0;
             background: rgba(255, 255, 255, 0.14); color: #fff;
             font-size: 15px; line-height: 1; cursor: pointer;
         }
         #controls button.hidden { display: none; }
-        #seek {
-            flex: 1 1 auto; min-width: 0; height: 4px;
+        #controls button.on {
+            background: rgba(10, 132, 255, 0.6);
+        }
+        #speedBtn {
+            width: auto !important; min-width: 48px; height: 30px;
+            border-radius: 15px; padding: 0 10px;
+            font-size: 12px; font-weight: 600; letter-spacing: 0.3px;
+        }
+        input[type="range"] {
             appearance: none; -webkit-appearance: none;
-            border-radius: 2px; outline: none; margin: 0;
+            height: 4px; border-radius: 2px; outline: none; margin: 0;
             background: rgba(255, 255, 255, 0.25);
         }
-        #seek::-webkit-slider-thumb {
+        input[type="range"]::-webkit-slider-thumb {
             appearance: none; -webkit-appearance: none;
             width: 14px; height: 14px; border-radius: 50%;
             background: #fff; box-shadow: 0 0 5px rgba(0, 0, 0, 0.55);
+            border: 0;
         }
-        #seek::-moz-range-thumb {
+        input[type="range"]::-moz-range-thumb {
             width: 14px; height: 14px; border: 0; border-radius: 50%;
             background: #fff; box-shadow: 0 0 5px rgba(0, 0, 0, 0.55);
         }
+        #seek { flex: 1 1 auto; min-width: 40px; }
+        #vol { flex: 0 0 auto; width: 56px; }
+        @media (max-width: 400px) { #vol { display: none; } }
         .time {
             flex: 0 0 auto; min-width: 36px; text-align: center;
             font-size: 12px; color: #d7d7d7;
             font-variant-numeric: tabular-nums;
         }
+        #speedMenu {
+            position: absolute; right: 14px; bottom: 108px;
+            z-index: 6; min-width: 132px;
+            background: rgba(24, 24, 27, 0.97); border-radius: 12px;
+            padding: 4px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            display: flex; flex-direction: column;
+        }
+        #speedMenu.hidden { display: none; }
+        #speedMenu button {
+            background: transparent; color: #e7e7e7; border: 0;
+            text-align: left; font-size: 13px; padding: 9px 12px;
+            border-radius: 8px; cursor: pointer;
+        }
+        #speedMenu button:hover { background: rgba(255, 255, 255, 0.08); }
+        #speedMenu button.on { color: #0a84ff; font-weight: 700; }
     </style>
 </head>
 <body class="{{bodyClass}}">
@@ -164,11 +200,30 @@ public partial class MediaPlayerPage : ContentPage
         </div>
         <button id="bigPlay" type="button" aria-label="Воспроизвести">▶</button>
         <div id="controls">
-            <button id="playBtn" type="button" aria-label="Пауза">▶</button>
-            <span id="cur" class="time">0:00</span>
-            <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Перемотка">
-            <span id="dur" class="time">0:00</span>
-            <button id="fsBtn" type="button" class="{{fullscreenClass}}" aria-label="На весь экран">⛶</button>
+            <div class="row">
+                <button id="playBtn" type="button" aria-label="Пауза">▶</button>
+                <button id="backBtn" type="button" aria-label="Назад на 10 с">⏪</button>
+                <span id="cur" class="time">0:00</span>
+                <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Перемотка">
+                <span id="dur" class="time">0:00</span>
+                <button id="fwdBtn" type="button" aria-label="Вперёд на 10 с">⏩</button>
+                <button id="muteBtn" type="button" aria-label="Звук">🔊</button>
+                <input id="vol" type="range" min="0" max="1" step="0.02" value="1" aria-label="Громкость">
+            </div>
+            <div class="row extra">
+                <button id="speedBtn" type="button" aria-label="Скорость воспроизведения">1×</button>
+                <button id="loopBtn" type="button" class="{{loopClass}}" aria-label="Повтор">🔁</button>
+                <button id="pipBtn" type="button" class="{{pipClass}}" aria-label="Картинка в картинке">🖼</button>
+                <button id="fsBtn" type="button" class="{{fullscreenClass}}" aria-label="На весь экран">⛶</button>
+            </div>
+        </div>
+        <div id="speedMenu" class="hidden">
+            <button type="button" data-rate="0.5">0,5× быстрее</button>
+            <button type="button" data-rate="0.75">0,75×</button>
+            <button type="button" data-rate="1">Обычная (1×)</button>
+            <button type="button" data-rate="1.25">1,25×</button>
+            <button type="button" data-rate="1.5">1,5×</button>
+            <button type="button" data-rate="2">2× быстрее</button>
         </div>
     </div>
     <script>
@@ -177,10 +232,25 @@ public partial class MediaPlayerPage : ContentPage
             var stage = document.getElementById('stage');
             var bigPlay = document.getElementById('bigPlay');
             var playBtn = document.getElementById('playBtn');
+            var backBtn = document.getElementById('backBtn');
+            var fwdBtn = document.getElementById('fwdBtn');
             var seek = document.getElementById('seek');
             var cur = document.getElementById('cur');
             var dur = document.getElementById('dur');
+            var muteBtn = document.getElementById('muteBtn');
+            var vol = document.getElementById('vol');
+            var speedBtn = document.getElementById('speedBtn');
+            var loopBtn = document.getElementById('loopBtn');
+            var pipBtn = document.getElementById('pipBtn');
             var fsBtn = document.getElementById('fsBtn');
+            var speedMenu = document.getElementById('speedMenu');
+            var rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
+            var rateNames = {
+                '0.5': '0,5×', '0.75': '0,75×', '1': '1×',
+                '1.25': '1,25×', '1.5': '1,5×', '2': '2×'
+            };
+            var isVideo = !document.body.classList.contains('audio-mode');
+            var isCircle = document.body.classList.contains('circle-mode');
             var seeking = false;
 
             function fmt(value) {
@@ -192,6 +262,14 @@ public partial class MediaPlayerPage : ContentPage
                 return (h > 0 ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(s).padStart(2, '0');
             }
 
+            // localStorage недоступен для data-URI на части WebView — заворачиваем в try/catch.
+            function store(key, value) {
+                try { window.localStorage.setItem(key, value); } catch (err) { }
+            }
+            function load(key) {
+                try { return window.localStorage.getItem(key); } catch (err) { return null; }
+            }
+
             function paint() {
                 var d = player.duration;
                 var p = player.currentTime;
@@ -200,6 +278,65 @@ public partial class MediaPlayerPage : ContentPage
                 var percent = (isFinite(d) && d > 0) ? Math.max(0, Math.min(100, p / d * 100)) : 0;
                 if (!seeking) { seek.value = String(percent * 10); }
                 seek.style.background = 'linear-gradient(to right, #0a84ff 0%, #0a84ff ' + percent + '%, rgba(255,255,255,0.25) ' + percent + '%, rgba(255,255,255,0.25) 100%)';
+            }
+
+            function paintVol() {
+                var percent = Math.round(player.volume * 100);
+                var line = player.muted ? 0 : percent;
+                vol.value = String(percent / 100);
+                vol.style.background = 'linear-gradient(to right, #0a84ff 0%, #0a84ff ' + line + '%, rgba(255,255,255,0.25) ' + line + '%, rgba(255,255,255,0.25) 100%)';
+            }
+
+            function rateLabel(value) {
+                var keys = Object.keys(rateNames);
+                for (var i = 0; i < keys.length; i++) {
+                    if (Math.abs(parseFloat(keys[i]) - value) < 0.001) {
+                        return rateNames[keys[i]];
+                    }
+                }
+                return '1×';
+            }
+
+            function markSpeed(value) {
+                var buttons = speedMenu.querySelectorAll('button[data-rate]');
+                for (var i = 0; i < buttons.length; i++) {
+                    var rate = parseFloat(buttons[i].getAttribute('data-rate'));
+                    buttons[i].classList.toggle('on', Math.abs(rate - value) < 0.001);
+                }
+            }
+
+            function hideSpeedMenu() {
+                speedMenu.classList.add('hidden');
+                speedBtn.classList.remove('on');
+            }
+
+            function setVolume(value) {
+                player.volume = Math.max(0, Math.min(1, value));
+                if (player.volume > 0) { player.muted = false; }
+                muteBtn.textContent = '🔊';
+                paintVol();
+                store('sc_vol', String(player.volume));
+                store('sc_muted', '0');
+            }
+
+            function toggleMute() {
+                player.muted = !player.muted;
+                muteBtn.textContent = player.muted ? '🔇' : '🔊';
+                paintVol();
+                store('sc_muted', player.muted ? '1' : '0');
+            }
+
+            function toggleLoop() {
+                player.loop = !player.loop;
+                loopBtn.classList.toggle('on', player.loop);
+                store('sc_loop', player.loop ? '1' : '0');
+            }
+
+            function applySpeed(value) {
+                player.playbackRate = value;
+                speedBtn.textContent = rateLabel(value);
+                markSpeed(value);
+                store('sc_speed', String(value));
             }
 
             function syncIcon() {
@@ -217,19 +354,58 @@ public partial class MediaPlayerPage : ContentPage
                 }
             }
 
-            player.addEventListener('loadedmetadata', function () { paint(); });
+            function skip(delta) {
+                var d = player.duration;
+                var target = player.currentTime + delta;
+                player.currentTime = Math.max(0, Math.min(isFinite(d) && d > 0 ? d : target, target));
+                paint();
+            }
+
+            player.addEventListener('loadedmetadata', function () { paint(); paintVol(); });
             player.addEventListener('durationchange', paint);
             player.addEventListener('timeupdate', paint);
+            player.addEventListener('volumechange', function () {
+                muteBtn.textContent = player.muted ? '🔇' : '🔊';
+                paintVol();
+                if (!player.muted) { store('sc_vol', String(player.volume)); }
+            });
             player.addEventListener('play', syncIcon);
             player.addEventListener('pause', syncIcon);
             player.addEventListener('ended', function () { paint(); syncIcon(); });
             player.addEventListener('click', function (event) { event.stopPropagation(); toggle(); });
             stage.addEventListener('click', function (event) {
+                hideSpeedMenu();
                 if (event.target === stage || event.target.id === 'art') { toggle(); }
+            });
+            // Двойной тап/клик по половинам кадра: −10 с / +10 с, как в Telegram.
+            stage.addEventListener('dblclick', function (event) {
+                var hit = event.target;
+                if (!isVideo ||
+                    (hit !== stage && hit !== player && (!hit || hit.id !== 'art'))) {
+                    return;
+                }
+                var rect = stage.getBoundingClientRect();
+                skip((event.clientX - rect.left) < rect.width / 2 ? -10 : 10);
             });
 
             bigPlay.addEventListener('click', function (event) { event.stopPropagation(); toggle(); });
             playBtn.addEventListener('click', function (event) { event.stopPropagation(); toggle(); });
+            backBtn.addEventListener('click', function (event) { event.stopPropagation(); skip(-10); });
+            fwdBtn.addEventListener('click', function (event) { event.stopPropagation(); skip(10); });
+            muteBtn.addEventListener('click', function (event) { event.stopPropagation(); toggleMute(); });
+            loopBtn.addEventListener('click', function (event) { event.stopPropagation(); toggleLoop(); });
+
+            speedBtn.addEventListener('click', function (event) {
+                event.stopPropagation();
+                var hidden = speedMenu.classList.toggle('hidden');
+                speedBtn.classList.toggle('on', !hidden);
+            });
+            speedMenu.addEventListener('click', function (event) {
+                event.stopPropagation();
+                var rate = event.target.getAttribute ? event.target.getAttribute('data-rate') : null;
+                if (rate) { applySpeed(parseFloat(rate)); }
+                hideSpeedMenu();
+            });
 
             seek.addEventListener('pointerdown', function () { seeking = true; });
             seek.addEventListener('touchstart', function () { seeking = true; }, { passive: true });
@@ -243,7 +419,9 @@ public partial class MediaPlayerPage : ContentPage
             seek.addEventListener('change', function () { seeking = false; });
             seek.addEventListener('touchend', function () { seeking = false; }, { passive: true });
 
-            if (fsBtn) {
+            vol.addEventListener('input', function () { setVolume(Number(vol.value)); });
+
+            if (fsBtn && !fsBtn.classList.contains('hidden')) {
                 fsBtn.addEventListener('click', function (event) {
                     event.stopPropagation();
                     if (player.requestFullscreen) {
@@ -253,17 +431,59 @@ public partial class MediaPlayerPage : ContentPage
                     }
                 });
             }
+            if (pipBtn && !pipBtn.classList.contains('hidden')) {
+                var pipOk = window.document.pictureInPictureEnabled &&
+                    typeof player.requestPictureInPicture === 'function';
+                if (!pipOk) {
+                    pipBtn.classList.add('hidden');
+                } else {
+                    pipBtn.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                        if (window.document.pictureInPictureElement) {
+                            window.document.exitPictureInPicture().catch(function () { });
+                        } else {
+                            player.requestPictureInPicture().catch(function () { });
+                        }
+                    });
+                }
+            }
 
             document.addEventListener('keydown', function (event) {
                 if (event.code === 'Space') {
                     event.preventDefault();
                     toggle();
                 } else if (event.code === 'ArrowRight') {
-                    player.currentTime = Math.min(player.duration || 0, player.currentTime + 5);
+                    skip(5);
                 } else if (event.code === 'ArrowLeft') {
-                    player.currentTime = Math.max(0, player.currentTime - 5);
+                    skip(-5);
+                } else if (event.code === 'ArrowUp') {
+                    event.preventDefault();
+                    setVolume(player.volume + 0.1);
+                } else if (event.code === 'ArrowDown') {
+                    event.preventDefault();
+                    setVolume(player.volume - 0.1);
+                } else if (event.code === 'KeyM') {
+                    toggleMute();
+                } else if (event.code === 'KeyL') {
+                    toggleLoop();
                 }
             });
+
+            // Восстановление настроек прошлой сессии.
+            var savedVol = parseFloat(load('sc_vol') || '1');
+            if (!isNaN(savedVol) && savedVol >= 0 && savedVol <= 1) { player.volume = savedVol; }
+            var savedMuted = load('sc_muted');
+            if (savedMuted === '1') { player.muted = true; }
+            var savedLoop = load('sc_loop');
+            player.loop = (savedLoop === '1') || isCircle;
+            loopBtn.classList.toggle('on', player.loop);
+            var savedSpeed = parseFloat(load('sc_speed') || '1');
+            if (!isNaN(savedSpeed) && rates.indexOf(savedSpeed) >= 0) {
+                player.playbackRate = savedSpeed;
+            }
+            muteBtn.textContent = player.muted ? '🔇' : '🔊';
+            paintVol();
+            applySpeed(player.playbackRate);
 
             paint();
             syncIcon();
