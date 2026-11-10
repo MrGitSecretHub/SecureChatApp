@@ -390,6 +390,14 @@
                                                LineBreakMode="WordWrap"
                                                IsVisible="{Binding ShowRichText}" />
 
+                                        <!-- Стикер: крупный глиф без стилей текста, как большие эмодзи в Telegram -->
+                                        <Label Text="{Binding DisplayText}"
+                                               FontSize="46"
+                                               TextColor="{DynamicResource TextPrimary}"
+                                               IsVisible="{Binding IsSticker}"
+                                               HorizontalOptions="Center"
+                                               HorizontalTextAlignment="Center" />
+
                                         <!-- Ссылки в сообщении (кликабельные чипы, пока нет превью) -->
                                         <StackLayout IsVisible="{Binding ShowUrlChips}"
                                                      BindableLayout.ItemsSource="{Binding Urls}"
@@ -799,10 +807,53 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Эмодзи-панель (показывается по кнопке 😊) -->
-                    <views:EmojiPickerView x:Name="EmojiPicker"
-                                           IsVisible="False"
-                                           EmojiPicked="OnEmojiPicked" />
+                    <!-- Панель в стиле Telegram: вкладки Эмодзи | Стикеры | GIF -->
+                    <Border x:Name="MediaPanel"
+                            IsVisible="False"
+                            BackgroundColor="{DynamicResource Surface}"
+                            Stroke="{DynamicResource BorderColor}"
+                            StrokeThickness="1"
+                            Padding="6,4,6,6">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="4">
+                            <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="2" HorizontalOptions="Start">
+                                <Button x:Name="EmojiTabButton"
+                                        Grid.Column="0"
+                                        Text="😊 Эмодзи"
+                                        Clicked="OnPanelTabClicked"
+                                        CommandParameter="Emoji"
+                                        Style="{DynamicResource GhostButton}"
+                                        FontSize="13"
+                                        Padding="10,4" />
+                                <Button x:Name="StickerTabButton"
+                                        Grid.Column="1"
+                                        Text="🧩 Стикеры"
+                                        Clicked="OnPanelTabClicked"
+                                        CommandParameter="Stickers"
+                                        Style="{DynamicResource GhostButton}"
+                                        FontSize="13"
+                                        Padding="10,4" />
+                                <Button x:Name="GifTabButton"
+                                        Grid.Column="2"
+                                        Text="🎬 GIF"
+                                        Clicked="OnPanelTabClicked"
+                                        CommandParameter="Gifs"
+                                        Style="{DynamicResource GhostButton}"
+                                        FontSize="13"
+                                        Padding="10,4" />
+                            </Grid>
+                            <views:EmojiPickerView x:Name="EmojiTabContent"
+                                                   EmojiPicked="OnEmojiPicked" />
+                            <views:StickerPickerView x:Name="StickerTabContent"
+                                                     IsVisible="False"
+                                                     StickerPicked="OnStickerPicked" />
+                            <views:GifPickerView x:Name="GifTabContent"
+                                                 IsVisible="False"
+                                                 GifPicked="OnGifPicked" />
+                        </VerticalStackLayout>
+                    </Border>
 
                     <!-- Панель ответа на сообщение -->
                     <Border x:Name="ReplyBar"

@@ -138,10 +138,164 @@ public partial class ChatView : ContentView
 #endif
     }
 
-    /// <summary>Кнопка 😊 — показать или скрыть эмодзи-панель.</summary>
+    /// <summary>Кнопка 😊 — показать или скрыть панель Эмодзи/Стикеры/GIF.</summary>
     private void OnEmojiButtonClicked(object sender, EventArgs e)
     {
-        EmojiPicker.IsVisible = !EmojiPicker.IsVisible;
+        if (MediaPanel.IsVisible)
+        {
+            MediaPanel.IsVisible = false;
+            return;
+        }
+
+        // По умолчанию открываем вкладку эмодзи, как в Telegram.
+        MediaPanel.IsVisible = true;
+        ActivatePanelTab("Emoji");
+    }
+
+    /// <summary>Переключение вкладок панели: Эмодзи | Стикеры | GIF.</summary>
+    private void OnPanelTabClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: string tab })
+        {
+            return;
+        }
+
+        ActivatePanelTab(tab);
+    }
+
+    private void ActivatePanelTab(string tab)
+    {
+        EmojiTabContent.IsVisible = tab == "Emoji";
+        StickerTabContent.IsVisible = tab == "Stickers";
+        GifTabContent.IsVisible = tab == "Gifs";
+
+        StyleTabButton(EmojiTabButton, tab == "Emoji");
+        StyleTabButton(StickerTabButton, tab == "Stickers");
+        StyleTabButton(GifTabButton, tab == "Gifs");
+
+        if (tab == "Gifs")
+        {
+            // GIF собираются из уже загруженной истории — быстрее успеть показать.
+            _ = RefreshGifPanelAsync();
+        }
+    }
+
+    /// <summary>Активная вкладка панели выделяется как в Telegram: акцентный цвет и шрифт.</summary>
+    private void StyleTabButton(Button button, bool active)
+    {
+        button.TextColor = active
+            ? (Color)Application.Current!.Resources["Accent"]
+            : (Color)Application.Current!.Resources["TextMuted"];
+        button.FontAttributes = active ? FontAttributes.Bold : FontAttributes.None;
+    }
+
+    /// <summary>Стикер — крупный глиф; отправляем Kind=Sticker, поддержка ответа как у текста.</summary>
+    private async void OnStickerPicked(string glyph)
+    {
+        var user = _username;
+        if (user is null || _sending || string.IsNullOrWhiteSpace(glyph))
+        {
+            return;
+        }
+
+        var replyTarget = _replyingTo;
+        _sending = true;
+        try
+        {
+            MediaPanel.IsVisible = false;
+            _replyingTo = null;
+            ReplyBar.IsVisible = false;
+
+            await _chatManager.SendMessageAsync(
+                user,
+                glyph,
+                replyToMessageId: replyTarget?.Id,
+                replyToText: replyTarget?.ReplyQuoteText,
+                replyToFileName: replyTarget?.ReplyToFileName,
+                kind: MessageKinds.Sticker);
+
+            ScrollToBottom();
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось отправить стикер: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _sending = false;
+        }
+    }
+
+    /// <summary>Тап по GIF на вкладке — отправляем тот же файл в текущий чат.</summary>
+    private async void OnGifPicked(GifPickerView.GifItem item)
+    {
+        var user = _username;
+        if (user is null || _sendingAttachment || item.Bytes.Length == 0)
+        {
+            return;
+        }
+
+        _sendingAttachment = true;
+        try
+        {
+            MediaPanel.IsVisible = false;
+
+            await _chatManager.SendMediaAsync(user, item.FileName, item.ContentType, item.Bytes);
+            ScrollToBottom();
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось отправить GIF: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _sendingAttachment = false;
+        }
+    }
+
+    /// <summary>Недавние GIF из переписки: уникальные вложения, свежими вперёд, только локально загруженные.</summary>
+    private async Task RefreshGifPanelAsync()
+    {
+        var conversation = _conversation;
+        if (conversation is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var messages = conversation.Messages
+                .Where(m => m.Kind == MessageKinds.Image &&
+                            m.ContentType.StartsWith("image/gif", StringComparison.OrdinalIgnoreCase))
+                .Select(m => string.IsNullOrEmpty(m.MediaId) ? (Key: m.Id, Message: m) : (Key: m.MediaId, Message: m))
+                .GroupBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.OrderByDescending(x => x.Message.SentAtUnixMs).First().Message)
+                .OrderByDescending(m => m.SentAtUnixMs)
+                .Take(24)
+                .ToList();
+
+            var items = new List<GifPickerView.GifItem>();
+            foreach (var message in messages)
+            {
+                var bytes = await _chatManager.GetLocalMediaAsync(message.Id);
+                if (bytes is { Length: > 0 })
+                {
+                    items.Add(new GifPickerView.GifItem
+                    {
+                        MessageId = message.Id,
+                        FileName = message.FileName,
+                        ContentType = message.ContentType,
+                        Bytes = bytes
+                    });
+                }
+            }
+
+            MainThread.BeginInvokeOnMainThread(() => GifTabContent.SetItems(items));
+        }
+        catch
+        {
+            // Панель GIF не критична: ошибка загрузки превью не должна ронять чат.
+        }
     }
 
     /// <summary>Эмодзи из панели — вставить в позицию курсора поля ввода.</summary>

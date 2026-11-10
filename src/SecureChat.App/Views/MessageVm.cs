@@ -73,6 +73,10 @@ public sealed class MessageVm : INotifyPropertyChanged
     public bool IsFile => Kind == MessageKinds.File;
     public bool IsVoice => Kind == MessageKinds.Voice;
     public bool IsVideoCircle => Kind == MessageKinds.VideoCircle;
+
+    /// <summary>Стикер — крупный эмодзи-глиф (Kind=Sticker), как большие эмодзи в Telegram.</summary>
+    public bool IsSticker => Kind == MessageKinds.Sticker;
+
     public bool ShowText => Kind == MessageKinds.Text;
     public bool CanOpenFile => IsFile;
 
