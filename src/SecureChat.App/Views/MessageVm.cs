@@ -132,8 +132,11 @@ public sealed class MessageVm : INotifyPropertyChanged
 
             if (mention is not null)
             {
+                // Как в Telegram: полужирное упоминание с подчёркиванием.
+                // В своём пузыре фон акцентный — текст упоминания там светлый.
                 span.TextColor = IsMine ? Res("AccentText") : Res("Accent");
                 span.TextDecorations = TextDecorations.Underline;
+                span.FontAttributes = FontAttributes.Bold;
 
                 span.GestureRecognizers.Add(new TapGestureRecognizer
                 {

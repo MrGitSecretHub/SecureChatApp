@@ -109,10 +109,12 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
             if (mention is not null)
             {
-                // Цвет темы + подчёркивание, как в Telegram. В своём пузыре фон
-                // акцентный — текст упоминания там светлый, иначе сливается.
+                // Как в Telegram: полужирное упоминание с подчёркиванием.
+                // В своём пузыре фон акцентный — текст упоминания там светлый,
+                // иначе сливается с фоном пузыря.
                 span.TextColor = ResolveMentionColor();
                 span.TextDecorations = TextDecorations.Underline;
+                span.FontAttributes = FontAttributes.Bold;
 
                 var target = this;
                 var recognizer = new TapGestureRecognizer { CommandParameter = mention };
