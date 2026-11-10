@@ -79,6 +79,6 @@ public sealed class MediaAttachment
 
 public static class MediaLimits
 {
-    /// <summary>Максимальный размер исходного файла до шифрования.</summary>
-    public const int MaxBytes = 16 * 1024 * 1024;
+    /// <summary>Максимальный размер исходного файла до шифрования (150 МБ).</summary>
+    public const int MaxBytes = 150 * 1024 * 1024;
 }

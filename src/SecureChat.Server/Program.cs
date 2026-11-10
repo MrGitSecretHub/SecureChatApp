@@ -15,7 +15,7 @@ using SecureChat.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Слушаем на всех сетевых интерфейсах, чтобы клиенты из LAN (Android/LDPlayer) могли подключиться.
+// Cлушаем на всех сетевых интерфейсах, чтобы клиенты из LAN (Android/LDPlayer) могли подключиться.
 builder.WebHost.UseUrls("http://0.0.0.0:5080", "https://0.0.0.0:5443");
 
 var jwtSettings = JwtSettings.Load(
@@ -92,6 +92,13 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+});
+
+// Kestrel по умолчанию режет тело запроса на 30 МБ: поднимаем под лимит медиа
+// (плюс небольшой запас под обрамление HTTP-запроса).
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = MediaLimits.MaxBytes + 64L * 1024;
 });
 
 var app = builder.Build();
