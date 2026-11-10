@@ -455,8 +455,8 @@
                                             Clicked="OnOpenMediaClicked" />
                                 </Grid>
 
-                                <!-- Текст или подпись -->
-                                <Label Text="{Binding Text}"
+                                <!-- Текст или подпись (упоминания @ подсвечиваются) -->
+                                <Label FormattedText="{Binding TextFormatted}"
                                        Style="{Binding TextStyle}"
                                        LineBreakMode="WordWrap"
                                        IsVisible="{Binding HasText}" />
@@ -500,6 +500,18 @@
                                         </DataTemplate>
                                     </CollectionView.ItemTemplate>
                                 </CollectionView>
+
+                                <!-- Комментарии к посту (только посты каналов) -->
+                                <Button IsVisible="{Binding ShowComments}"
+                                        Text="{Binding CommentsText}"
+                                        Style="{DynamicResource GhostButton}"
+                                        FontSize="12"
+                                        Padding="8,2"
+                                        HeightRequest="28"
+                                        HorizontalOptions="Start"
+                                        CommandParameter="{Binding .}"
+                                        Clicked="OnOpenCommentsClicked"
+                                        ToolTipProperties.Text="Открыть комментарии" />
 
                                 <!-- Контекстное меню actions -->
                                 <HorizontalStackLayout Spacing="6"
@@ -659,22 +671,11 @@
                                 Clicked="OnEmojiButtonClicked"
                                 ToolTipProperties.Text="Эмодзи" />
                     </HorizontalStackLayout>
-                    <Border Grid.Column="1"
-                            BackgroundColor="{DynamicResource SurfaceAlt}"
-                            StrokeThickness="0"
-                            Padding="14,0"
-                            VerticalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="20" />
-                        </Border.StrokeShape>
-                        <Entry x:Name="MessageEntry"
-                               Placeholder="Сообщение в пространстве"
-                               BackgroundColor="Transparent"
-                               HeightRequest="42"
-                               VerticalOptions="Center"
-                               ReturnType="Send"
-                               Completed="OnSendClicked" />
-                    </Border>
+                    <views:MentionEntryView Grid.Column="1"
+                                            x:Name="MessageEntry"
+                                            VerticalOptions="Center"
+                                            Placeholder="Сообщение в пространстве"
+                                            Completed="OnSendClicked" />
                     <Button x:Name="SendButton"
                             Grid.Column="2"
                             Text="➤"

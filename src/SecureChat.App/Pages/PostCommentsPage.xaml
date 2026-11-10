@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:SecureChat.App.Views"
+             x:Class="SecureChat.App.Pages.PostCommentsPage"
+             Title="Комментарии">
+    <Grid RowDefinitions="Auto,*,Auto"
+          BackgroundColor="{DynamicResource PageBackground}">
+
+        <!-- Шапка обсуждения -->
+        <VerticalStackLayout Grid.Row="0"
+                             Spacing="2"
+                             Padding="14,10"
+                             BackgroundColor="{DynamicResource Surface}">
+            <Label Text="💬 Обсуждение поста"
+                   FontSize="15"
+                   FontAttributes="Bold"
+                   TextColor="{DynamicResource TextPrimary}" />
+            <Label Text="Комментарии видны всем участникам пространства"
+                   FontSize="11"
+                   TextColor="{DynamicResource TextMuted}"
+                   LineBreakMode="TailTruncation" />
+        </VerticalStackLayout>
+
+        <!-- Комментарии -->
+        <CollectionView Grid.Row="1"
+                        x:Name="CommentsView"
+                        SelectionMode="None"
+                        ItemsUpdatingScrollMode="KeepLastItemInView"
+                        BackgroundColor="Transparent">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="views:SpaceMessageVm">
+                    <Grid ColumnDefinitions="36,*"
+                          ColumnSpacing="6"
+                          Padding="12,3">
+
+                        <Border Grid.Column="0"
+                                WidthRequest="30"
+                                HeightRequest="30"
+                                VerticalOptions="Start"
+                                BackgroundColor="{DynamicResource Accent}"
+                                StrokeThickness="0">
+                            <Border.StrokeShape>
+                                <Ellipse />
+                            </Border.StrokeShape>
+                            <Label Text="{Binding SenderInitial}"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource AccentText}"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                <Label Text="{Binding Sender}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource Accent}"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding TimeText}"
+                                       FontSize="10"
+                                       TextColor="{DynamicResource TextMuted}"
+                                       VerticalOptions="Center" />
+                            </Grid>
+
+                            <Label FormattedText="{Binding TextFormatted}"
+                                   LineBreakMode="WordWrap"
+                                   IsVisible="{Binding HasText}" />
+
+                            <Button Text="🗑️"
+                                    Style="{DynamicResource SpaceActionButton}"
+                                    TextColor="{DynamicResource Danger}"
+                                    IsVisible="{Binding CanDelete}"
+                                    HorizontalOptions="Start"
+                                    CommandParameter="{Binding .}"
+                                    Clicked="OnCommentDeleteClicked"
+                                    ToolTipProperties.Text="Удалить комментарий">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="BackgroundColor" Value="Transparent" />
+                                        <Setter Property="Padding" Value="6,2" />
+                                        <Setter Property="MinimumWidthRequest" Value="0" />
+                                        <Setter Property="MinimumHeightRequest" Value="0" />
+                                        <Setter Property="WidthRequest" Value="32" />
+                                        <Setter Property="HeightRequest" Value="28" />
+                                        <Setter Property="CornerRadius" Value="8" />
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </VerticalStackLayout>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Пусто: никто ещё не ответил -->
+        <Label Grid.Row="1"
+               x:Name="EmptyLabel"
+               Text="Пока нет комментариев. Станьте первым!"
+               FontSize="13"
+               TextColor="{DynamicResource TextMuted}"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               IsVisible="True"
+               InputTransparent="True" />
+
+        <!-- Композер: пост-превью + ввод комментария -->
+        <VerticalStackLayout Grid.Row="2" Spacing="6">
+            <Border x:Name="PostPreviewCard"
+                    Margin="12,0"
+                    Padding="10,6"
+                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <Label x:Name="PostPreviewLabel"
+                       FontSize="12"
+                       FontAttributes="Italic"
+                       TextColor="{DynamicResource TextMuted}"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="3" />
+            </Border>
+
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="8"
+                  BackgroundColor="{DynamicResource Surface}"
+                  Padding="10,4">
+                <views:MentionEntryView Grid.Column="0"
+                                        x:Name="CommentEntry"
+                                        VerticalOptions="Center"
+                                        Placeholder="Написать комментарий…"
+                                        Completed="OnSendClicked" />
+                <Button Grid.Column="1"
+                        Text="➤"
+                        Style="{DynamicResource PrimaryButton}"
+                        Clicked="OnSendClicked"
+                        WidthRequest="44"
+                        HeightRequest="44"
+                        CornerRadius="22"
+                        Padding="0"
+                        VerticalOptions="End"
+                        ToolTipProperties.Text="Отправить комментарий" />
+            </Grid>
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

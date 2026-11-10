@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Views.MentionEntryView">
+    <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+        <!-- Меню участников для @упоминаний (над полем ввода) -->
+        <Border Grid.Row="0"
+                x:Name="MentionMenu"
+                IsVisible="False"
+                BackgroundColor="{DynamicResource Surface}"
+                Stroke="{DynamicResource BorderColor}"
+                StrokeThickness="1"
+                Padding="4">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="12" />
+            </Border.StrokeShape>
+            <ScrollView MaximumHeightRequest="240">
+                <VerticalStackLayout x:Name="MentionList" Spacing="2" />
+            </ScrollView>
+        </Border>
+
+        <!-- Поле ввода сообщения -->
+        <Border Grid.Row="1"
+                BackgroundColor="{DynamicResource SurfaceAlt}"
+                StrokeThickness="0"
+                Padding="14,0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="20" />
+            </Border.StrokeShape>
+            <Entry x:Name="InnerEntry"
+                   BackgroundColor="Transparent"
+                   HeightRequest="42"
+                   VerticalOptions="Center"
+                   ReturnType="Send"
+                   TextChanged="OnInnerTextChanged"
+                   Completed="OnInnerCompleted" />
+        </Border>
+    </Grid>
+</ContentView>

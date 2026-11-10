@@ -23,6 +23,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<LinkPreviewService>();
         builder.Services.AddSingleton<SpaceService>();
         builder.Services.AddSingleton<AccountService>();
+        builder.Services.AddSingleton<SpaceMentionNotifier>();
 
 #if ANDROID
         builder.Services.AddSingleton<IAudioRecorder, AudioRecorderAndroid>();

@@ -31,6 +31,7 @@ public partial class SpaceChatPage : ContentPage
     private bool _canModerate;
     private bool _canPost = true;
     private SpaceMessageVm? _replyingTo;
+    private List<SpaceMemberDto> _members = new();
     private readonly ObservableCollection<SpaceMessageVm> _pinnedItems = new();
     private int _currentPinnedIndex = -1;
 
@@ -162,27 +163,60 @@ public partial class SpaceChatPage : ContentPage
     {
         try
         {
+            // Участники нужны раньше сообщений: меню @упоминаний и счётчики.
+            var members = await _spaces.GetMembersAsync(_spaceId);
+            _members = members;
+            MessageEntry.SetMembers(members.Select(member => member.Username));
+
             var messages = await _spaces.GetMessagesAsync(_spaceId, _topicId);
-            _messages.Clear();
+
+            var commentCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+            var feed = new List<SpaceMessageVm>();
+
             foreach (var message in messages)
             {
                 var payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
-                _messages.Add(SpaceMessageVm.From(
+
+                if (payload?.CommentToMessageId is not null)
+                {
+                    // Комментарий к посту: не в ленту, только в счётчик поста.
+                    commentCounts[payload.CommentToMessageId] =
+                        commentCounts.TryGetValue(payload.CommentToMessageId, out var count)
+                            ? count + 1
+                            : 1;
+                    continue;
+                }
+
+                feed.Add(CreateVm(
                     message,
                     payload ?? new SpaceMessagePayload
                     {
                         Kind = "text",
                         Text = "🔒 Сообщение не удалось расшифровать"
-                    },
-                    _myUserId ?? string.Empty,
-                    _canModerate));
+                    }));
             }
 
-            // Канал только для чтения — скрываем composер и показываем баннер.
+            _messages.Clear();
+            foreach (var item in feed)
+            {
+                _messages.Add(item);
+            }
+
+            if (_spaceType == SpaceTypes.Channel)
+            {
+                foreach (var item in _messages)
+                {
+                    if (commentCounts.TryGetValue(item.Id, out var count))
+                    {
+                        item.CommentsCount = count;
+                    }
+                }
+            }
+
+            // Канал только для чтения — скрываем композер и показываем баннер.
             Composer.IsVisible = _canPost;
             ReadOnlyBanner.IsVisible = !_canPost;
 
-            var members = await _spaces.GetMembersAsync(_spaceId);
             SpaceInfoLabel.Text = _topicTitle is null
                 ? $"{members.Count} участников"
                 : $"Тема: {_topicTitle} · {members.Count} участников";
@@ -193,6 +227,19 @@ public partial class SpaceChatPage : ContentPage
         {
             await DisplayAlert("Ошибка", ex.Message, "OK");
         }
+    }
+
+    /// <summary>Создаёт VM сообщения и подписывает её на нажатия по @упоминаниям.</summary>
+    private SpaceMessageVm CreateVm(SpaceMessageDto message, SpaceMessagePayload payload)
+    {
+        var vm = SpaceMessageVm.From(
+            message,
+            payload,
+            _myUserId ?? string.Empty,
+            _canModerate,
+            isChannel: _spaceType == SpaceTypes.Channel);
+        vm.MentionTapped += OnMessageMentionTapped;
+        return vm;
     }
 
     private void UpdatePinnedBanner()
@@ -259,20 +306,31 @@ public partial class SpaceChatPage : ContentPage
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            if (payload?.CommentToMessageId is not null)
+            {
+                // Новый комментарий к посту: инкрементируем счётчик под постом.
+                var parent = _messages.FirstOrDefault(
+                    item => item.Id == payload.CommentToMessageId);
+                if (parent is not null)
+                {
+                    parent.CommentsCount += 1;
+                }
+
+                return;
+            }
+
             if (_messages.Any(item => item.Id == message.Id))
             {
                 return;
             }
 
-            _messages.Add(SpaceMessageVm.From(
+            _messages.Add(CreateVm(
                 message,
                 payload ?? new SpaceMessagePayload
                 {
                     Kind = "text",
                     Text = "🔒 Сообщение не удалось расшифровать"
-                },
-                _myUserId ?? string.Empty,
-                _canModerate));
+                }));
         });
     }
 
@@ -298,28 +356,69 @@ public partial class SpaceChatPage : ContentPage
 
         try
         {
-            var sent = await _spaces.SendMessageAsync(
-                _spaceId,
-                _topicId,
-                text,
-                replyToMessageId: replyTarget?.Id,
-                replyToText: replyTarget?.ReplyToText);
+            var payload = new SpaceMessagePayload
+            {
+                Kind = "text",
+                Text = text,
+                ReplyToMessageId = replyTarget?.Id,
+                ReplyToText = replyTarget?.ReplyToText,
+                Mentions = SpaceMentions.Parse(
+                    text,
+                    _members.Select(member => member.Username))
+            };
+
+            var sent = await _spaces.SendPayloadAsync(_spaceId, _topicId, payload);
 
             if (sent is not null && !_messages.Any(item => item.Id == sent.Id))
             {
-                var payload = new SpaceMessagePayload
-                {
-                    Kind = "text",
-                    Text = text,
-                    ReplyToMessageId = replyTarget?.Id,
-                    ReplyToText = replyTarget?.ReplyToText
-                };
-                _messages.Add(SpaceMessageVm.From(sent, payload, _myUserId ?? string.Empty, _canModerate));
+                _messages.Add(CreateVm(sent, payload));
             }
         }
         catch (Exception ex)
         {
             MessageEntry.Text = text;
+            await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
+
+    /// <summary>Нажали @упоминание в тексте сообщения: открываем личный чат.</summary>
+    private async void OnMessageMentionTapped(SpaceMessageVm message, string username)
+    {
+        if (string.Equals(username, AppServices.Get<AppSession>().User?.Username,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        try
+        {
+            await Navigation.PushAsync(new ChatPage(username));
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
+
+    /// <summary>Открыть комментарии к посту канала.</summary>
+    private async void OnOpenCommentsClicked(object sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: SpaceMessageVm post })
+        {
+            return;
+        }
+
+        try
+        {
+            await Navigation.PushAsync(new PostCommentsPage(
+                _spaceId,
+                post.TopicId,
+                post.Id,
+                post.Sender,
+                post.Text));
+        }
+        catch (Exception ex)
+        {
             await DisplayAlert("Ошибка", ex.Message, "OK");
         }
     }
@@ -476,14 +575,14 @@ public partial class SpaceChatPage : ContentPage
         _replyingTo = message;
         ReplyPreviewLabel.Text = $"↩ Ответ на «{Shorten(message.ReplyToText, 70)}»";
         ReplyBar.IsVisible = true;
-        MessageEntry.Focus();
+        MessageEntry.FocusInput();
     }
 
     private void OnCancelReplyClicked(object sender, EventArgs e)
     {
         _replyingTo = null;
         ReplyBar.IsVisible = false;
-        MessageEntry.Focus();
+        MessageEntry.FocusInput();
     }
 
     private static string Shorten(string text, int maxLength) =>
@@ -524,7 +623,7 @@ public partial class SpaceChatPage : ContentPage
         }
 
         MessageEntry.Text = $"↩️ {message.Text}";
-        MessageEntry.Focus();
+        MessageEntry.FocusInput();
     }
 
     private async void OnActionEditClicked(object sender, EventArgs e)
@@ -537,7 +636,7 @@ public partial class SpaceChatPage : ContentPage
         ActionLabel.Text = $"Редактирование: {message.Text}";
         ActionBar.IsVisible = true;
         MessageEntry.Text = message.Text;
-        MessageEntry.Focus();
+        MessageEntry.FocusInput();
     }
 
     private async void OnActionPinClicked(object sender, EventArgs e)
@@ -855,7 +954,7 @@ public partial class SpaceChatPage : ContentPage
         var position = Math.Clamp(MessageEntry.CursorPosition, 0, text.Length);
         MessageEntry.Text = text.Insert(position, emoji);
         MessageEntry.CursorPosition = Math.Min(position + emoji.Length, MessageEntry.Text.Length);
-        MessageEntry.Focus();
+        MessageEntry.FocusInput();
     }
 
     private async void OnAttachClicked(object sender, EventArgs e)

@@ -34,6 +34,10 @@ public partial class App : Application
         // слышен на любой странице, а не только в списке чатов.
         AppServices.Get<ChatManager>().IncomingMessage += OnIncomingMessage;
         AppServices.Get<NotificationService>().Activated += OnNotificationActivated;
+
+        // Упоминания @ в пространствах: системное уведомление или звук
+        // независимо от того, какие страницы открыты.
+        AppServices.Get<SpaceMentionNotifier>();
     }
 
     private static async void OnIncomingMessage(StoredMessage message, string username)

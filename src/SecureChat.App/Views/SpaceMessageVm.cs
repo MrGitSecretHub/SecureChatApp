@@ -10,6 +10,7 @@ namespace SecureChat.App.Views;
 public sealed class SpaceMessageVm : INotifyPropertyChanged
 {
     private string _text = string.Empty;
+
     private bool _isSelected;
     private bool _isPinned;
     private bool _isEdited;
@@ -20,8 +21,15 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     private double _playbackDurationSeconds;
     private bool _mediaDownloaded;
     private ImageSource? _imageSource;
+    private FormattedString? _textFormatted;
+    private readonly bool _isChannel;
+    private int _commentsCount;
 
+    /// <summary>Идентификатор сообщения пространства (совпадает с DTO Id).</summary>
     public required string Id { get; init; }
+
+    /// <summary>Тема форума, к которой относится сообщение (null — без темы).</summary>
+    public string? TopicId { get; init; }
     public required string SenderId { get; init; }
     public required string Sender { get; init; }
     public bool IsMine { get; init; }
@@ -29,6 +37,15 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     public SpaceMediaAttachment? Media { get; init; }
     public string? ReplyToMessageId { get; init; }
     public string? ReplyToText { get; init; }
+
+    /// <summary>Логины упомянутых участников (@username), из расшифрованного payload.</summary>
+    public List<string> Mentions { get; init; } = new();
+
+    /// <summary>Пост канала, к которому относится комментарий. Заполнено только у комментариев.</summary>
+    public string? CommentToMessageId { get; init; }
+
+    /// <summary>Это комментарий к посту, а не сообщение ленты.</summary>
+    public bool IsComment => CommentToMessageId is not null;
     public bool IsForwarded { get; init; }
     public string TimeText { get; init; } = string.Empty;
     public Style? BubbleStyle { get; init; }
@@ -49,8 +66,45 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             _text = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasText));
+            RebuildTextFormatted();
         }
     }
+
+    /// <summary>Пересобирает FormattedText: обычные куски без цвета, упоминания — акцент с подчёркиванием.</summary>
+    private void RebuildTextFormatted()
+    {
+        if (string.IsNullOrEmpty(_text))
+        {
+            _textFormatted = null;
+            OnPropertyChanged(nameof(TextFormatted));
+            return;
+        }
+
+        var formatted = new FormattedString();
+        foreach (var (chunk, mention) in SpaceMentions.Split(_text, Mentions))
+        {
+            var span = new Span { Text = chunk };
+
+            if (mention is not null)
+            {
+                span.TextColor = ResolveAccent();
+                span.TextDecorations = TextDecorations.Underline;
+
+                var target = this;
+                var recognizer = new TapGestureRecognizer { CommandParameter = mention };
+                recognizer.Tapped += (_, _) => target.MentionTapped?.Invoke(target, mention);
+                span.GestureRecognizers.Add(recognizer);
+            }
+
+            formatted.Spans.Add(span);
+        }
+
+        _textFormatted = formatted;
+        OnPropertyChanged(nameof(TextFormatted));
+    }
+
+    private static Color ResolveAccent() =>
+        (Application.Current?.Resources["Accent"] as Color) ?? Color.FromArgb("#0088CC");
 
     public bool IsEdited
     {
@@ -134,6 +188,37 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     public bool IsImageReady => ImageSource is not null;
     public bool IsImagePending => IsImage && ImageSource is null;
     public bool HasText => !string.IsNullOrEmpty(Text);
+
+    /// <summary>Текст с подсветкой упоминаний (для Label FormattedText); null — обычный текст.</summary>
+    public FormattedString? TextFormatted => _textFormatted;
+
+    /// <summary>Число известных клиенту комментариев к посту.</summary>
+    public int CommentsCount
+    {
+        get => _commentsCount;
+        set
+        {
+            if (Set(ref _commentsCount, value))
+            {
+                OnPropertyChanged(nameof(CommentsText));
+            }
+        }
+    }
+
+    /// <summary>Показывать ли кнопку «Комментарии» — посты каналов (не сами комментарии).</summary>
+    public bool ShowComments => _isChannel && !IsComment;
+
+    /// <summary>Подпись кнопки: «Ответить» без комментариев, иначе число с русскими формами.</summary>
+    public string CommentsText => CommentsCount switch
+    {
+        0 => "💬 Ответить",
+        1 => "💬 1 комментарий",
+        < 5 => $"💬 {CommentsCount} комментария",
+        _ => $"💬 {CommentsCount} комментариев"
+    };
+
+    /// <summary>Нажали на упоминание в тексте: (сообщение, логин упомянутого).</summary>
+    public event Action<SpaceMessageVm, string>? MentionTapped;
     public bool HasReply => !string.IsNullOrEmpty(ReplyToText);
     public bool HasReactions => ReactionChips.Count > 0;
     public bool ShowAvatar => !IsMine;
@@ -234,12 +319,14 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         SpaceMessageDto source,
         SpaceMessagePayload payload,
         string myUserId,
-        bool canModerate)
+        bool canModerate,
+        bool isChannel = false)
     {
         var mine = string.Equals(source.SenderId, myUserId, StringComparison.Ordinal);
-        var vm = new SpaceMessageVm
+        var vm = new SpaceMessageVm(isChannel)
         {
             Id = source.Id,
+            TopicId = source.TopicId,
             SenderId = source.SenderId,
             Sender = source.SenderUsername,
             IsMine = mine,
@@ -247,6 +334,8 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             Media = payload.Media,
             ReplyToMessageId = payload.ReplyToMessageId,
             ReplyToText = payload.ReplyToText,
+            Mentions = payload.Mentions,
+            CommentToMessageId = payload.CommentToMessageId,
             IsForwarded = payload.IsForwarded,
             TimeText = DateTimeOffset.FromUnixTimeMilliseconds(source.SentAtUnixMs)
                 .ToLocalTime()
@@ -260,6 +349,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         vm._isEdited = source.EditedAtUnixMs > 0;
         vm._isPinned = source.IsPinned;
         vm._canModerate = canModerate;
+        vm.RebuildTextFormatted();
         vm.SetReactions(source.Reactions, myUserId);
         return vm;
     }
@@ -285,6 +375,11 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         var total = (int)Math.Floor(Math.Max(0, seconds));
         var time = TimeSpan.FromSeconds(total);
         return total >= 3600 ? time.ToString(@"h\:mm\:ss") : time.ToString(@"m\:ss");
+    }
+
+    private SpaceMessageVm(bool isChannel)
+    {
+        _isChannel = isChannel;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
