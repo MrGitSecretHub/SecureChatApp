@@ -1084,9 +1084,10 @@ public sealed class ChatManager
                 ? MessageKinds.Image
                 : normalizedContentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase)
                     ? MessageKinds.Voice
-                    : normalizedContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase)
-                        ? MessageKinds.VideoCircle
-                        : MessageKinds.File);
+                    // Видео из проводника тоже файл: инлайн-плеер + карточка.
+                    // MessageKinds.VideoCircle ставится только при записи кружка
+                    // с камеры (там вид передаётся явно).
+                    : MessageKinds.File);
 
         var messageId = clientMessageId ?? Guid.NewGuid().ToString("N");
 

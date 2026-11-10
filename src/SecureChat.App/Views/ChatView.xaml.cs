@@ -1083,6 +1083,7 @@ public partial class ChatView : ContentView
                         item.FileName,
                         item.ContentType,
                         item.Data,
+                        messageKind: item.MessageKind,
                         clientMessageId: item.Id,
                         progress: progress,
                         cancellationToken: item.Cts.Token);
@@ -1959,7 +1960,8 @@ public partial class ChatView : ContentView
                     message.FileName,
                     message.ContentType,
                     bytes,
-                    isForwarded: true);
+                    isForwarded: true,
+                    messageKind: message.Kind);
             }
 
             ShowHint($"Переслано в {target.Username}.", isError: false);
