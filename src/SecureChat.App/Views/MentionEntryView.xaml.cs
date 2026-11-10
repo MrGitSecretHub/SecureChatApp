@@ -235,21 +235,29 @@ public partial class MentionEntryView : ContentView
 
     private View CreateItem(MentionItem item, bool isHighlighted)
     {
-        var tap = new TapGestureRecognizer { CommandParameter = item.Username };
-        tap.Tapped += OnMentionChosen;
+        // Паттерн как в эмодзи-пикере: Command с захватом логина — надёжно
+        // срабатывает и на Windows, и на Android.
+        var chosen = item.Username;
 
         var row = new Border
         {
             Padding = new Thickness(8, 6),
-            BackgroundColor = isHighlighted
-                ? ResolveResource<Color>("AccentSoft", Color.FromArgb("#1A0088CC"))
-                : Colors.Transparent,
             StrokeThickness = 0,
-            GestureRecognizers = { tap },
-            MinimumHeightRequest = RowHeight
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(10) },
+            MinimumHeightRequest = RowHeight,
+            // Не Transparent: на Windows прозрачный фон не участвует в hit-test,
+            // и тап по строке не срабатывает (в Telegram подсветка строк видна так же).
+            BackgroundColor = isHighlighted
+                ? Color.FromArgb("#33007ACC") // заметная акцентная полоса выделения
+                : ResolveResource<Color>("Surface", Color.FromArgb("#1E2430")),
+            GestureRecognizers =
+            {
+                new TapGestureRecognizer
+                {
+                    Command = new Command(() => Pick(chosen))
+                }
+            }
         };
-
-        row.StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(10) };
 
         row.Content = new HorizontalStackLayout
         {
@@ -331,17 +339,6 @@ public partial class MentionEntryView : ContentView
         }
 
         HideMenu();
-    }
-
-    private void OnMentionChosen(object? sender, EventArgs e)
-    {
-        var username = (sender as TapGestureRecognizer)?.CommandParameter as string;
-        if (string.IsNullOrEmpty(username))
-        {
-            return;
-        }
-
-        Pick(username);
     }
 
     private void OnInnerCompleted(object? sender, EventArgs e)

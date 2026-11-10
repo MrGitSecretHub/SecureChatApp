@@ -15,7 +15,7 @@
                 <RoundRectangle CornerRadius="12" />
             </Border.StrokeShape>
             <ScrollView MaximumHeightRequest="300">
-                <VerticalStackLayout x:Name="MentionList" Spacing="2" />
+                <VerticalStackLayout x:Name="MentionList" Spacing="0" />
             </ScrollView>
         </Border>
 
