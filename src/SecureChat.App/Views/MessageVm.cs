@@ -86,8 +86,16 @@ public sealed class MessageVm : INotifyPropertyChanged
     /// <summary>Байты расшифрованного видео (заполняются после загрузки).</summary>
     public byte[]? VideoBytes { get; private set; }
 
-    public bool IsVideoReady => IsVideoMedia && VideoBytes is not null;
-    public bool IsVideoPending => IsVideoMedia && VideoBytes is null;
+    public bool IsVideoReady => IsVideoMedia && !IsVideoOversize && VideoBytes is not null;
+
+    /// <summary>Видео больше InlineVideoMaxBytes: инлайн-плеер небезопасен по памяти,
+    /// показываем карточку с нативным плеером (как в Telegram для больших файлов).</summary>
+    public bool IsVideoOversize => IsVideoMedia && MediaSize > MediaLimits.InlineVideoMaxBytes;
+
+    /// <summary>Показать карточку с кнопкой ▶ вместо встроенного видео.</summary>
+    public bool ShowVideoFallback => IsVideoOversize;
+
+    public bool IsVideoPending => IsVideoMedia && !IsVideoOversize && VideoBytes is null;
 
     /// <summary>Длительность видео из mp4-заголовка, «ММ:СС»; пусто — неизвестна.</summary>
     public string VideoDurationText => _videoDurationText;

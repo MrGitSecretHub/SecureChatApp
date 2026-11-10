@@ -1,4 +1,5 @@
 using System.Text;
+using SecureChat.Core.Contracts;
 
 namespace SecureChat.App.Views;
 
@@ -116,6 +117,14 @@ public partial class GifWebView : ContentView
         }
 
         if (_bytes is not { Length: > 13 } data || !IsGifData(data))
+        {
+            GifView.Source = null;
+            return;
+        }
+
+        // Предохранитель: гигантский GIF через data-URI съест память (base64
+        // ~133% размера) — не рисуем, чтобы не уронить клиент.
+        if (data.Length > MediaLimits.InlineVideoMaxBytes)
         {
             GifView.Source = null;
             return;

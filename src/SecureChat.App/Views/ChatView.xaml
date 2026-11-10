@@ -603,8 +603,6 @@
 
                                         <!-- Видеокружок: встроенное видео, как в Telegram -->
                                         <Grid IsVisible="{Binding IsVideoCircle}"
-                                              WidthRequest="240"
-                                              HeightRequest="240"
                                               HorizontalOptions="Start"
                                               Margin="0,2">
                                             <views:GifWebView IsVisible="{Binding IsVideoReady}"
@@ -637,6 +635,35 @@
                                                            TextColor="{DynamicResource TextPrimary}"
                                                            VerticalOptions="Center" />
                                                 </HorizontalStackLayout>
+                                            </Border>
+                                            <!-- Большое видео: инлайн-плеер небезопасен по памяти — карточка с ▶ -->
+                                            <Border IsVisible="{Binding ShowVideoFallback}"
+                                                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                    StrokeThickness="0"
+                                                    Padding="10,8">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="12" />
+                                                </Border.StrokeShape>
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                    <Label Text="📹" FontSize="16" VerticalOptions="Center" />
+                                                    <Label Grid.Column="1"
+                                                           Text="{Binding FileSizeText, StringFormat='Видеокружок · {0}'}"
+                                                           FontSize="12"
+                                                           TextColor="{DynamicResource TextPrimary}"
+                                                           VerticalOptions="Center" />
+                                                    <Button Grid.Column="2"
+                                                            Text="▶"
+                                                            FontSize="14"
+                                                            WidthRequest="32"
+                                                            HeightRequest="32"
+                                                            Padding="0"
+                                                            BackgroundColor="{DynamicResource Accent}"
+                                                            TextColor="White"
+                                                            CornerRadius="16"
+                                                            VerticalOptions="Center"
+                                                            CommandParameter="{Binding .}"
+                                                            Clicked="OnPlayVideoCircleClicked" />
+                                                </Grid>
                                             </Border>
                                         </Grid>
 

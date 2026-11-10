@@ -562,8 +562,20 @@ public partial class ChatView : ContentView
         }
 
         // Видео (кружки и видео-файлы): та же догрузка, что у картинок.
+        // Большие видео в память VM не тащим (OOM): файл качается в кэш
+        // для нативного плеера, карточка с ▶ покажется сама.
         foreach (var item in items.Where(item => item.IsVideoMedia && !item.IsVideoReady))
         {
+            if (item.IsVideoOversize)
+            {
+                if (!item.MediaDownloaded)
+                {
+                    _ = _chatManager.EnsureMediaAsync(user, item.Id);
+                }
+
+                continue;
+            }
+
             var bytes = await _chatManager.GetLocalMediaAsync(item.Id);
             if (bytes is null)
             {
@@ -581,11 +593,18 @@ public partial class ChatView : ContentView
     {
         var conversation = await _chatManager.GetConversationAsync(user);
         var fresh = conversation?.Messages.FirstOrDefault(item => item.Id == message.Id);
-        byte[]? bytes = null;
-        if (fresh is not null && (message.IsImage || message.IsVideoMedia))
+        var needsBytes = fresh is not null && (message.IsImage || message.IsVideoMedia);
+        var oversizeVideo = needsBytes && message.IsVideoMedia && message.IsVideoOversize;
+        if (oversizeVideo)
         {
-            bytes = await _chatManager.GetLocalMediaAsync(message.Id);
+            // Большое видео в память VM не тащим (OOM): файл качается в кэш,
+            // открывается нативным плеером по кнопке ▶ в карточке.
+            needsBytes = false;
         }
+
+        byte[]? bytes = needsBytes
+            ? await _chatManager.GetLocalMediaAsync(message.Id)
+            : null;
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
