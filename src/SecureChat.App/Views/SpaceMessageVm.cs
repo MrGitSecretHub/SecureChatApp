@@ -109,9 +109,8 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
             if (mention is not null)
             {
+                // Как в Telegram: упоминание выделяется только цветом акцента.
                 span.TextColor = ResolveAccent();
-                span.TextDecorations = TextDecorations.Underline;
-                span.FontAttributes = FontAttributes.Bold;
 
                 var target = this;
                 var recognizer = new TapGestureRecognizer { CommandParameter = mention };
