@@ -122,6 +122,8 @@ public partial class ChatView : ContentView
 
     private void OnViewLoaded(object? sender, EventArgs e)
     {
+        _session.AppearanceChanged += OnAppearanceChanged;
+        ApplyWallpaper();
 #if WINDOWS
         EnsureWindowHooks();
 #endif
@@ -129,6 +131,7 @@ public partial class ChatView : ContentView
 
     private void OnViewUnloaded(object? sender, EventArgs e)
     {
+        _session.AppearanceChanged -= OnAppearanceChanged;
 #if WINDOWS
         // Чат закрыт — файлы, брошенные в окно, больше не должны уходить сюда.
         if (ReferenceEquals(_activeDropTarget, this))
@@ -137,6 +140,19 @@ public partial class ChatView : ContentView
         }
 #endif
     }
+
+    /// <summary>Обои переписки: картинка из настроек «Обои чата» + затемнение.</summary>
+    private void ApplyWallpaper()
+    {
+        var path = _session.WallpaperPath;
+        var hasWallpaper = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
+        WallpaperImage.IsVisible = hasWallpaper;
+        WallpaperShade.IsVisible = hasWallpaper && _session.WallpaperDim;
+        WallpaperImage.Source = hasWallpaper ? ImageSource.FromFile(path) : null;
+    }
+
+    private void OnAppearanceChanged() =>
+        MainThread.BeginInvokeOnMainThread(ApplyWallpaper);
 
     /// <summary>Кнопка 😊 — показать или скрыть панель Эмодзи/Стикеры/GIF.</summary>
     private void OnEmojiButtonClicked(object sender, EventArgs e)

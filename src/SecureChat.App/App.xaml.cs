@@ -12,6 +12,11 @@ public partial class App : Application
     private const string AccentKey = "ui.accent";
     private const string FontKey = "ui.fontScale";
     private const string DensityKey = "ui.density";
+    private const string NameColorKey = "ui.nameColor";
+    private const string MessageFontKey = "ui.msgFont";
+    private const string AutoNightKey = "ui.autoNight";
+    private const string WallpaperKey = "ui.wallpaper";
+    private const string WallpaperDimKey = "ui.wallpaperDim";
 
     /// <summary>Пресеты акцентного цвета в духе Telegram / Discord / Signal.</summary>
     public static readonly (string Name, string Color)[] AccentPresets =
@@ -29,6 +34,7 @@ public partial class App : Application
         InitializeComponent();
         ApplyAppearance();
         _ = LoadAppearanceAsync();
+        EnsureAutoNightTimer();
 
         // Звук уведомлений: подписка на уровне приложения, поэтому сигнал
         // слышен на любой странице, а не только в списке чатов.
@@ -128,7 +134,7 @@ public partial class App : Application
         }
 
         var session = AppServices.Get<AppSession>();
-        var palette = ResolvePalette(session.Theme);
+        var palette = ResolvePalette(EffectiveTheme(session));
         session.IsDarkTheme = palette.IsDark;
 
         res["PageBackground"] = palette.PageBackgroundColor;
@@ -161,6 +167,96 @@ public partial class App : Application
         res["ShowAvatars"] = session.ShowAvatarsInChat;
         res["ShowTimestamps"] = session.ShowTimestamps;
         res["SidebarPreviewVisible"] = !session.CompactSidebar;
+
+        // Цвет вашего имени: настройка или акцент темы. Виден в пространствах
+        // (имя автора) — как «Your name color» в Telegram.
+        res["SenderNameColor"] = string.IsNullOrWhiteSpace(session.NameColor)
+            ? palette.AccentColor
+            : ParseColor(session.NameColor, palette.Accent);
+
+        // Шрифт текста сообщений (стили MessageTextMe/Them читают через
+        // DynamicResource): обычный / с засечками / моноширинный.
+        var isWindows = DeviceInfo.Platform == DevicePlatform.WinUI;
+        var isAndroid = DeviceInfo.Platform == DevicePlatform.Android;
+        res["FontFamilyMessage"] = session.MessageFont switch
+        {
+            "С засечками" => isWindows ? "Georgia" : isAndroid ? "serif" : "Georgia",
+            "Моноширинный" => isWindows ? "Consolas" : isAndroid ? "monospace" : "Menlo",
+            _ => isWindows ? "Segoe UI Variable" : isAndroid ? "sans-serif" : "SF Pro Text"
+        };
+
+        _autoNightIsNight = session.AutoNightMode &&
+            (DateTime.Now.Hour >= 20 || DateTime.Now.Hour < 7);
+    }
+
+    private static bool _autoNightIsNight;
+    private static System.Timers.Timer? _autoNightTimer;
+
+    /// <summary>Тема с учётом авто-ночного режима: ночью светлая тема
+    /// подменяется ночной парой, днём ночная — светлой. «Системная» и
+    /// изначально тёмная «Классическая» не трогаются.</summary>
+    private static string EffectiveTheme(AppSession session)
+    {
+        if (!session.AutoNightMode ||
+            string.Equals(session.Theme, ThemeCatalog.SystemTheme, StringComparison.OrdinalIgnoreCase))
+        {
+            return session.Theme;
+        }
+
+        var isNight = DateTime.Now.Hour >= 20 || DateTime.Now.Hour < 7;
+        return (session.Theme, isNight) switch
+        {
+            ("Синяя", true) => "Ночная синяя",
+            ("Зелёная", true) => "Ночная зелёная",
+            ("Фиолетовая", true) => "Ночная фиолетовая",
+            ("Ночная синяя", false) => "Синяя",
+            ("Ночная зелёная", false) => "Зелёная",
+            ("Ночная фиолетовая", false) => "Фиолетовая",
+            _ => session.Theme
+        };
+    }
+
+    /// <summary>Раз в минуту проверяет смену дня/ночи и перекрашивает интерфейс.</summary>
+    private static void EnsureAutoNightTimer()
+    {
+        if (_autoNightTimer is not null)
+        {
+            return;
+        }
+
+        _autoNightTimer = new System.Timers.Timer(60_000)
+        {
+            AutoReset = true
+        };
+        _autoNightTimer.Elapsed += (_, _) =>
+            MainThread.BeginInvokeOnMainThread(CheckAutoNightTick);
+        _autoNightTimer.Start();
+    }
+
+    private static void CheckAutoNightTick()
+    {
+        try
+        {
+            var session = AppServices.Get<AppSession>();
+            if (!session.AutoNightMode)
+            {
+                return;
+            }
+
+            var isNight = DateTime.Now.Hour >= 20 || DateTime.Now.Hour < 7;
+            if (isNight == _autoNightIsNight)
+            {
+                return;
+            }
+
+            _autoNightIsNight = isNight;
+            ApplyAppearance();
+            session.NotifyAppearanceChanged();
+        }
+        catch
+        {
+            // Тик авто-ночи не должен ронять приложение.
+        }
     }
 
     /// <summary>Возвращает палитру выбранной темы; «Системная» берёт тему системы.</summary>
@@ -316,6 +412,11 @@ public partial class App : Application
             var accent = await secrets.GetAsync(AccentKey);
             var font = await secrets.GetAsync(FontKey);
             var density = await secrets.GetAsync(DensityKey);
+            var nameColor = await secrets.GetAsync(NameColorKey);
+            var messageFont = await secrets.GetAsync(MessageFontKey);
+            var autoNight = await secrets.GetAsync(AutoNightKey);
+            var wallpaper = await secrets.GetAsync(WallpaperKey);
+            var wallpaperDim = await secrets.GetAsync(WallpaperDimKey);
 
             if (!string.IsNullOrWhiteSpace(theme))
             {
@@ -335,6 +436,27 @@ public partial class App : Application
             if (!string.IsNullOrWhiteSpace(density))
             {
                 session.Density = density;
+            }
+
+            if (!string.IsNullOrWhiteSpace(nameColor))
+            {
+                session.NameColor = nameColor;
+            }
+
+            if (!string.IsNullOrWhiteSpace(messageFont))
+            {
+                session.MessageFont = messageFont;
+            }
+
+            if (!string.IsNullOrWhiteSpace(autoNight))
+            {
+                session.AutoNightMode = autoNight == "1";
+            }
+
+            session.WallpaperPath = wallpaper ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(wallpaperDim))
+            {
+                session.WallpaperDim = wallpaperDim == "1";
             }
 
             ApplyAppearance();
@@ -357,6 +479,11 @@ public partial class App : Application
             await secrets.SetAsync(AccentKey, session.Accent);
             await secrets.SetAsync(FontKey, session.FontScale);
             await secrets.SetAsync(DensityKey, session.Density);
+            await secrets.SetAsync(NameColorKey, session.NameColor);
+            await secrets.SetAsync(MessageFontKey, session.MessageFont);
+            await secrets.SetAsync(AutoNightKey, session.AutoNightMode ? "1" : "0");
+            await secrets.SetAsync(WallpaperKey, session.WallpaperPath);
+            await secrets.SetAsync(WallpaperDimKey, session.WallpaperDim ? "1" : "0");
         }
         catch
         {

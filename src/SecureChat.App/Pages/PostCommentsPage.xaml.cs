@@ -46,7 +46,26 @@ public partial class PostCommentsPage : ContentPage
         _spaces.SpaceMessageReceived += OnSpaceMessageReceived;
         _spaces.SpaceMessageDeleted += OnSpaceMessageDeleted;
         _myUserId = AppServices.Get<AppSession>().User?.Id ?? string.Empty;
+        RefreshSenderNameColors();
         await LoadAsync();
+    }
+
+    /// <summary>Перекрашивает имена своих комментариев после изменения
+    /// настройки «Цвет вашего имени».</summary>
+    private void RefreshSenderNameColors()
+    {
+        if (Application.Current?.Resources["SenderNameColor"] is not Color nameColor)
+        {
+            return;
+        }
+
+        foreach (var comment in _comments)
+        {
+            if (comment.IsMine)
+            {
+                comment.SenderNameColor = nameColor;
+            }
+        }
     }
 
     protected override void OnDisappearing()

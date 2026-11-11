@@ -110,6 +110,23 @@ public partial class SettingsPage : ContentPage
         UpdateAccentSelection();
         UpdateThemePreview();
 
+        BuildNameColorRow();
+        UpdateNameColorSelection();
+
+        MessageFontPicker.Items.Clear();
+        MessageFontPicker.Items.Add("Обычный");
+        MessageFontPicker.Items.Add("С засечками");
+        MessageFontPicker.Items.Add("Моноширинный");
+        MessageFontPicker.SelectedIndex = _session.MessageFont switch
+        {
+            "С засечками" => 1,
+            "Моноширинный" => 2,
+            _ => 0
+        };
+
+        AutoNightSwitch.IsToggled = _session.AutoNightMode;
+        UpdateWallpaperUI();
+
         StatusPicker.Items.Clear();
         StatusPicker.Items.Add("Онлайн");
         StatusPicker.Items.Add("Неактивен");
@@ -226,54 +243,159 @@ public partial class SettingsPage : ContentPage
         AccentRow.Children.Add(themeButton);
     }
 
+    // ============================== ТЕМЫ-ПЛИТКИ ==============================
+
+    /// <summary>Базовые темы первого ряда, как в Telegram: Classic / Day / Tinted / Night.</summary>
+    private static readonly string[] CoreThemes =
+    {
+        ThemeCatalog.DefaultTheme, // Классическая
+        "Синяя",                   // День
+        "Оттенок",                 // Tinted
+        "Ночная синяя"             // Ночь
+    };
+
+    private void OnShowAllThemesClicked(object? sender, EventArgs e)
+    {
+        var expanded = !ThemeExtraRow.IsVisible;
+        ThemeExtraRow.IsVisible = expanded;
+        ShowAllThemesButton.Text = expanded ? "Скрыть дополнительные темы" : "Показать все темы";
+    }
+
+    private async void OnThemeTileClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Border { StyleId: string theme })
+        {
+            return;
+        }
+
+        _session.Theme = theme;
+        App.ApplyAppearance();
+        UpdateThemePreview();
+        _session.NotifyAppearanceChanged();
+        await App.SaveAppearanceAsync();
+    }
+
+    /// <summary>Рисует плитки тем в духе Telegram: фон страницы темы, два
+    /// «пузыря» превью и кружок выбора под ними.</summary>
     private void UpdateThemePreview()
     {
+        var systemSelected = string.Equals(_session.Theme, ThemeCatalog.SystemTheme, StringComparison.OrdinalIgnoreCase);
+
         ThemePreviewRow.Children.Clear();
-
-        var palette = ThemeCatalog.Resolve(_session.Theme);
-        if (string.Equals(_session.Theme, ThemeCatalog.SystemTheme, StringComparison.OrdinalIgnoreCase))
+        foreach (var name in CoreThemes)
         {
-            palette = _session.IsDarkTheme
-                ? ThemeCatalog.Resolve(ThemeCatalog.DefaultTheme)
-                : ThemeCatalog.Resolve("Синяя");
+            ThemePreviewRow.Children.Add(BuildThemeTile(
+                name,
+                isSelected: !systemSelected &&
+                    string.Equals(name, _session.Theme, StringComparison.OrdinalIgnoreCase)));
         }
 
-        var samples = new (string Name, Color Color)[]
-        {
-            ("Фон", palette.PageBackgroundColor),
-            ("Панель", palette.SurfaceColor),
-            ("Акцент", palette.AccentColor),
-            ("Свои", palette.MessageMeColor)
-        };
+        ThemeExtraRow.Children.Clear();
+        var extraThemes = ThemeCatalog.Themes
+            .Select(item => item.Name)
+            .Where(name => !CoreThemes.Contains(name))
+            .Append(ThemeCatalog.SystemTheme);
 
-        foreach (var sample in samples)
+        foreach (var name in extraThemes)
         {
-            var border = new Border
+            ThemeExtraRow.Children.Add(BuildThemeTile(
+                name,
+                isSelected: string.Equals(name, _session.Theme, StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
+    /// <summary>Одна плитка темы: фон страницы, два «пузыря», кружок выбора.</summary>
+    private View BuildThemeTile(string themeName, bool isSelected)
+    {
+        var isSystem = string.Equals(themeName, ThemeCatalog.SystemTheme, StringComparison.Ordinal);
+        var palette = ThemeCatalog.Resolve(themeName);
+
+        var content = new Grid();
+
+        if (isSystem)
+        {
+            content.Children.Add(new Label
             {
+                Text = "◐",
+                FontSize = 32,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            });
+        }
+        else
+        {
+            // «Пузыри» превью: чужой слева, свой справа.
+            content.Children.Add(new Border
+            {
+                BackgroundColor = palette.MessageThemColor,
+                StrokeThickness = 0,
+                WidthRequest = 46,
+                HeightRequest = 13,
+                Margin = new Thickness(0, 12, 0, 0),
+                HorizontalOptions = LayoutOptions.Start,
+                VerticalOptions = LayoutOptions.Start,
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(6) }
+            });
+            content.Children.Add(new Border
+            {
+                BackgroundColor = palette.MessageMeColor,
+                StrokeThickness = 0,
                 WidthRequest = 34,
-                HeightRequest = 34,
-                BackgroundColor = sample.Color,
-                Stroke = (Color)Application.Current!.Resources["BorderColor"],
-                StrokeThickness = 1
-            };
-
-            border.StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle
-            {
-                CornerRadius = new CornerRadius(8)
-            };
-
-            ThemePreviewRow.Children.Add(border);
+                HeightRequest = 13,
+                Margin = new Thickness(0, 32, 0, 0),
+                HorizontalOptions = LayoutOptions.Start,
+                VerticalOptions = LayoutOptions.Start,
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(6) }
+            });
         }
 
-        var label = new Label
+        // Кружок выбора, как радиокнопка в Telegram.
+        var ring = new Border
         {
-            Text = palette.IsDark ? "Тёмная" : "Светлая",
-            FontSize = 12,
-            TextColor = (Color)Application.Current!.Resources["TextMuted"],
-            VerticalOptions = Microsoft.Maui.Controls.LayoutOptions.Center
+            WidthRequest = 22,
+            HeightRequest = 22,
+            BackgroundColor = Colors.Transparent,
+            StrokeThickness = 2,
+            Stroke = isSelected ? Colors.White : Colors.White.WithAlpha(0.35f),
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.End,
+            Margin = new Thickness(0, 0, 0, 2),
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse()
+        };
+        content.Children.Add(ring);
+
+        var tile = new Border
+        {
+            BackgroundColor = palette.PageBackgroundColor,
+            WidthRequest = 92,
+            HeightRequest = 96,
+            Padding = 8,
+            StrokeThickness = 2,
+            Stroke = isSelected
+                ? (Color)Application.Current!.Resources["Accent"]
+                : Colors.Transparent,
+            StyleId = themeName,
+            Content = content,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(10) }
         };
 
-        ThemePreviewRow.Children.Add(label);
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += OnThemeTileClicked;
+        tile.GestureRecognizers.Add(tap);
+
+        var caption = new Label
+        {
+            Text = themeName,
+            FontSize = 11,
+            HorizontalTextAlignment = TextAlignment.Center,
+            TextColor = (Color)Application.Current!.Resources["TextMuted"]
+        };
+
+        return new VerticalStackLayout
+        {
+            Spacing = 4,
+            Children = { tile, caption }
+        };
     }
 
     private async void OnThemeChanged(object sender, EventArgs e)
@@ -322,6 +444,231 @@ public partial class SettingsPage : ContentPage
                 button.BorderWidth = selected ? 3 : 0;
             }
         }
+    }
+
+    // ============================== ЦВЕТ ВАШЕГО ИМЕНИ ==============================
+
+    /// <summary>Пресеты цвета имени в духе Telegram.</summary>
+    private static readonly (string Name, string Hex)[] NameColorPresets =
+    {
+        ("Красный", "#E17076"),
+        ("Оранжевый", "#F2A33C"),
+        ("Фиолетовый", "#A695E7"),
+        ("Зелёный", "#7BC862"),
+        ("Бирюзовый", "#6EC9CB"),
+        ("Синий", "#65AADD"),
+        ("Розовый", "#EE7AAE")
+    };
+
+    private void BuildNameColorRow()
+    {
+        NameColorRow.Children.Clear();
+
+        foreach (var preset in NameColorPresets)
+        {
+            var button = new Button
+            {
+                CommandParameter = preset.Hex,
+                BackgroundColor = Color.FromArgb(preset.Hex),
+                CornerRadius = 18,
+                WidthRequest = 36,
+                HeightRequest = 36,
+                Padding = 0,
+                BorderWidth = 0
+            };
+            button.Clicked += OnNameColorClicked;
+            NameColorRow.Children.Add(button);
+        }
+
+        // «Как в теме» — сброс на акцент темы.
+        var themeButton = new Button
+        {
+            CommandParameter = string.Empty,
+            Text = "◐",
+            FontSize = 15,
+            TextColor = Colors.White,
+            BackgroundColor = (Color)Application.Current!.Resources["Accent"],
+            CornerRadius = 18,
+            WidthRequest = 36,
+            HeightRequest = 36,
+            Padding = 0,
+            BorderWidth = 0
+        };
+        themeButton.Clicked += OnNameColorClicked;
+        NameColorRow.Children.Add(themeButton);
+    }
+
+    private async void OnNameColorClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: string hex })
+        {
+            return;
+        }
+
+        _session.NameColor = hex;
+        App.ApplyAppearance();
+        UpdateNameColorSelection();
+        _session.NotifyAppearanceChanged();
+        await App.SaveAppearanceAsync();
+    }
+
+    private void UpdateNameColorSelection()
+    {
+        foreach (var view in NameColorRow.Children)
+        {
+            if (view is Button button && button.CommandParameter is string hex)
+            {
+                var selected = string.Equals(hex, _session.NameColor, StringComparison.OrdinalIgnoreCase);
+                button.BorderColor = selected
+                    ? (Color)Application.Current!.Resources["TextPrimary"]
+                    : Colors.Transparent;
+                button.BorderWidth = selected ? 3 : 0;
+            }
+        }
+    }
+
+    // ============================== АВТО-НОЧЬ И ШРИФТ ==============================
+
+    private async void OnAutoNightToggled(object sender, ToggledEventArgs e)
+    {
+        _session.AutoNightMode = e.Value;
+        App.ApplyAppearance();
+        UpdateThemePreview();
+        _session.NotifyAppearanceChanged();
+        await App.SaveAppearanceAsync();
+    }
+
+    private async void OnMessageFontChanged(object? sender, EventArgs e)
+    {
+        _session.MessageFont = MessageFontPicker.SelectedIndex switch
+        {
+            1 => "С засечками",
+            2 => "Моноширинный",
+            _ => "Обычный"
+        };
+
+        App.ApplyAppearance();
+        await App.SaveAppearanceAsync();
+    }
+
+    // ============================== ОБОИ ЧАТА ==============================
+
+    private void UpdateWallpaperUI()
+    {
+        var path = _session.WallpaperPath;
+        var hasWallpaper = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
+
+        WallpaperPreviewImage.Source = hasWallpaper ? ImageSource.FromFile(path) : null;
+        WallpaperEmptyLabel.IsVisible = !hasWallpaper;
+        RemoveWallpaperButton.IsVisible = hasWallpaper;
+        WallpaperDimSwitch.IsToggled = _session.WallpaperDim;
+    }
+
+    private async void OnWallpaperGalleryClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var photo = await MediaPicker.PickPhotoAsync();
+            if (photo is not null)
+            {
+                await SaveWallpaperAsync(photo);
+            }
+        }
+        catch
+        {
+            // Отмена выбора — не ошибка.
+        }
+    }
+
+    private async void OnWallpaperFileClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var file = await FilePicker.PickAsync(new PickOptions
+            {
+                PickerTitle = "Выберите изображение для обоев",
+                FileTypes = FilePickerFileType.Images
+            });
+
+            if (file is not null)
+            {
+                await SaveWallpaperAsync(file);
+            }
+        }
+        catch
+        {
+            // Отмена выбора — не ошибка.
+        }
+    }
+
+    /// <summary>Копирует выбранную картинку в хранилище приложения (только
+    /// для чтения приложением — исходный файл может исчезнуть).</summary>
+    private async Task SaveWallpaperAsync(FileResult file)
+    {
+        var extension = Path.GetExtension(file.FullPath ?? file.FileName ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            extension = ".jpg";
+        }
+
+        var target = Path.Combine(FileSystem.AppDataDirectory, "wallpaper" + extension);
+        await using (var output = File.Create(target))
+        {
+            using var source = await file.OpenReadAsync();
+            await source.CopyToAsync(output);
+        }
+
+        RemoveOldWallpapers(target);
+
+        _session.WallpaperPath = target;
+        UpdateWallpaperUI();
+        _session.NotifyAppearanceChanged();
+        await App.SaveAppearanceAsync();
+    }
+
+    private static void RemoveOldWallpapers(string keep)
+    {
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(FileSystem.AppDataDirectory, "wallpaper.*"))
+            {
+                if (!string.Equals(file, keep, StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Delete(file);
+                }
+            }
+        }
+        catch
+        {
+            // Не удалось удалить старые копии — не критично.
+        }
+    }
+
+    private async void OnWallpaperRemoveClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(_session.WallpaperPath) && File.Exists(_session.WallpaperPath))
+            {
+                File.Delete(_session.WallpaperPath);
+            }
+        }
+        catch
+        {
+            // Не удалось удалить файл — просто сбрасываем настройку.
+        }
+
+        _session.WallpaperPath = string.Empty;
+        UpdateWallpaperUI();
+        _session.NotifyAppearanceChanged();
+        await App.SaveAppearanceAsync();
+    }
+
+    private async void OnWallpaperDimToggled(object sender, ToggledEventArgs e)
+    {
+        _session.WallpaperDim = e.Value;
+        _session.NotifyAppearanceChanged();
+        await App.SaveAppearanceAsync();
     }
 
     private void OnNicknameChanged(object sender, TextChangedEventArgs e)

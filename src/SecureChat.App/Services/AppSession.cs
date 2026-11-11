@@ -46,6 +46,22 @@ public sealed class AppSession
     /// <summary>Форма пузырей: «Скруглённая», «Мягкая» или «Прямая».</summary>
     public string BubbleShape { get; set; } = "Скруглённая";
 
+    /// <summary>Цвет вашего имени (HEX). Пусто — используется акцент темы.</summary>
+    public string NameColor { get; set; } = string.Empty;
+
+    /// <summary>Шрифт сообщений: «Обычный», «С засечками» или «Моноширинный».</summary>
+    public string MessageFont { get; set; } = "Обычный";
+
+    /// <summary>Авто-ночной режим: ночью (20:00–07:00) светлая тема меняется
+    /// на ночную пару, днём ночная — обратно на светлую.</summary>
+    public bool AutoNightMode { get; set; } = false;
+
+    /// <summary>Путь к картинке обоев переписки. Пусто — без обоев.</summary>
+    public string WallpaperPath { get; set; } = string.Empty;
+
+    /// <summary>Затемнять обои полупрозрачной вуалью для читабельности.</summary>
+    public bool WallpaperDim { get; set; } = true;
+
     /// <summary>Показывать аватары в переписке.</summary>
     public bool ShowAvatarsInChat { get; set; } = true;
 

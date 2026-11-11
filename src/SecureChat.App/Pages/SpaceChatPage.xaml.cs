@@ -107,7 +107,26 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageReceived += OnSpaceMessageReceived;
         _spaces.SpaceMessageUpdated += OnSpaceMessageUpdated;
         _spaces.SpaceMessageDeleted += OnSpaceMessageDeleted;
+        RefreshSenderNameColors();
         await LoadAsync();
+    }
+
+    /// <summary>Перекрашивает имена своих сообщений после изменения
+    /// настройки «Цвет вашего имени» (возврат со страницы настроек).</summary>
+    private void RefreshSenderNameColors()
+    {
+        if (Application.Current?.Resources["SenderNameColor"] is not Color nameColor)
+        {
+            return;
+        }
+
+        foreach (var message in _messages)
+        {
+            if (message.IsMine)
+            {
+                message.SenderNameColor = nameColor;
+            }
+        }
     }
 
     protected override void OnDisappearing()

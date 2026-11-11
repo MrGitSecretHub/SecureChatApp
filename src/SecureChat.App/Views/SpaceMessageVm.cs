@@ -73,6 +73,25 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     public Style? BubbleStyle { get; init; }
     public Style? TextStyle { get; init; }
     public Color MetaColor { get; init; } = Colors.Gray;
+
+    private Color _senderNameColor = Colors.Gray;
+
+    /// <summary>Цвет имени отправителя: свой — по настройке «Цвет вашего имени»,
+    /// чужой — акцент темы (как «Your name color» в Telegram).</summary>
+    public Color SenderNameColor
+    {
+        get => _senderNameColor;
+        set
+        {
+            if (_senderNameColor == value)
+            {
+                return;
+            }
+
+            _senderNameColor = value;
+            OnPropertyChanged();
+        }
+    }
     public ObservableCollection<ReactionChipVm> ReactionChips { get; } = new();
 
     public string Text
@@ -434,6 +453,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             MetaColor = mine ? Color.FromArgb("#BFDBFE") : Color.FromArgb("#94A3B8")
         };
 
+        vm.SenderNameColor = ResolveSenderNameColor(mine);
         vm._text = payload.Text;
         vm._isEdited = source.EditedAtUnixMs > 0;
         vm._isPinned = source.IsPinned;
@@ -443,6 +463,24 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         vm.RebuildTextFormatted();
         vm.SetReactions(source.Reactions, myUserId);
         return vm;
+    }
+
+    /// <summary>Цвет имени: для своих сообщений — настройка «Цвет вашего имени»
+    /// (ресурс SenderNameColor), для чужих — акцент темы.</summary>
+    public static Color ResolveSenderNameColor(bool mine)
+    {
+        var res = Application.Current?.Resources;
+        if (res is null)
+        {
+            return Colors.Gray;
+        }
+
+        if (mine && res["SenderNameColor"] is Color nameColor)
+        {
+            return nameColor;
+        }
+
+        return res["Accent"] is Color accent ? accent : Colors.Gray;
     }
 
     /// <summary>GIF-вложение: по типу содержимого или по расширению файла.</summary>

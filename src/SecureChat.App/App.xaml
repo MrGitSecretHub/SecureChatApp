@@ -317,14 +317,14 @@
             <Style x:Key="MessageTextMe" TargetType="Label">
                 <Setter Property="TextColor" Value="{DynamicResource MessageMeText}" />
                 <Setter Property="FontSize" Value="{DynamicResource FontSizeMessage}" />
-                <Setter Property="FontFamily" Value="{DynamicResource FontFamilyRegular}" />
+                <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMessage}" />
                 <Setter Property="LineBreakMode" Value="WordWrap" />
             </Style>
 
             <Style x:Key="MessageTextThem" TargetType="Label">
                 <Setter Property="TextColor" Value="{DynamicResource MessageThemText}" />
                 <Setter Property="FontSize" Value="{DynamicResource FontSizeMessage}" />
-                <Setter Property="FontFamily" Value="{DynamicResource FontFamilyRegular}" />
+                <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMessage}" />
                 <Setter Property="LineBreakMode" Value="WordWrap" />
             </Style>
 

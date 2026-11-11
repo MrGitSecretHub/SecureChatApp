@@ -320,13 +320,53 @@
 
                     <Label Text="Оформление" Style="{DynamicResource H2}" />
 
-                    <!-- Тема -->
-                    <VerticalStackLayout Spacing="6">
+                    <!-- Тема: плитки, как в Telegram -->
+                    <VerticalStackLayout Spacing="8">
                         <Label Text="Тема" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <HorizontalStackLayout x:Name="ThemePreviewRow" Spacing="10" />
+                        <HorizontalStackLayout x:Name="ThemeExtraRow" Spacing="10" IsVisible="False" />
+                        <Button x:Name="ShowAllThemesButton"
+                                Text="Показать все темы"
+                                Style="{DynamicResource GhostButton}"
+                                HorizontalOptions="Start"
+                                Clicked="OnShowAllThemesClicked" />
+                        <!-- Скрытый Picker оставлен для совместимости кода инициализации -->
                         <Picker x:Name="ThemePicker"
+                                IsVisible="False"
                                 SelectedIndexChanged="OnThemeChanged"
                                 TextColor="{DynamicResource TextPrimary}" />
-                        <HorizontalStackLayout x:Name="ThemePreviewRow" Spacing="6" />
+                    </VerticalStackLayout>
+
+                    <!-- Настройки темы -->
+                    <Label Text="Настройки темы" Style="{DynamicResource SectionTitle}" Margin="0,10,0,0" />
+
+                    <!-- Цвет вашего имени -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Цвет вашего имени" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="Виден у ваших сообщений в пространствах, как «Your name color» в Telegram"
+                               Style="{DynamicResource Caption}" />
+                        <HorizontalStackLayout x:Name="NameColorRow" Spacing="10" />
+                    </VerticalStackLayout>
+
+                    <!-- Авто-ночной режим -->
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Авто-ночной режим" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="Ночью (20:00–07:00) светлая тема сменяется ночной парой"
+                                   Style="{DynamicResource Caption}" />
+                        </VerticalStackLayout>
+                        <Switch x:Name="AutoNightSwitch"
+                                Toggled="OnAutoNightToggled"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center" />
+                    </Grid>
+
+                    <!-- Шрифт сообщений -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Шрифт сообщений" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Picker x:Name="MessageFontPicker"
+                                SelectedIndexChanged="OnMessageFontChanged"
+                                TextColor="{DynamicResource TextPrimary}" />
                     </VerticalStackLayout>
 
                     <!-- Акцентный цвет -->
@@ -406,6 +446,63 @@
                         <Picker x:Name="DensityPicker"                                SelectedIndexChanged="OnDensityChanged"
                                 TextColor="{DynamicResource TextPrimary}" />
                     </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- ============================================================
+                 ОБОИ ЧАТА
+                 ============================================================ -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="10">
+
+                    <Label Text="Обои чата" Style="{DynamicResource H2}" />
+
+                    <Border x:Name="WallpaperPreview"
+                            HeightRequest="110"
+                            WidthRequest="190"
+                            HorizontalOptions="Start"
+                            Stroke="{DynamicResource BorderColor}"
+                            StrokeThickness="1">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+                        <Grid BackgroundColor="{DynamicResource SurfaceAlt}">
+                            <Image x:Name="WallpaperPreviewImage"
+                                   Aspect="AspectFill" />
+                            <Label x:Name="WallpaperEmptyLabel"
+                                   Text="🖼"
+                                   FontSize="30"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="Из галереи"
+                                Style="{DynamicResource SecondaryButton}"
+                                Clicked="OnWallpaperGalleryClicked" />
+                        <Button Text="Из файла"
+                                Style="{DynamicResource SecondaryButton}"
+                                Clicked="OnWallpaperFileClicked" />
+                        <Button x:Name="RemoveWallpaperButton"
+                                Text="Убрать"
+                                Style="{DynamicResource GhostButton}"
+                                IsVisible="False"
+                                Clicked="OnWallpaperRemoveClicked" />
+                    </HorizontalStackLayout>
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Затемнять обои" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="Полупрозрачная вуаль поверх картинки для читабельности"
+                                   Style="{DynamicResource Caption}" />
+                        </VerticalStackLayout>
+                        <Switch x:Name="WallpaperDimSwitch"
+                                Toggled="OnWallpaperDimToggled"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center" />
+                    </Grid>
 
                 </VerticalStackLayout>
             </Border>

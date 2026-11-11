@@ -75,6 +75,21 @@
               RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto"
               BackgroundColor="{DynamicResource PageBackground}">
 
+            <!-- Обои переписки (настройки → «Обои чата»); слои под всем контентом -->
+            <Image Grid.Row="0"
+                   Grid.RowSpan="8"
+                   x:Name="WallpaperImage"
+                   Aspect="AspectFill"
+                   IsVisible="False"
+                   InputTransparent="True" />
+            <BoxView Grid.Row="0"
+                     Grid.RowSpan="8"
+                     x:Name="WallpaperShade"
+                     Color="#000000"
+                     Opacity="0.45"
+                     IsVisible="False"
+                     InputTransparent="True" />
+
             <!-- Шапка: собеседник и действия -->
             <Grid Grid.Row="0"
                   ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto"
