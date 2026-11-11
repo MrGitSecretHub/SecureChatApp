@@ -971,22 +971,116 @@
                     </Border>
 
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                        <HorizontalStackLayout Grid.Column="0"
-                                               Spacing="8"
-                                               VerticalOptions="End">
-                            <Button x:Name="AttachButton"
-                                    Text="📎"
-                                    Style="{DynamicResource IconButton}"
-                                    VerticalOptions="End"
-                                    Clicked="OnAttachClicked"
-                                    ToolTipProperties.Text="Прикрепить фото или файл" />
-                            <Button x:Name="EmojiButton"
-                                    Text="😊"
-                                    Style="{DynamicResource IconButton}"
-                                    VerticalOptions="End"
-                                    Clicked="OnEmojiButtonClicked"
-                                    ToolTipProperties.Text="Эмодзи" />
-                        </HorizontalStackLayout>
+                        <Grid Grid.Column="0" ColumnDefinitions="Auto" RowDefinitions="Auto">
+                            <HorizontalStackLayout Grid.Row="0"
+                                                   Spacing="8"
+                                                   VerticalOptions="End">
+                                <Button x:Name="AttachButton"
+                                        Text="📎"
+                                        Style="{DynamicResource IconButton}"
+                                        VerticalOptions="End"
+                                        Clicked="OnAttachClicked"
+                                        ToolTipProperties.Text="Прикрепить фото или файл" />
+                                <Button x:Name="EmojiButton"
+                                        Text="😊"
+                                        Style="{DynamicResource IconButton}"
+                                        VerticalOptions="End"
+                                        Clicked="OnEmojiButtonClicked"
+                                        ToolTipProperties.Text="Эмодзи" />
+                            </HorizontalStackLayout>
+                            <!-- Меню скрепки, как в Telegram (выезжает вверх над кнопкой 📎) -->
+                            <Border Grid.Row="0"
+                                    x:Name="AttachMenuPanel"
+                                    HorizontalOptions="Start"
+                                    VerticalOptions="Start"
+                                    Margin="14,-270,0,0"
+                                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                                    Stroke="{DynamicResource BorderColor}"
+                                    StrokeThickness="1"
+                                    IsVisible="False"
+                                    Padding="0,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout>
+                                    <!-- Фото или видео -->
+                                    <Border StyleId="photo"
+                                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                                            Padding="16,10">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
+                                        </Border.GestureRecognizers>
+                                        <HorizontalStackLayout Spacing="12">
+                                            <Label Text="🖼" FontSize="15" VerticalOptions="Center" />
+                                            <Label Text="Фото или видео"
+                                                   FontSize="14"
+                                                   TextColor="{DynamicResource TextPrimary}"
+                                                   VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                    <!-- Файл -->
+                                    <Border StyleId="file"
+                                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                                            Padding="16,10">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
+                                        </Border.GestureRecognizers>
+                                        <HorizontalStackLayout Spacing="12">
+                                            <Label Text="📄" FontSize="15" VerticalOptions="Center" />
+                                            <Label Text="Файл"
+                                                   FontSize="14"
+                                                   TextColor="{DynamicResource TextPrimary}"
+                                                   VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                    <!-- Музыка -->
+                                    <Border StyleId="music"
+                                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                                            Padding="16,10">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
+                                        </Border.GestureRecognizers>
+                                        <HorizontalStackLayout Spacing="12">
+                                            <Label Text="🎵" FontSize="15" VerticalOptions="Center" />
+                                            <Label Text="Музыка"
+                                                   FontSize="14"
+                                                   TextColor="{DynamicResource TextPrimary}"
+                                                   VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                    <!-- Голосовое сообщение -->
+                                    <Border StyleId="voice"
+                                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                                            Padding="16,10">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
+                                        </Border.GestureRecognizers>
+                                        <HorizontalStackLayout Spacing="12">
+                                            <Label Text="🎤" FontSize="15" VerticalOptions="Center" />
+                                            <Label Text="Голосовое сообщение"
+                                                   FontSize="14"
+                                                   TextColor="{DynamicResource TextPrimary}"
+                                                   VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                    <!-- Видеокружок -->
+                                    <Border StyleId="circle"
+                                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                                            Padding="16,10">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
+                                        </Border.GestureRecognizers>
+                                        <HorizontalStackLayout Spacing="12">
+                                            <Label Text="📹" FontSize="15" VerticalOptions="Center" />
+                                            <Label Text="Видеокружок"
+                                                   FontSize="14"
+                                                   TextColor="{DynamicResource TextPrimary}"
+                                                   VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
 
                         <views:MentionEntryView Grid.Column="1"
                                                 x:Name="MessageEntry"
@@ -1010,98 +1104,7 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- Меню скрепки, как в Telegram (Photo or video / Document / Music / …) -->
-            <Border Grid.Row="7"
-                    x:Name="AttachMenuPanel"
-                    HorizontalOptions="Start"
-                    VerticalOptions="End"
-                    Margin="14,0,0,66"
-                    BackgroundColor="{DynamicResource SurfaceAlt}"
-                    Stroke="{DynamicResource BorderColor}"
-                    StrokeThickness="1"
-                    IsVisible="False"
-                    Padding="0,6">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12" />
-                </Border.StrokeShape>
-                <VerticalStackLayout>
-                    <!-- Фото или видео -->
-                    <Border StyleId="photo"
-                            BackgroundColor="{DynamicResource SurfaceAlt}"
-                            Padding="16,10">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
-                        </Border.GestureRecognizers>
-                        <HorizontalStackLayout Spacing="12">
-                            <Label Text="🖼" FontSize="15" VerticalOptions="Center" />
-                            <Label Text="Фото или видео"
-                                   FontSize="14"
-                                   TextColor="{DynamicResource TextPrimary}"
-                                   VerticalOptions="Center" />
-                        </HorizontalStackLayout>
-                    </Border>
-                    <!-- Файл -->
-                    <Border StyleId="file"
-                            BackgroundColor="{DynamicResource SurfaceAlt}"
-                            Padding="16,10">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
-                        </Border.GestureRecognizers>
-                        <HorizontalStackLayout Spacing="12">
-                            <Label Text="📄" FontSize="15" VerticalOptions="Center" />
-                            <Label Text="Файл"
-                                   FontSize="14"
-                                   TextColor="{DynamicResource TextPrimary}"
-                                   VerticalOptions="Center" />
-                        </HorizontalStackLayout>
-                    </Border>
-                    <!-- Музыка -->
-                    <Border StyleId="music"
-                            BackgroundColor="{DynamicResource SurfaceAlt}"
-                            Padding="16,10">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
-                        </Border.GestureRecognizers>
-                        <HorizontalStackLayout Spacing="12">
-                            <Label Text="🎵" FontSize="15" VerticalOptions="Center" />
-                            <Label Text="Музыка"
-                                   FontSize="14"
-                                   TextColor="{DynamicResource TextPrimary}"
-                                   VerticalOptions="Center" />
-                        </HorizontalStackLayout>
-                    </Border>
-                    <!-- Голосовое сообщение -->
-                    <Border StyleId="voice"
-                            BackgroundColor="{DynamicResource SurfaceAlt}"
-                            Padding="16,10">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
-                        </Border.GestureRecognizers>
-                        <HorizontalStackLayout Spacing="12">
-                            <Label Text="🎤" FontSize="15" VerticalOptions="Center" />
-                            <Label Text="Голосовое сообщение"
-                                   FontSize="14"
-                                   TextColor="{DynamicResource TextPrimary}"
-                                   VerticalOptions="Center" />
-                        </HorizontalStackLayout>
-                    </Border>
-                    <!-- Видеокружок -->
-                    <Border StyleId="circle"
-                            BackgroundColor="{DynamicResource SurfaceAlt}"
-                            Padding="16,10">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
-                        </Border.GestureRecognizers>
-                        <HorizontalStackLayout Spacing="12">
-                            <Label Text="📹" FontSize="15" VerticalOptions="Center" />
-                            <Label Text="Видеокружок"
-                                   FontSize="14"
-                                   TextColor="{DynamicResource TextPrimary}"
-                                   VerticalOptions="Center" />
-                        </HorizontalStackLayout>
-                    </Border>
-                </VerticalStackLayout>
-            </Border>
+
         </Grid>
 
         <!-- ПРАВАЯ ПАНЕЛЬ: ПРОФИЛЬ / МЕДИА / ЗАКРЕПЛЁННЫЕ -->
