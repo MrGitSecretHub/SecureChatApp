@@ -981,9 +981,9 @@ public partial class ChatView : ContentView
     /// <summary>Выбор пункта меню скрепки: фото/видео, файл, музыка, голосовое, кружок.</summary>
     private async void OnAttachMenuItemTapped(object? sender, EventArgs e)
     {
+        AttachMenuPanel.IsVisible = false;
         var user = _username;
         var page = HostPage;
-        AttachMenuPanel.IsVisible = false;
         if (user is null || page is null || _sendingAttachment)
         {
             return;
