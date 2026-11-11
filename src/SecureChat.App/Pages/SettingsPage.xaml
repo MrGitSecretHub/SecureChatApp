@@ -323,8 +323,12 @@
                     <!-- Тема: плитки, как в Telegram -->
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Тема" Style="{DynamicResource SectionTitle}" Margin="0" />
-                        <HorizontalStackLayout x:Name="ThemePreviewRow" Spacing="10" />
-                        <HorizontalStackLayout x:Name="ThemeExtraRow" Spacing="10" IsVisible="False" />
+                        <ScrollView Orientation="Horizontal">
+                            <HorizontalStackLayout x:Name="ThemePreviewRow" Spacing="10" />
+                        </ScrollView>
+                        <ScrollView Orientation="Horizontal">
+                            <HorizontalStackLayout x:Name="ThemeExtraRow" Spacing="10" IsVisible="False" />
+                        </ScrollView>
                         <Button x:Name="ShowAllThemesButton"
                                 Text="Показать все темы"
                                 Style="{DynamicResource GhostButton}"
