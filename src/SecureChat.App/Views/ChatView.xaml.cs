@@ -23,8 +23,6 @@ namespace SecureChat.App.Views;
 /// </summary>
 public partial class ChatView : ContentView
 {
-    private const string AttachPhoto = "Фото или GIF";
-    private const string AttachFile = "Файл";
     private const string ProfileTab = "profile";
     private const string MediaTab = "media";
     private const string PinnedTab = "pinned";
@@ -926,52 +924,100 @@ public partial class ChatView : ContentView
         }
     }
 
-    private async void OnAttachClicked(object? sender, EventArgs e)
+    /// <summary>Выбор фото и видео в одном диалоге (как «Photo or video» в Telegram).</summary>
+    private static readonly FilePickerFileType AttachMediaTypes = new(
+        new Dictionary<DevicePlatform, IEnumerable<string>>
+        {
+            {
+                DevicePlatform.WinUI,
+                new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".mp4", ".mov", ".webm", ".mkv", ".avi" }
+            },
+            { DevicePlatform.Android, new[] { "image/*", "video/*" } }
+        });
+
+    /// <summary>Выбор аудиофайлов (как «Music» в Telegram).</summary>
+    private static readonly FilePickerFileType AttachAudioTypes = new(
+        new Dictionary<DevicePlatform, IEnumerable<string>>
+        {
+            {
+                DevicePlatform.WinUI,
+                new[] { ".mp3", ".wav", ".ogg", ".oga", ".flac", ".m4a", ".aac", ".wma", ".opus" }
+            },
+            { DevicePlatform.Android, new[] { "audio/*" } }
+        });
+
+    /// <summary>Кнопка 📎 — показать или скрыть меню вложений.</summary>
+    private void OnAttachClicked(object? sender, EventArgs e)
+    {
+        if (AttachMenuPanel.IsVisible)
+        {
+            AttachMenuPanel.IsVisible = false;
+            return;
+        }
+
+        if (_sendingAttachment)
+        {
+            return;
+        }
+
+        AttachMenuPanel.IsVisible = true;
+    }
+
+    /// <summary>Выбор пункта меню скрепки: фото/видео, файл, музыка, голосовое, кружок.</summary>
+    private async void OnAttachMenuItemTapped(object? sender, EventArgs e)
     {
         var user = _username;
         var page = HostPage;
+        AttachMenuPanel.IsVisible = false;
         if (user is null || page is null || _sendingAttachment)
         {
             return;
         }
 
-        var choice = await page.DisplayActionSheet("Прикрепить", "Отмена", null, AttachPhoto, AttachFile, "Голосовое сообщение", "Видеокружок");
+        var action = (sender as Element)?.StyleId;
+        switch (action)
+        {
+            case "photo":
+                // Тип фото/видео определяется по расширению в ResolveContentType;
+                // видео уходит как файл с инлайн-плеером, картинки сжимаются.
+                var mediaFiles = await FilePicker.Default.PickMultipleAsync(
+                    new PickOptions { PickerTitle = "Выберите фото или видео", FileTypes = AttachMediaTypes });
+                await SendPickedFilesAsync(user, mediaFiles, messageKind: null);
+                break;
 
-        if (choice == AttachPhoto)
-        {
-            // MediaPicker не умеет мультивыбор — системный диалог выбора
-            // файлов; тип фото определяется по расширению в ResolveContentType.
-            var files = await FilePicker.Default.PickMultipleAsync(
-                new PickOptions { PickerTitle = "Выберите фото или GIF" });
-            await SendPickedFilesAsync(user, files, messageKind: null);
-        }
-        else if (choice == AttachFile)
-        {
-            var files = await FilePicker.Default.PickMultipleAsync(
-                new PickOptions { PickerTitle = "Выберите файлы" });
-            await SendPickedFilesAsync(user, files, MessageKinds.File);
-        }
-        else if (choice == "Голосовое сообщение")
-        {
-            var recorded = await RecordVoiceMessageAsync(page);
-            if (recorded is null)
-            {
-                return;
-            }
+            case "file":
+                var files = await FilePicker.Default.PickMultipleAsync(
+                    new PickOptions { PickerTitle = "Выберите файлы" });
+                await SendPickedFilesAsync(user, files, MessageKinds.File);
+                break;
 
-            await SendOneAttachmentAsync(
-                user, "voice.m4a", recorded.Value.ContentType, recorded.Value.Data, MessageKinds.Voice);
-        }
-        else if (choice == "Видеокружок")
-        {
-            var recorded = await RecordVideoCircleAsync(page);
-            if (recorded is null)
-            {
-                return;
-            }
+            case "music":
+                var audioFiles = await FilePicker.Default.PickMultipleAsync(
+                    new PickOptions { PickerTitle = "Выберите музыку", FileTypes = AttachAudioTypes });
+                await SendPickedFilesAsync(user, audioFiles, MessageKinds.File);
+                break;
 
-            await SendOneAttachmentAsync(
-                user, "circle.mp4", recorded.Value.ContentType, recorded.Value.Data, MessageKinds.VideoCircle);
+            case "voice":
+                var recorded = await RecordVoiceMessageAsync(page);
+                if (recorded is null)
+                {
+                    return;
+                }
+
+                await SendOneAttachmentAsync(
+                    user, "voice.m4a", recorded.Value.ContentType, recorded.Value.Data, MessageKinds.Voice);
+                break;
+
+            case "circle":
+                var circle = await RecordVideoCircleAsync(page);
+                if (circle is null)
+                {
+                    return;
+                }
+
+                await SendOneAttachmentAsync(
+                    user, "circle.mp4", circle.Value.ContentType, circle.Value.Data, MessageKinds.VideoCircle);
+                break;
         }
     }
 
