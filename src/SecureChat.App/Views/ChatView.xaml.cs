@@ -924,25 +924,34 @@ public partial class ChatView : ContentView
         }
     }
 
-    /// <summary>Выбор фото и видео в одном диалоге (как «Photo or video» в Telegram).</summary>
+    /// <summary>
+    /// Опции выбора файлов. На Windows фильтр расширений не ставим вовсе:
+    /// белый список всегда неполный, и файл вне списка просто не виден
+    /// в диалоге (выглядит как «пустое окно выбора»). Вид сообщения всё равно
+    /// определяется по содержимому в SendPickedFilesAsync. На Android
+    /// оставляем MIME-фильтры — там они надёжны.
+    /// </summary>
+    private static PickOptions PickerOptions(string title, FilePickerFileType? androidFileTypes)
+    {
+#if WINDOWS
+        _ = androidFileTypes;
+        return new PickOptions { PickerTitle = title };
+#else
+        return new PickOptions { PickerTitle = title, FileTypes = androidFileTypes };
+#endif
+    }
+
+    /// <summary>MIME-фильтр «фото или видео» для Android.</summary>
     private static readonly FilePickerFileType AttachMediaTypes = new(
         new Dictionary<DevicePlatform, IEnumerable<string>>
         {
-            {
-                DevicePlatform.WinUI,
-                new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".mp4", ".mov", ".webm", ".mkv", ".avi" }
-            },
             { DevicePlatform.Android, new[] { "image/*", "video/*" } }
         });
 
-    /// <summary>Выбор аудиофайлов (как «Music» в Telegram).</summary>
+    /// <summary>MIME-фильтр аудиофайлов для Android.</summary>
     private static readonly FilePickerFileType AttachAudioTypes = new(
         new Dictionary<DevicePlatform, IEnumerable<string>>
         {
-            {
-                DevicePlatform.WinUI,
-                new[] { ".mp3", ".wav", ".ogg", ".oga", ".flac", ".m4a", ".aac", ".wma", ".opus" }
-            },
             { DevicePlatform.Android, new[] { "audio/*" } }
         });
 
@@ -978,10 +987,10 @@ public partial class ChatView : ContentView
         switch (action)
         {
             case "photo":
-                // Тип фото/видео определяется по расширению в ResolveContentType;
-                // видео уходит как файл с инлайн-плеером, картинки сжимаются.
+                // Вид сообщения определяется по расширению в ResolveContentType:
+                // картинки сжимаются и уходят как фото, всё остальное — как файл.
                 var mediaFiles = await FilePicker.Default.PickMultipleAsync(
-                    new PickOptions { PickerTitle = "Выберите фото или видео", FileTypes = AttachMediaTypes });
+                    PickerOptions("Выберите фото или видео", AttachMediaTypes));
                 await SendPickedFilesAsync(user, mediaFiles, messageKind: null);
                 break;
 
@@ -993,7 +1002,7 @@ public partial class ChatView : ContentView
 
             case "music":
                 var audioFiles = await FilePicker.Default.PickMultipleAsync(
-                    new PickOptions { PickerTitle = "Выберите музыку", FileTypes = AttachAudioTypes });
+                    PickerOptions("Выберите музыку", AttachAudioTypes));
                 await SendPickedFilesAsync(user, audioFiles, MessageKinds.File);
                 break;
 
