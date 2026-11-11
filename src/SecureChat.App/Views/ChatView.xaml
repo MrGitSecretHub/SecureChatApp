@@ -292,7 +292,7 @@
             <CollectionView Grid.Row="4"
                             x:Name="MessagesView"
                             SelectionMode="None"
-                            ItemsUpdatingScrollMode="KeepLastItemInView"
+                            ItemsLayout="VerticalList"
                             BackgroundColor="Transparent">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Padding="24,32" Spacing="8" VerticalOptions="Center">

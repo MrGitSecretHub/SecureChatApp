@@ -46,7 +46,9 @@
         <CollectionView x:Name="ConversationsView"
                         Grid.Row="3"
                         SelectionMode="Single"
-                        SelectionChanged="OnConversationSelected">
+                        SelectionChanged="OnConversationSelected"
+                        ItemsLayout="VerticalList"
+                        VerticalScrollBarVisibility="Never">
             <CollectionView.EmptyView>
                 <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
                     <Label Text="💬"
