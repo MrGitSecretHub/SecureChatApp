@@ -963,7 +963,7 @@ public partial class ChatView : ContentView
             { DevicePlatform.Android, new[] { "audio/*" } }
         });
 
-    /// <summary>Кнопка 📎 — показать меню вложений (как в Telegram по наведению/тапу).</summary>
+    /// <summary>Кнопка 📎 — показать или скрыть меню вложений (как в Telegram по тапу).</summary>
     private void OnAttachClicked(object? sender, EventArgs e)
     {
         if (_sendingAttachment)
@@ -971,34 +971,8 @@ public partial class ChatView : ContentView
             return;
         }
 
-        AttachMenuPanel.IsVisible = true;
+        AttachMenuPanel.IsVisible = !AttachMenuPanel.IsVisible;
         CancelHideAttachMenu();
-    }
-
-    private void OnAttachButtonPointerEntered(object? sender, PointerEventArgs e)
-    {
-        if (_sendingAttachment)
-        {
-            return;
-        }
-
-        CancelHideAttachMenu();
-        AttachMenuPanel.IsVisible = true;
-    }
-
-    private void OnAttachButtonPointerExited(object? sender, PointerEventArgs e)
-    {
-        HideAttachMenuDelayed();
-    }
-
-    private void OnAttachMenuPanelPointerEntered(object? sender, PointerEventArgs e)
-    {
-        CancelHideAttachMenu();
-    }
-
-    private void OnAttachMenuPanelPointerExited(object? sender, PointerEventArgs e)
-    {
-        HideAttachMenuDelayed();
     }
 
     private void ShowAttachMenu()
