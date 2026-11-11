@@ -836,6 +836,9 @@
                     StrokeThickness="1"
                     IsVisible="False"
                     Padding="0,6">
+                <Border.GestureRecognizers>
+                    <PointerGestureRecognizer PointerEntered="OnAttachMenuPanelPointerEntered" PointerExited="OnAttachMenuPanelPointerExited" />
+                </Border.GestureRecognizers>
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="12" />
                 </Border.StrokeShape>
@@ -1080,7 +1083,11 @@
                                     Style="{DynamicResource IconButton}"
                                     VerticalOptions="End"
                                     Clicked="OnAttachClicked"
-                                    ToolTipProperties.Text="Прикрепить фото или файл" />
+                                    ToolTipProperties.Text="Прикрепить фото или файл">
+                                <Button.GestureRecognizers>
+                                    <PointerGestureRecognizer PointerEntered="OnAttachButtonPointerEntered" PointerExited="OnAttachButtonPointerExited" />
+                                </Button.GestureRecognizers>
+                            </Button>
                             <Button x:Name="EmojiButton"
                                     Text="😊"
                                     Style="{DynamicResource IconButton}"

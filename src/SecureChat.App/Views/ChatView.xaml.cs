@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
+using Microsoft.Maui.Controls;
 using SecureChat.App.Pages;
 using SecureChat.App.Services;
 using SecureChat.Core.Contracts;
@@ -55,6 +56,7 @@ public partial class ChatView : ContentView
     private string? _editingMessageId;
     private Point _menuPosition;
     private CancellationTokenSource? _longPressCts;
+    private System.Threading.Timer? _attachHideTimer;
 
     /// <summary>Очередь отправки медиа (фото, видео, голосовые, кружки, файлы).</summary>
     private readonly ObservableCollection<PendingMediaItem> _pendingMedia = new();
@@ -978,9 +980,64 @@ public partial class ChatView : ContentView
         AttachMenuPanel.IsVisible = true;
     }
 
+    private void OnAttachButtonPointerEntered(object? sender, PointerEventArgs e)
+    {
+        if (_sendingAttachment)
+        {
+            return;
+        }
+
+        CancelHideAttachMenu();
+        AttachMenuPanel.IsVisible = true;
+    }
+
+    private void OnAttachButtonPointerExited(object? sender, PointerEventArgs e)
+    {
+        HideAttachMenuDelayed();
+    }
+
+    private void OnAttachMenuPanelPointerEntered(object? sender, PointerEventArgs e)
+    {
+        CancelHideAttachMenu();
+    }
+
+    private void OnAttachMenuPanelPointerExited(object? sender, PointerEventArgs e)
+    {
+        HideAttachMenuDelayed();
+    }
+
+    private void ShowAttachMenu()
+    {
+        CancelHideAttachMenu();
+        AttachMenuPanel.IsVisible = true;
+    }
+
+    private void HideAttachMenuDelayed()
+    {
+        _attachHideTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _attachHideTimer = null;
+
+        // Небольшая задержка, чтобы меню не скрылось при переводе мыши с кнопки на пункт меню.
+        _attachHideTimer = new System.Threading.Timer(_ =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                AttachMenuPanel.IsVisible = false;
+                _attachHideTimer = null;
+            });
+        }, null, 300, Timeout.Infinite);
+    }
+
+    private void CancelHideAttachMenu()
+    {
+        _attachHideTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _attachHideTimer = null;
+    }
+
     /// <summary>Выбор пункта меню скрепки: фото/видео, файл, музыка, голосовое, кружок.</summary>
     private async void OnAttachMenuItemTapped(object? sender, EventArgs e)
     {
+        CancelHideAttachMenu();
         AttachMenuPanel.IsVisible = false;
         var user = _username;
         var page = HostPage;
