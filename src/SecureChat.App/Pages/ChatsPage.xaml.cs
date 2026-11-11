@@ -153,6 +153,15 @@ public partial class ChatsPage : ContentPage
                 ? await _chatManager.GetArchivedConversationsAsync()
                 : await _chatManager.GetConversationsAsync();
 
+            // «Избранное» (чат с самим собой) всегда показывается в начале списка.
+            if (!_isArchiveMode)
+            {
+                var self = await _chatManager.GetOrCreateSelfConversationAsync();
+                conversations = new[] { self }.Concat(conversations
+                    .Where(c => c.Username != ChatManager.SelfChatUsername))
+                    .ToList();
+            }
+
             _conversations.Clear();
             foreach (var conversation in conversations)
             {

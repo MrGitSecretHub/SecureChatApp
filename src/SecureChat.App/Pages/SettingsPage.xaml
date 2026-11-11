@@ -1,8 +1,43 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:SecureChat.App.Pages"
              x:Class="SecureChat.App.Pages.SettingsPage"
              Title="Настройки">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <local:ThemeNameToBackgroundColorConverter x:Key="ThemeToBgConverter" />
+            <local:ThemeNameToSelectionStrokeConverter x:Key="ThemeToStrokeConverter" />
+
+            <DataTemplate x:Key="ThemeTileTemplate" x:DataType="x:String">
+                <VerticalStackLayout Spacing="4" WidthRequest="92" HorizontalOptions="Center">
+                    <Border x:Name="tile"
+                            BackgroundColor="{Binding ., Converter={StaticResource ThemeToBgConverter}}"
+                            WidthRequest="76"
+                            HeightRequest="76"
+                            StrokeThickness="2"
+                            Stroke="{Binding ., Converter={StaticResource ThemeToStrokeConverter}}"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+                        <Label Text="•"
+                               FontSize="24"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource TextPrimary}" />
+                    </Border>
+                    <Label Text="{Binding .}"
+                           FontSize="11"
+                           TextColor="{DynamicResource TextMuted}"
+                           HorizontalTextAlignment="Center"
+                           MaxLines="2"
+                           LineBreakMode="TailTruncation" />
+                </VerticalStackLayout>
+            </DataTemplate>
+        </ResourceDictionary>
+    </ContentPage.Resources>
     <ScrollView>
         <VerticalStackLayout x:Name="SettingsContent" Padding="16" Spacing="14" MaximumWidthRequest="820">
 
@@ -323,12 +358,11 @@
                     <!-- Тема: плитки, как в Telegram -->
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Тема" Style="{DynamicResource SectionTitle}" Margin="0" />
-                        <ScrollView Orientation="Horizontal">
-                            <HorizontalStackLayout x:Name="ThemePreviewRow" Spacing="10" />
-                        </ScrollView>
-                        <ScrollView Orientation="Horizontal">
-                            <HorizontalStackLayout x:Name="ThemeExtraRow" Spacing="10" IsVisible="False" />
-                        </ScrollView>
+                        <!-- Тема: плитки, как в Telegram (горизонтальная прокрутка) -->
+                        <CollectionView x:Name="ThemeCollectionView"
+                                        ItemsLayout="HorizontalList"
+                                        SelectionMode="None"
+                                        ItemTemplate="{StaticResource ThemeTileTemplate}" />
                         <Button x:Name="ShowAllThemesButton"
                                 Text="Показать все темы"
                                 Style="{DynamicResource GhostButton}"

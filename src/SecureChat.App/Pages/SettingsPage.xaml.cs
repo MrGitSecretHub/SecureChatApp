@@ -1,4 +1,5 @@
 using SecureChat.App.Services;
+using System.Collections.ObjectModel;
 
 namespace SecureChat.App.Pages;
 
@@ -10,6 +11,8 @@ public partial class SettingsPage : ContentPage
     private readonly ApiClient _apiClient = AppServices.Get<ApiClient>();
     private readonly LocalStore _localStore = AppServices.Get<LocalStore>();
     private CancellationTokenSource? _profileSyncCts;
+    private bool _showAllThemes;
+    private readonly ObservableCollection<string> _themeItems = new();
 
     public SettingsPage()
     {
@@ -256,9 +259,9 @@ public partial class SettingsPage : ContentPage
 
     private void OnShowAllThemesClicked(object? sender, EventArgs e)
     {
-        var expanded = !ThemeExtraRow.IsVisible;
-        ThemeExtraRow.IsVisible = expanded;
-        ShowAllThemesButton.Text = expanded ? "Скрыть дополнительные темы" : "Показать все темы";
+        _showAllThemes = !_showAllThemes;
+        UpdateThemePreview();
+        ShowAllThemesButton.Text = _showAllThemes ? "Скрыть дополнительные темы" : "Показать все темы";
     }
 
     private async void OnThemeTileClicked(object? sender, EventArgs e)
@@ -279,29 +282,18 @@ public partial class SettingsPage : ContentPage
     /// «пузыря» превью и кружок выбора под ними.</summary>
     private void UpdateThemePreview()
     {
-        var systemSelected = string.Equals(_session.Theme, ThemeCatalog.SystemTheme, StringComparison.OrdinalIgnoreCase);
+        _themeItems.Clear();
+        var names = _showAllThemes
+            ? ThemeCatalog.Themes.Select(item => item.Name).ToList()
+            : CoreThemes.ToList();
 
-        ThemePreviewRow.Children.Clear();
-        foreach (var name in CoreThemes)
+        foreach (var name in names)
         {
-            ThemePreviewRow.Children.Add(BuildThemeTile(
-                name,
-                isSelected: !systemSelected &&
-                    string.Equals(name, _session.Theme, StringComparison.OrdinalIgnoreCase)));
+            _themeItems.Add(name);
         }
 
-        ThemeExtraRow.Children.Clear();
-        var extraThemes = ThemeCatalog.Themes
-            .Select(item => item.Name)
-            .Where(name => !CoreThemes.Contains(name))
-            .Append(ThemeCatalog.SystemTheme);
-
-        foreach (var name in extraThemes)
-        {
-            ThemeExtraRow.Children.Add(BuildThemeTile(
-                name,
-                isSelected: string.Equals(name, _session.Theme, StringComparison.OrdinalIgnoreCase)));
-        }
+        ThemeCollectionView.ItemsSource = null;
+        ThemeCollectionView.ItemsSource = _themeItems;
     }
 
     /// <summary>Одна плитка темы: фон страницы, два «пузыря», кружок выбора.</summary>
