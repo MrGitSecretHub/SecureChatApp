@@ -155,6 +155,8 @@ public partial class ChatView : ContentView
     /// <summary>Кнопка 😊 — показать или скрыть панель Эмодзи/Стикеры/GIF.</summary>
     private void OnEmojiButtonClicked(object sender, EventArgs e)
     {
+        AttachMenuPanel.IsVisible = false;
+
         if (MediaPanel.IsVisible)
         {
             MediaPanel.IsVisible = false;
@@ -782,6 +784,8 @@ public partial class ChatView : ContentView
 
     private void OnMessageTextChanged(object? sender, TextChangedEventArgs e)
     {
+        AttachMenuPanel.IsVisible = false;
+
         if (_suppressDraft || _username is null)
         {
             return;
@@ -866,6 +870,8 @@ public partial class ChatView : ContentView
 
     private async void OnSendClicked(object? sender, EventArgs e)
     {
+        AttachMenuPanel.IsVisible = false;
+
         var user = _username;
         if (user is null || _sending || _sendingAttachment)
         {
