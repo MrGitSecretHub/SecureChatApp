@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.Maui.ApplicationModel;
@@ -422,6 +423,7 @@ public partial class ChatView : ContentView
         _chatManager.MessageAdded += OnMessageAdded;
         _chatManager.MessageStatusChanged += OnMessageStatusChanged;
         _chatManager.MessageMediaChanged += OnMessageMediaChanged;
+        _chatManager.MessageDeleted += OnMessageDeleted;
         _chatManager.TypingReceived += OnTypingReceived;
         _chatManager.Error += OnError;
         _chatManager.ConnectionStateChanged += OnConnectionStateChanged;
@@ -438,6 +440,7 @@ public partial class ChatView : ContentView
         _chatManager.MessageAdded -= OnMessageAdded;
         _chatManager.MessageStatusChanged -= OnMessageStatusChanged;
         _chatManager.MessageMediaChanged -= OnMessageMediaChanged;
+        _chatManager.MessageDeleted -= OnMessageDeleted;
         _chatManager.TypingReceived -= OnTypingReceived;
         _chatManager.Error -= OnError;
         _chatManager.ConnectionStateChanged -= OnConnectionStateChanged;
@@ -2095,30 +2098,66 @@ public partial class ChatView : ContentView
             return;
         }
 
-        var confirmed = await page.DisplayAlert(
+        if (!message.IsMine)
+        {
+            // Не своё сообщение — можно только скрыть у себя.
+            var confirmed = await page.DisplayAlert(
+                "Удалить сообщение?",
+                "Сообщение будет скрыто только у вас. Собеседник увидит его как раньше.",
+                "Скрыть у себя",
+                "Отмена");
+            if (!confirmed)
+            {
+                return;
+            }
+
+            try
+            {
+                await _chatManager.DeleteMessageAsync(message.Id, deleteForEveryone: false);
+            }
+            catch (Exception ex)
+            {
+                ShowHint($"Не удалось скрыть сообщение: {ex.Message}", isError: true);
+            }
+            return;
+        }
+
+        // Своё сообщение — можно удалить для себя или для всех.
+        var choice = await page.DisplayActionSheet(
             "Удалить сообщение?",
-            "Сообщение будет удалено локально.",
-            "Удалить",
-            "Отмена");
-        if (!confirmed)
+            "Отмена",
+            null,
+            "Удалить для всех",
+            "Удалить для себя");
+
+        if (choice == "Отмена" || choice is null)
         {
             return;
         }
 
+        var deleteForEveryone = string.Equals(choice, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+
         try
         {
-            await _chatManager.DeleteMessageAsync(message.Id);
+            await _chatManager.DeleteMessageAsync(message.Id, deleteForEveryone: deleteForEveryone);
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось удалить сообщение: {ex.Message}", isError: true);
+        }
+    }
+
+    private void OnMessageDeleted(string messageId)
+    {
+        var message = _messages.FirstOrDefault(m => m.Id == messageId);
+        if (message is not null)
+        {
             _messages.Remove(message);
             if (ReferenceEquals(_selected, message))
             {
                 _selected = null;
             }
-
             RefreshDerived();
-        }
-        catch (Exception ex)
-        {
-            ShowHint($"Не удалось удалить сообщение: {ex.Message}", isError: true);
         }
     }
 

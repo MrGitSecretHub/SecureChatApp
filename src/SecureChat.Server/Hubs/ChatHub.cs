@@ -609,6 +609,32 @@ public sealed class ChatHub : Hub
         return true;
     }
 
+    /// <summary>Удаляет личное сообщение для всех участников чата.</summary>
+    public async Task<bool> DeletePrivateMessage(string messageId)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(messageId))
+        {
+            return false;
+        }
+
+        // Удаляем только если пользователь — отправитель.
+        if (!await _repository.DeletePrivateMessageAsync(messageId, userId))
+        {
+            return false;
+        }
+
+        // Получаем получателя, чтобы уведомить его об удалении.
+        var message = await _repository.GetPrivateMessageAsync(messageId);
+        if (message is not null)
+        {
+            var (_, recipientId) = message.Value;
+            await Clients.User(recipientId).SendAsync("PrivateMessageDeleted", messageId);
+        }
+
+        return true;
+    }
+
     public async Task<SpaceMessageDto?> SetSpaceReaction(string spaceId, string messageId, string emoji, bool on)
     {
         var userId = Context.UserIdentifier;

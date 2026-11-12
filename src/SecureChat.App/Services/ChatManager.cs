@@ -78,11 +78,14 @@ public sealed class ChatManager
                 Error?.Invoke(message);
             }
         };
+        _chatService.PrivateMessageDeleted += messageId =>
+            _ = OnPrivateMessageDeletedAsync(messageId);
     }
 
     public event Action? ConversationsChanged;
     public event Action<StoredMessage, string>? MessageAdded;
     public event Action<StoredMessage, string>? IncomingMessage;
+    public event Action<string>? MessageDeleted;
     public event Action<string, string>? MessageStatusChanged;
     public event Action<string, string>? MessageMediaChanged;
     public event Action<string>? TypingReceived;
@@ -868,6 +871,59 @@ public sealed class ChatManager
         if (removed)
         {
             ConversationsChanged?.Invoke();
+            MessageDeleted?.Invoke(messageId);
+        }
+    }
+
+    /// <summary>
+    /// Удаляет сообщение. Если deleteForEveryone = true и есть соединение,
+    /// удаляет также на сервере и уведомляет собеседника.
+    /// </summary>
+    public async Task DeleteMessageAsync(string messageId, bool deleteForEveryone)
+    {
+        if (string.IsNullOrWhiteSpace(messageId))
+        {
+            return;
+        }
+
+        var username = _activeChat;
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return;
+        }
+
+        if (deleteForEveryone)
+        {
+            var deleted = await _chatService.DeletePrivateMessageAsync(messageId);
+            if (!deleted)
+            {
+                // Сервер не смог удалить (например, не отправитель или нет связи)
+                // — fallback: только локально.
+            }
+        }
+
+        var removed = await _localStore.DeleteMessageAsync(username, messageId);
+        if (removed)
+        {
+            ConversationsChanged?.Invoke();
+            MessageDeleted?.Invoke(messageId);
+        }
+    }
+
+    private async Task OnPrivateMessageDeletedAsync(string messageId)
+    {
+        // Собеседник удалил сообщение для всех — убираем его локально.
+        var username = _activeChat;
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return;
+        }
+
+        var removed = await _localStore.DeleteMessageAsync(username, messageId);
+        if (removed)
+        {
+            ConversationsChanged?.Invoke();
+            MessageDeleted?.Invoke(messageId);
         }
     }
 

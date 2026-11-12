@@ -874,6 +874,66 @@ public sealed class ChatRepository
         }
     }
 
+    /// <summary>Удаляет личное сообщение, если пользователь — его отправитель.</summary>
+    public async Task<bool> DeletePrivateMessageAsync(string messageId, string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(messageId) || string.IsNullOrWhiteSpace(userId))
+        {
+            return false;
+        }
+
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                DELETE FROM Messages
+                WHERE Id = $messageId
+                  AND SenderId = $userId;
+                """;
+            command.Parameters.AddWithValue("$messageId", messageId);
+            command.Parameters.AddWithValue("$userId", userId);
+
+            var result = await command.ExecuteNonQueryAsync(cancellationToken);
+            return result > 0;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    /// <summary>Возвращает получателя личного сообщения (или null, если не найдено).</summary>
+    public async Task<(string SenderId, string RecipientId)?> GetPrivateMessageAsync(string messageId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(messageId))
+        {
+            return null;
+        }
+
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT SenderId, RecipientId
+            FROM Messages
+            WHERE Id = $messageId;
+            """;
+        command.Parameters.AddWithValue("$messageId", messageId);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (await reader.ReadAsync(cancellationToken))
+        {
+            return (reader.GetString(0), reader.GetString(1));
+        }
+
+        return null;
+    }
+
     private static UserRecord MapUser(SqliteDataReader reader) => new()
     {
         Id = reader.GetString(0),
