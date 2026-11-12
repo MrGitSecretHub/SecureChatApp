@@ -1695,6 +1695,160 @@ public partial class ChatView : ContentView
         ShowInfoTab(ProfileTab);
     }
 
+    // ================================================================
+    // МЕНЮ ЧАТА (⋮)
+    // ================================================================
+
+    /// <summary>Кнопка ⋮ в шапке — меню чата в стиле Telegram.</summary>
+    private void OnChatMenuClicked(object sender, EventArgs e)
+    {
+        ShowChatMenu();
+    }
+
+    /// <summary>Меню чата: профиль, обои, экспорт, настройки, очистка и удаление.</summary>
+    private void ShowChatMenu()
+    {
+        ContextMenuItems.Children.Clear();
+
+        AddMenuItem("👤 Профиль, медиа и закреплённые", () =>
+        {
+            OnInfoPanelClicked(this, EventArgs.Empty);
+            return Task.CompletedTask;
+        });
+
+        AddMenuItem("🖼 Обои чата", SetWallpaperAsync);
+
+        AddMenuItem("📤 Экспорт истории чата", () =>
+        {
+            OnExportChatClicked(this, EventArgs.Empty);
+            return Task.CompletedTask;
+        });
+
+        AddMenuItem("⚙ Настройки", () =>
+        {
+            SettingsRequested?.Invoke();
+            return Task.CompletedTask;
+        });
+
+        // «Избранное» — служебный чат: его нельзя очистить или удалить.
+        if (!string.Equals(_username, ChatManager.SelfChatUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            AddMenuItem("🧽 Очистить историю", ClearChatHistoryAsync);
+
+            AddMenuItem("🗑 Удалить чат", DeleteChatAsync, isDanger: true);
+        }
+
+        // Панель открывается под кнопкой ⋮ в правом верхнем углу.
+        var width = 248.0;
+        var x = Math.Max(0, (Width <= 0 ? width + 12 : Width - width - 12));
+        ContextMenuBorder.WidthRequest = width;
+        ContextMenuBorder.Margin = new Thickness(x, 62, 0, 0);
+        ContextMenuOverlay.IsVisible = true;
+    }
+
+    /// <summary>Обои переписки: выбор картинки из галереи или файла.</summary>
+    private async Task SetWallpaperAsync()
+    {
+        var walls = AppServices.Get<WallpaperService>();
+
+        var applied = DeviceInfo.Platform == DevicePlatform.Android
+            ? await walls.PickFromGalleryAsync()
+            : await walls.PickFromFileAsync();
+
+        if (!applied)
+        {
+            // На Android галереи может не быть — пробуем выбор файла.
+            applied = await walls.PickFromFileAsync();
+        }
+
+        ShowHint(applied ? "Обои чата обновлены" : "Не удалось установить обои", isError: !applied);
+    }
+
+    /// <summary>Очистка истории чата: «для всех» или «только у себя».</summary>
+    private async Task ClearChatHistoryAsync()
+    {
+        var username = _username;
+        var page = HostPage;
+        if (string.IsNullOrWhiteSpace(username) || page is null)
+        {
+            return;
+        }
+
+        var scope = await page.DisplayActionSheet(
+            "Очистить историю?",
+            "Отмена",
+            null,
+            "Удалить для всех",
+            "Только у себя");
+        if (scope is null || scope == "Отмена")
+        {
+            return;
+        }
+
+        var forEveryone = string.Equals(scope, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+
+        var confirmed = await page.DisplayAlert(
+            "Очистить историю",
+            forEveryone
+                ? $"История переписки с {username} будет удалена у вас и у собеседника."
+                : $"История переписки с {username} будет удалена только у вас.",
+            "Удалить", "Отмена");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var cleared = await _chatManager.ClearConversationAsync(username, forEveryone);
+        ShowHint(cleared
+            ? forEveryone ? "История удалена у всех" : "История удалена только у вас"
+            : "Не удалось очистить историю", isError: !cleared);
+    }
+
+    /// <summary>Удаление чата: «для всех» или «только у себя».</summary>
+    private async Task DeleteChatAsync()
+    {
+        var username = _username;
+        var page = HostPage;
+        if (string.IsNullOrWhiteSpace(username) || page is null)
+        {
+            return;
+        }
+
+        var scope = await page.DisplayActionSheet(
+            "Удалить чат?",
+            "Отмена",
+            null,
+            "Удалить для всех",
+            "Удалить для себя");
+        if (scope is null || scope == "Отмена")
+        {
+            return;
+        }
+
+        var forEveryone = string.Equals(scope, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+
+        var confirmed = await page.DisplayAlert(
+            "Удалить чат",
+            forEveryone
+                ? $"Переписка с {username} будет удалена у вас и у собеседника."
+                : $"Чат с {username} будет удален только у вас. Собеседник увидит историю как раньше.",
+            "Удалить", "Отмена");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var deleted = await _chatManager.DeleteConversationAsync(username, forEveryone);
+        ShowHint(deleted
+            ? forEveryone ? "Чат удалён у всех" : "Чат удалён только у вас"
+            : "Не удалось удалить чат", isError: !deleted);
+
+        if (deleted)
+        {
+            CloseRequested?.Invoke();
+        }
+    }
+
     private void OnCloseInfoPanelClicked(object sender, EventArgs e) => InfoPanel.IsVisible = false;
 
     private void OnProfileTabClicked(object sender, EventArgs e) => ShowInfoTab(ProfileTab);
@@ -2691,13 +2845,13 @@ public partial class ChatView : ContentView
         await page.DisplayAlert("Информация о сообщении", text.ToString(), "OK");
     }
 
-    private void AddMenuItem(string text, Func<Task> action)
+    private void AddMenuItem(string text, Func<Task> action, bool isDanger = false)
     {
         var button = new Button
         {
             Text = text,
             BackgroundColor = Colors.Transparent,
-            TextColor = Res("TextPrimary"),
+            TextColor = isDanger ? Res("Danger") : Res("TextPrimary"),
             HorizontalOptions = LayoutOptions.Fill
         };
         button.Clicked += async (_, _) =>

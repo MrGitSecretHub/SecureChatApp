@@ -16,6 +16,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<NotificationService>();
         builder.Services.AddSingleton<SoundService>();
         builder.Services.AddSingleton<AppSession>();
+        builder.Services.AddSingleton<WallpaperService>();
         builder.Services.AddSingleton<ApiClient>();
         builder.Services.AddSingleton<LocalStore>();
         builder.Services.AddSingleton<ChatService>();

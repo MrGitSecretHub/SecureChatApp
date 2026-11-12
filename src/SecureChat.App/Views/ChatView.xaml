@@ -97,7 +97,7 @@
 
             <!-- Шапка: собеседник и действия -->
             <Grid Grid.Row="0"
-                  ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto"
+                  ColumnDefinitions="Auto,*,Auto,Auto,Auto"
                   ColumnSpacing="6"
                   Padding="14,10"
                   BackgroundColor="{DynamicResource Surface}">
@@ -138,17 +138,12 @@
                         Clicked="OnSearchInChatClicked"
                         ToolTipProperties.Text="Поиск по переписке" />
                 <Button Grid.Column="3"
-                        x:Name="InfoPanelButton"
-                        Text="ℹ️"
+                        x:Name="ChatMenuButton"
+                        Text="⋮"
                         Style="{DynamicResource IconButton}"
-                        Clicked="OnInfoPanelClicked"
-                        ToolTipProperties.Text="Профиль, медиа и закреплённые" />
+                        Clicked="OnChatMenuClicked"
+                        ToolTipProperties.Text="Меню чата" />
                 <Button Grid.Column="4"
-                        Text="⚙️"
-                        Style="{DynamicResource IconButton}"
-                        Clicked="OnSettingsClicked"
-                        ToolTipProperties.Text="Профиль и настройки" />
-                <Button Grid.Column="5"
                         x:Name="CloseChatButton"
                         Text="✕"
                         Style="{DynamicResource IconButton}"

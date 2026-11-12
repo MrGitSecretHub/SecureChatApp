@@ -10,6 +10,7 @@ public partial class SettingsPage : ContentPage
     private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
     private readonly ApiClient _apiClient = AppServices.Get<ApiClient>();
     private readonly LocalStore _localStore = AppServices.Get<LocalStore>();
+    private readonly WallpaperService _wallpapers = AppServices.Get<WallpaperService>();
     private CancellationTokenSource? _profileSyncCts;
     private bool _showAllThemes;
     private readonly ObservableCollection<ThemeTileVm> _themeItems = new();
@@ -486,102 +487,24 @@ public partial class SettingsPage : ContentPage
 
     private async void OnWallpaperGalleryClicked(object? sender, EventArgs e)
     {
-        try
+        if (await _wallpapers.PickFromGalleryAsync())
         {
-            var photo = await MediaPicker.PickPhotoAsync();
-            if (photo is not null)
-            {
-                await SaveWallpaperAsync(photo);
-            }
-        }
-        catch
-        {
-            // Отмена выбора — не ошибка.
+            UpdateWallpaperUI();
         }
     }
 
     private async void OnWallpaperFileClicked(object? sender, EventArgs e)
     {
-        try
+        if (await _wallpapers.PickFromFileAsync())
         {
-            var file = await FilePicker.PickAsync(new PickOptions
-            {
-                PickerTitle = "Выберите изображение для обоев",
-                FileTypes = FilePickerFileType.Images
-            });
-
-            if (file is not null)
-            {
-                await SaveWallpaperAsync(file);
-            }
-        }
-        catch
-        {
-            // Отмена выбора — не ошибка.
-        }
-    }
-
-    /// <summary>Копирует выбранную картинку в хранилище приложения (только
-    /// для чтения приложением — исходный файл может исчезнуть).</summary>
-    private async Task SaveWallpaperAsync(FileResult file)
-    {
-        var extension = Path.GetExtension(file.FullPath ?? file.FileName ?? string.Empty);
-        if (string.IsNullOrWhiteSpace(extension))
-        {
-            extension = ".jpg";
-        }
-
-        var target = Path.Combine(FileSystem.AppDataDirectory, "wallpaper" + extension);
-        await using (var output = File.Create(target))
-        {
-            using var source = await file.OpenReadAsync();
-            await source.CopyToAsync(output);
-        }
-
-        RemoveOldWallpapers(target);
-
-        _session.WallpaperPath = target;
-        UpdateWallpaperUI();
-        _session.NotifyAppearanceChanged();
-        await App.SaveAppearanceAsync();
-    }
-
-    private static void RemoveOldWallpapers(string keep)
-    {
-        try
-        {
-            foreach (var file in Directory.EnumerateFiles(FileSystem.AppDataDirectory, "wallpaper.*"))
-            {
-                if (!string.Equals(file, keep, StringComparison.OrdinalIgnoreCase))
-                {
-                    File.Delete(file);
-                }
-            }
-        }
-        catch
-        {
-            // Не удалось удалить старые копии — не критично.
+            UpdateWallpaperUI();
         }
     }
 
     private async void OnWallpaperRemoveClicked(object? sender, EventArgs e)
     {
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(_session.WallpaperPath) && File.Exists(_session.WallpaperPath))
-            {
-                File.Delete(_session.WallpaperPath);
-            }
-        }
-        catch
-        {
-            // Не удалось удалить файл — просто сбрасываем настройку.
-        }
-
-        _session.WallpaperPath = string.Empty;
+        await _wallpapers.RemoveAsync();
         UpdateWallpaperUI();
-        _session.NotifyAppearanceChanged();
-        await App.SaveAppearanceAsync();
     }
 
     private async void OnWallpaperDimToggled(object sender, ToggledEventArgs e)
