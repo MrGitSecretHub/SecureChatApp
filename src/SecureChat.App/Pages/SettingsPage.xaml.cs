@@ -12,7 +12,7 @@ public partial class SettingsPage : ContentPage
     private readonly LocalStore _localStore = AppServices.Get<LocalStore>();
     private CancellationTokenSource? _profileSyncCts;
     private bool _showAllThemes;
-    private readonly ObservableCollection<string> _themeItems = new();
+    private readonly ObservableCollection<ThemeTileVm> _themeItems = new();
 
     public SettingsPage()
     {
@@ -264,16 +264,22 @@ public partial class SettingsPage : ContentPage
         ShowAllThemesButton.Text = _showAllThemes ? "Скрыть дополнительные темы" : "Показать все темы";
     }
 
-    private async void OnThemeTileClicked(object? sender, EventArgs e)
+    /// <summary>Выбор темы в плитках: применяем оформление и сохраняем его.</summary>
+    private async void OnThemeSelected(object? sender, SelectionChangedEventArgs e)
     {
-        if (sender is not Border { StyleId: string theme })
+        if (e.CurrentSelection.FirstOrDefault() is not ThemeTileVm tile)
         {
             return;
         }
 
-        _session.Theme = theme;
+        if (string.Equals(_session.Theme, tile.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _session.Theme = tile.Name;
         App.ApplyAppearance();
-        UpdateThemePreview();
+        UpdateThemeSelection();
         _session.NotifyAppearanceChanged();
         await App.SaveAppearanceAsync();
     }
@@ -289,105 +295,27 @@ public partial class SettingsPage : ContentPage
 
         foreach (var name in names)
         {
-            _themeItems.Add(name);
+            _themeItems.Add(new ThemeTileVm(name));
         }
 
         ThemeCollectionView.ItemsSource = null;
         ThemeCollectionView.ItemsSource = _themeItems;
+        UpdateThemeSelection();
     }
 
-    /// <summary>Одна плитка темы: фон страницы, два «пузыря», кружок выбора.</summary>
-    private View BuildThemeTile(string themeName, bool isSelected)
+    /// <summary>Отмечает выбранную тему: обводка плитки и кружок-радиокнопка.</summary>
+    private void UpdateThemeSelection()
     {
-        var isSystem = string.Equals(themeName, ThemeCatalog.SystemTheme, StringComparison.Ordinal);
-        var palette = ThemeCatalog.Resolve(themeName);
-
-        var content = new Grid();
-
-        if (isSystem)
+        foreach (var tile in _themeItems)
         {
-            content.Children.Add(new Label
-            {
-                Text = "◐",
-                FontSize = 32,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center
-            });
-        }
-        else
-        {
-            // «Пузыри» превью: чужой слева, свой справа.
-            content.Children.Add(new Border
-            {
-                BackgroundColor = palette.MessageThemColor,
-                StrokeThickness = 0,
-                WidthRequest = 46,
-                HeightRequest = 13,
-                Margin = new Thickness(0, 12, 0, 0),
-                HorizontalOptions = LayoutOptions.Start,
-                VerticalOptions = LayoutOptions.Start,
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(6) }
-            });
-            content.Children.Add(new Border
-            {
-                BackgroundColor = palette.MessageMeColor,
-                StrokeThickness = 0,
-                WidthRequest = 34,
-                HeightRequest = 13,
-                Margin = new Thickness(0, 32, 0, 0),
-                HorizontalOptions = LayoutOptions.Start,
-                VerticalOptions = LayoutOptions.Start,
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(6) }
-            });
+            tile.IsSelected = string.Equals(tile.Name, _session.Theme, StringComparison.OrdinalIgnoreCase);
         }
 
-        // Кружок выбора, как радиокнопка в Telegram.
-        var ring = new Border
+        var selected = _themeItems.FirstOrDefault(tile => tile.IsSelected);
+        if (selected is not null && !ReferenceEquals(ThemeCollectionView.SelectedItem, selected))
         {
-            WidthRequest = 22,
-            HeightRequest = 22,
-            BackgroundColor = Colors.Transparent,
-            StrokeThickness = 2,
-            Stroke = isSelected ? Colors.White : Colors.White.WithAlpha(0.35f),
-            HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.End,
-            Margin = new Thickness(0, 0, 0, 2),
-            StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse()
-        };
-        content.Children.Add(ring);
-
-        var tile = new Border
-        {
-            BackgroundColor = palette.PageBackgroundColor,
-            WidthRequest = 92,
-            HeightRequest = 96,
-            Padding = 8,
-            StrokeThickness = 2,
-            Stroke = isSelected
-                ? (Color)Application.Current!.Resources["Accent"]
-                : Colors.Transparent,
-            StyleId = themeName,
-            Content = content,
-            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(10) }
-        };
-
-        var tap = new TapGestureRecognizer();
-        tap.Tapped += OnThemeTileClicked;
-        tile.GestureRecognizers.Add(tap);
-
-        var caption = new Label
-        {
-            Text = themeName,
-            FontSize = 11,
-            HorizontalTextAlignment = TextAlignment.Center,
-            TextColor = (Color)Application.Current!.Resources["TextMuted"]
-        };
-
-        return new VerticalStackLayout
-        {
-            Spacing = 4,
-            Children = { tile, caption }
-        };
+            ThemeCollectionView.SelectedItem = selected;
+        }
     }
 
     private async void OnThemeChanged(object sender, EventArgs e)

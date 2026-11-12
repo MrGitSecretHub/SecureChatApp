@@ -2,6 +2,7 @@
 bin/
 obj/
 out/
+build_check/
 
 # Visual Studio
 .vs/

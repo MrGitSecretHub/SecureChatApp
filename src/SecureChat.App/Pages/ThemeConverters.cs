@@ -35,3 +35,51 @@ public class ThemeNameToSelectionStrokeConverter : IValueConverter
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo? culture)
         => throw new NotImplementedException();
 }
+
+/// <summary>Обводка выбранной плитки: акцентный цвет, у остальных — прозрачная.</summary>
+public class SelectedToStrokeConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo? culture)
+        => value is true
+            ? (Color)Application.Current!.Resources["Accent"]
+            : Colors.Transparent;
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo? culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>Кружок выбора плитки: белый у выбранной темы, полупрозрачный у остальных.</summary>
+public class SelectedToRingConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo? culture)
+        => value is true ? Colors.White : Colors.White.WithAlpha(0.35f);
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo? culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>Цвет «пузыря» собеседника в превью плитки темы.</summary>
+public class ThemeNameToThemBubbleConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo? culture)
+    {
+        if (value is not string name) return Colors.Transparent;
+        return ThemeCatalog.Resolve(name).MessageThemColor;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo? culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>Цвет «пузыря» своих сообщений в превью плитки темы.</summary>
+public class ThemeNameToMeBubbleConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo? culture)
+    {
+        if (value is not string name) return Colors.Transparent;
+        return ThemeCatalog.Resolve(name).MessageMeColor;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo? culture)
+        => throw new NotImplementedException();
+}

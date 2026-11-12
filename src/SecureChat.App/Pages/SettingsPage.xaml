@@ -8,27 +8,65 @@
         <ResourceDictionary>
             <local:ThemeNameToBackgroundColorConverter x:Key="ThemeToBgConverter" />
             <local:ThemeNameToSelectionStrokeConverter x:Key="ThemeToStrokeConverter" />
+            <local:SelectedToStrokeConverter x:Key="SelectedToStrokeConverter" />
+            <local:SelectedToRingConverter x:Key="SelectedToRingConverter" />
+            <local:ThemeNameToThemBubbleConverter x:Key="ThemeToThemBubbleConverter" />
+            <local:ThemeNameToMeBubbleConverter x:Key="ThemeToMeBubbleConverter" />
 
-            <DataTemplate x:Key="ThemeTileTemplate" x:DataType="x:String">
+            <DataTemplate x:Key="ThemeTileTemplate" x:DataType="local:ThemeTileVm">
                 <VerticalStackLayout Spacing="4" WidthRequest="92" HorizontalOptions="Center">
                     <Border x:Name="tile"
-                            BackgroundColor="{Binding ., Converter={StaticResource ThemeToBgConverter}}"
-                            WidthRequest="76"
-                            HeightRequest="76"
+                            BackgroundColor="{Binding Name, Converter={StaticResource ThemeToBgConverter}}"
+                            WidthRequest="92"
+                            HeightRequest="96"
+                            Padding="8"
                             StrokeThickness="2"
-                            Stroke="{Binding ., Converter={StaticResource ThemeToStrokeConverter}}"
+                            Stroke="{Binding IsSelected, Converter={StaticResource SelectedToStrokeConverter}}"
                             HorizontalOptions="Center"
                             VerticalOptions="Center">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="10" />
                         </Border.StrokeShape>
-                        <Label Text="•"
-                               FontSize="24"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center"
-                               TextColor="{DynamicResource TextPrimary}" />
+                        <Grid>
+                            <!-- «Пузыри» превью: чужой слева, свой справа -->
+                            <Border BackgroundColor="{Binding Name, Converter={StaticResource ThemeToThemBubbleConverter}}"
+                                    StrokeThickness="0"
+                                    WidthRequest="46"
+                                    HeightRequest="13"
+                                    Margin="0,10,0,0"
+                                    HorizontalOptions="Start"
+                                    VerticalOptions="Start">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                            </Border>
+                            <Border BackgroundColor="{Binding Name, Converter={StaticResource ThemeToMeBubbleConverter}}"
+                                    StrokeThickness="0"
+                                    WidthRequest="34"
+                                    HeightRequest="13"
+                                    Margin="0,28,0,0"
+                                    HorizontalOptions="Start"
+                                    VerticalOptions="Start">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6" />
+                                </Border.StrokeShape>
+                            </Border>
+                            <!-- Кружок выбора, как радиокнопка в Telegram -->
+                            <Border WidthRequest="20"
+                                    HeightRequest="20"
+                                    BackgroundColor="Transparent"
+                                    StrokeThickness="2"
+                                    Stroke="{Binding IsSelected, Converter={StaticResource SelectedToRingConverter}}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="End"
+                                    Margin="0,0,0,2">
+                                <Border.StrokeShape>
+                                    <Ellipse />
+                                </Border.StrokeShape>
+                            </Border>
+                        </Grid>
                     </Border>
-                    <Label Text="{Binding .}"
+                    <Label Text="{Binding Name}"
                            FontSize="11"
                            TextColor="{DynamicResource TextMuted}"
                            HorizontalTextAlignment="Center"
@@ -361,7 +399,8 @@
                         <!-- Тема: плитки, как в Telegram (горизонтальная прокрутка) -->
                         <CollectionView x:Name="ThemeCollectionView"
                                         ItemsLayout="HorizontalList"
-                                        SelectionMode="None"
+                                        SelectionMode="Single"
+                                        SelectionChanged="OnThemeSelected"
                                         ItemTemplate="{StaticResource ThemeTileTemplate}" />
                         <Button x:Name="ShowAllThemesButton"
                                 Text="Показать все темы"
