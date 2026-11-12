@@ -989,14 +989,9 @@ public sealed class ChatManager
 
     private async Task OnPrivateMessageDeletedAsync(string messageId)
     {
-        // Собеседник удалил сообщение для всех — убираем его локально.
-        var username = _activeChat;
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            return;
-        }
-
-        var removed = await _localStore.DeleteMessageAsync(username, messageId);
+        // Собеседник удалил сообщение для всех — убираем его локально
+        // (в том числе если этот чат сейчас не открыт).
+        var removed = await _localStore.DeleteMessageEverywhereAsync(messageId);
         if (removed)
         {
             ConversationsChanged?.Invoke();
@@ -1007,17 +1002,18 @@ public sealed class ChatManager
     private async Task OnPrivateConversationDeletedAsync(string userId)
     {
         // Собеседник удалил всю переписку с нами — убираем чат локально.
-        var username = _activeChat;
+        // Сервер присылает UserId собеседника, локальные чаты ищем по логину.
+        var username = await _localStore.FindUsernameByUserIdAsync(userId);
         if (string.IsNullOrWhiteSpace(username))
         {
             return;
         }
 
-        var removed = await _localStore.DeleteConversationAsync(userId);
+        var removed = await _localStore.DeleteConversationAsync(username);
         if (removed)
         {
             ConversationsChanged?.Invoke();
-            ConversationDeleted?.Invoke(userId);
+            ConversationDeleted?.Invoke(username);
         }
     }
 
@@ -1025,17 +1021,17 @@ public sealed class ChatManager
     {
         // Собеседник очистил всю историю переписки с нами — убираем сообщения локально,
         // но чат остаётся в списке.
-        var username = _activeChat;
+        var username = await _localStore.FindUsernameByUserIdAsync(userId);
         if (string.IsNullOrWhiteSpace(username))
         {
             return;
         }
 
-        var cleared = await _localStore.ClearConversationMessagesAsync(userId);
+        var cleared = await _localStore.ClearConversationMessagesAsync(username);
         if (cleared)
         {
             ConversationsChanged?.Invoke();
-            ConversationCleared?.Invoke(userId);
+            ConversationCleared?.Invoke(username);
         }
     }
 

@@ -618,20 +618,27 @@ public sealed class ChatHub : Hub
             return false;
         }
 
-        // Удаляем только если пользователь — отправитель.
+        // Получателя узнаём ДО удаления: после DELETE строка сообщения уже не найдётся,
+        // и уведомить собеседника о удалении не получится.
+        var message = await _repository.GetPrivateMessageAsync(messageId);
+        if (message is null)
+        {
+            return false;
+        }
+
+        var (senderId, recipientId) = message.Value;
+        if (!string.Equals(senderId, userId, StringComparison.Ordinal))
+        {
+            // Удалять сообщение может только его отправитель.
+            return false;
+        }
+
         if (!await _repository.DeletePrivateMessageAsync(messageId, userId))
         {
             return false;
         }
 
-        // Получаем получателя, чтобы уведомить его об удалении.
-        var message = await _repository.GetPrivateMessageAsync(messageId);
-        if (message is not null)
-        {
-            var (_, recipientId) = message.Value;
-            await Clients.User(recipientId).SendAsync("PrivateMessageDeleted", messageId);
-        }
-
+        await Clients.User(recipientId).SendAsync("PrivateMessageDeleted", messageId);
         return true;
     }
 

@@ -507,6 +507,66 @@ public sealed class LocalStore
         }
     }
 
+    /// <summary>
+    /// Ищет логин чата по идентификатору собеседника — сервер присылает в событиях
+    /// удаления именно UserId, а локальные чаты хранятся по логину.
+    /// </summary>
+    public async Task<string?> FindUsernameByUserIdAsync(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return null;
+        }
+
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            return _state!.Conversations
+                .FirstOrDefault(item => string.Equals(item.UserId, userId, StringComparison.Ordinal))
+                ?.Username;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Удаляет сообщение из всех чатов по его идентификатору.</summary>
+    public async Task<bool> DeleteMessageEverywhereAsync(string messageId)
+    {
+        if (string.IsNullOrWhiteSpace(messageId))
+        {
+            return false;
+        }
+
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var removed = false;
+            foreach (var conversation in _state!.Conversations)
+            {
+                if (conversation.Messages.RemoveAll(item => item.Id == messageId) > 0)
+                {
+                    removed = true;
+                }
+            }
+
+            if (removed)
+            {
+                await SaveAsync();
+                DeletePendingUploadFile(messageId);
+            }
+
+            return removed;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     public async Task<bool> SetFavoriteAsync(string username, string messageId, bool favorite)
     {
         await _lock.WaitAsync();
