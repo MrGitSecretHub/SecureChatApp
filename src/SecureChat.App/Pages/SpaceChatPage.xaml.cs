@@ -132,15 +132,15 @@ public partial class SpaceChatPage : ContentPage
         }
     }
 
-    private void ApplySpaceWallpaper()
+    private async void ApplySpaceWallpaper()
     {
         var session = AppServices.Get<AppSession>();
-        var path = session.GetSpaceWallpaperPath(_spaceId);
+        var path = await session.GetSpaceWallpaperPathAsync(_spaceId);
         SpaceWallpaperImage.IsVisible = !string.IsNullOrEmpty(path);
         SpaceWallpaperImage.Source = string.IsNullOrEmpty(path)
             ? null
             : ImageSource.FromFile(path);
-        SpaceWallpaperShade.IsVisible = !string.IsNullOrEmpty(path) && session.GetSpaceWallpaperDim(_spaceId);
+        SpaceWallpaperShade.IsVisible = !string.IsNullOrEmpty(path) && await session.GetSpaceWallpaperDimAsync(_spaceId);
     }
 
     private void OnAppearanceChanged()

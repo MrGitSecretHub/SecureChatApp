@@ -62,33 +62,53 @@ public sealed class AppSession
     /// <summary>Затемнять обои полупрозрачной вуалью для читабельности.</summary>
     public bool WallpaperDim { get; set; } = true;
 
-    /// <summary>Обои для пространств: spaceId -> путь к картинке.</summary>
+    /// <summary>Обои для пространств: spaceId -> путь к картинке (кэш в памяти).</summary>
     public Dictionary<string, string> SpaceWallpaperPaths { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Обои для пространств: spaceId -> затемнять вуалью.</summary>
+    /// <summary>Обои для пространств: spaceId -> затемнять вуалью (кэш в памяти).</summary>
     public Dictionary<string, bool> SpaceWallpaperDims { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Получить путь к обоям пространства.</summary>
-    public string GetSpaceWallpaperPath(string spaceId) =>
-        SpaceWallpaperPaths.TryGetValue(spaceId, out var path) ? path : string.Empty;
+    private LocalStore? _localStore;
+    private LocalStore LocalStore => _localStore ??= AppServices.Get<LocalStore>();
 
-    /// <summary>Получить флаг затемнения для пространства.</summary>
-    public bool GetSpaceWallpaperDim(string spaceId) =>
-        SpaceWallpaperDims.TryGetValue(spaceId, out var dim) && dim;
+    /// <summary>Получить путь к обоям пространства (из LocalStore).</summary>
+    public async Task<string?> GetSpaceWallpaperPathAsync(string spaceId)
+    {
+        var fromLocalStore = await LocalStore.GetSpaceWallpaperPathAsync(spaceId);
+        if (!string.IsNullOrEmpty(fromLocalStore))
+        {
+            SpaceWallpaperPaths[spaceId] = fromLocalStore;
+            return fromLocalStore;
+        }
+        return SpaceWallpaperPaths.TryGetValue(spaceId, out var path) ? path : string.Empty;
+    }
 
-    /// <summary>Установить обои для пространства.</summary>
-    public void SetSpaceWallpaper(string spaceId, string path, bool dim)
+    /// <summary>Получить флаг затемнения для пространства (из LocalStore).</summary>
+    public async Task<bool> GetSpaceWallpaperDimAsync(string spaceId)
+    {
+        var fromLocalStore = await LocalStore.GetSpaceWallpaperDimAsync(spaceId);
+        if (fromLocalStore || SpaceWallpaperDims.ContainsKey(spaceId))
+        {
+            return fromLocalStore || SpaceWallpaperDims.TryGetValue(spaceId, out var dim) && dim;
+        }
+        return SpaceWallpaperDims.TryGetValue(spaceId, out var dim2) && dim2;
+    }
+
+    /// <summary>Установить обои для пространства (в LocalStore и в кэш).</summary>
+    public async Task SetSpaceWallpaperAsync(string spaceId, string path, bool dim)
     {
         SpaceWallpaperPaths[spaceId] = path;
         SpaceWallpaperDims[spaceId] = dim;
+        await LocalStore.SetSpaceWallpaperAsync(spaceId, path, dim);
         NotifyAppearanceChanged();
     }
 
     /// <summary>Удалить обои пространства.</summary>
-    public void RemoveSpaceWallpaper(string spaceId)
+    public async Task RemoveSpaceWallpaperAsync(string spaceId)
     {
         SpaceWallpaperPaths.Remove(spaceId);
         SpaceWallpaperDims.Remove(spaceId);
+        await LocalStore.RemoveSpaceWallpaperAsync(spaceId);
         NotifyAppearanceChanged();
     }
 

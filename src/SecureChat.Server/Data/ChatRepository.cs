@@ -81,6 +81,10 @@ public sealed class ChatRepository
             CREATE INDEX IF NOT EXISTS IX_Messages_Pending
                 ON Messages (RecipientId, Delivered, CreatedAt);
 
+            -- Индекс для быстрого поиска всей переписки между двумя пользователями
+            CREATE INDEX IF NOT EXISTS IX_Messages_Pair
+                ON Messages (SenderId, RecipientId, CreatedAt);
+
             CREATE TABLE IF NOT EXISTS Media (
                 Id          TEXT PRIMARY KEY,
                 SenderId    TEXT NOT NULL,
@@ -116,6 +120,7 @@ public sealed class ChatRepository
         await EnsureProfileColumnsAsync(connection, cancellationToken);
         await EnsureMessageExpiryColumnsAsync(connection, cancellationToken);
         await EnsureMediaTableMigrationAsync(connection, cancellationToken);
+        await EnsureMessagePairIndexAsync(connection, cancellationToken);
 
         var cutoff = DateTimeOffset.UtcNow.AddDays(-30).ToString("O");
         await using var cleanup = connection.CreateCommand();
@@ -986,4 +991,15 @@ public sealed class ChatRepository
         LastSeenUnixMs = reader.IsDBNull(12) ? 0 : reader.GetInt64(12),
         IsAdmin = reader.IsDBNull(13) ? false : reader.GetInt64(13) == 1
     };
+
+    /// <summary>Создаёт индекс для быстрого удаления всей переписки между двумя пользователями.</summary>
+    private async Task EnsureMessagePairIndexAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            CREATE INDEX IF NOT EXISTS IX_Messages_Pair
+                ON Messages (SenderId, RecipientId, CreatedAt);
+            """;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
 }

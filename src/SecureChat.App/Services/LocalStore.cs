@@ -72,6 +72,12 @@ public sealed class StoredMessageSearchResult
 public sealed class LocalState
 {
     public List<StoredConversation> Conversations { get; set; } = new();
+
+    /// <summary>Обои пространств: spaceId -> путь к файлу.</summary>
+    public Dictionary<string, string> SpaceWallpaperPaths { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Обои пространств: spaceId -> затемнять вуалью.</summary>
+    public Dictionary<string, bool> SpaceWallpaperDims { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary>Исходящее сообщение, ожидающее отправки после восстановления связи.</summary>
@@ -89,7 +95,7 @@ public sealed class LocalStore
 {
     private static readonly byte[] Magic = Encoding.ASCII.GetBytes("SCST");
     private static readonly byte[] Aad = Encoding.UTF8.GetBytes("SecureChat.LocalStore.v1");
-    private const byte Version = 1;
+    private const byte Version = 2;
     private const string DeviceKeyPrefix = "local.key";
 
     private static readonly byte[] MediaMagic = Encoding.ASCII.GetBytes("SCMD");
@@ -295,6 +301,76 @@ public sealed class LocalStore
             conversation.UnreadCount = 0;
             await SaveAsync();
             return true;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Получить путь к обоям пространства.</summary>
+    public async Task<string?> GetSpaceWallpaperPathAsync(string spaceId)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            _state!.SpaceWallpaperPaths.TryGetValue(spaceId, out var path);
+            return path;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Получить флаг затемнения обоев пространства.</summary>
+    public async Task<bool> GetSpaceWallpaperDimAsync(string spaceId)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            return _state!.SpaceWallpaperDims.TryGetValue(spaceId, out var dim) && dim;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Сохранить обои пространства.</summary>
+    public async Task<bool> SetSpaceWallpaperAsync(string spaceId, string path, bool dim)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            _state!.SpaceWallpaperPaths[spaceId] = path;
+            _state!.SpaceWallpaperDims[spaceId] = dim;
+            await SaveAsync();
+            return true;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Удалить обои пространства.</summary>
+    public async Task<bool> RemoveSpaceWallpaperAsync(string spaceId)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var removedPaths = _state!.SpaceWallpaperPaths.Remove(spaceId);
+            var removedDims = _state!.SpaceWallpaperDims.Remove(spaceId);
+            if (removedPaths || removedDims)
+            {
+                await SaveAsync();
+            }
+            return removedPaths || removedDims;
         }
         finally
         {
@@ -1249,7 +1325,7 @@ public sealed class LocalStore
 
             var offset = Magic.Length;
             var version = data[offset++];
-            if (version != Version)
+            if (version > Version)
             {
                 throw new CryptographicException("Неподдерживаемая версия файла.");
             }
@@ -1412,10 +1488,12 @@ public sealed class LocalStore
 
         var offset = Magic.Length;
         var version = protectedBytes[offset++];
-        if (version != Version)
+        if (version > Version)
         {
             throw new CryptographicException("Неподдерживаемая версия локальной истории.");
         }
+
+        // Версия 1 не содержит SpaceWallpapers — словарь останется пустым (инициализирован в конструкторе LocalState).
 
         var nonce = protectedBytes.AsSpan(offset, 12);
         offset += 12;

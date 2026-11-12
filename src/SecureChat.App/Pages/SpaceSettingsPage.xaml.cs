@@ -94,8 +94,8 @@ public partial class SpaceSettingsPage : ContentPage
 
         // Загрузка текущих обоев пространства
         var session = AppServices.Get<AppSession>();
-        _currentWallpaperPath = session.GetSpaceWallpaperPath(_spaceId);
-        _currentWallpaperDim = session.GetSpaceWallpaperDim(_spaceId);
+        _currentWallpaperPath = await session.GetSpaceWallpaperPathAsync(_spaceId);
+        _currentWallpaperDim = await session.GetSpaceWallpaperDimAsync(_spaceId);
         UpdateWallpaperPreview();
         SpaceWallpaperDimSwitch.IsToggled = _currentWallpaperDim;
     }
@@ -306,10 +306,10 @@ public partial class SpaceSettingsPage : ContentPage
 
     // ============================== ОБОИ ПРОСТРАНСТВА ==============================
 
-    private void UpdateWallpaperPreview()
+    private async void UpdateWallpaperPreview()
     {
         var session = AppServices.Get<AppSession>();
-        var path = session.GetSpaceWallpaperPath(_spaceId);
+        var path = await session.GetSpaceWallpaperPathAsync(_spaceId);
         SpaceWallpaperPreviewImage.Source = string.IsNullOrEmpty(path)
             ? null
             : ImageSource.FromFile(path);
@@ -364,7 +364,7 @@ public partial class SpaceSettingsPage : ContentPage
     private async void OnSpaceWallpaperRemoveClicked(object sender, EventArgs e)
     {
         var session = AppServices.Get<AppSession>();
-        session.RemoveSpaceWallpaper(_spaceId);
+        await session.RemoveSpaceWallpaperAsync(_spaceId);
         _currentWallpaperPath = string.Empty;
         _currentWallpaperDim = true;
         SpaceWallpaperDimSwitch.IsToggled = _currentWallpaperDim;
@@ -374,13 +374,13 @@ public partial class SpaceSettingsPage : ContentPage
     private async void OnSpaceWallpaperDimToggled(object sender, ToggledEventArgs e)
     {
         var session = AppServices.Get<AppSession>();
-        var currentPath = session.GetSpaceWallpaperPath(_spaceId);
+        var currentPath = await session.GetSpaceWallpaperPathAsync(_spaceId);
         if (string.IsNullOrEmpty(currentPath))
         {
             return;
         }
 
-        session.SetSpaceWallpaper(_spaceId, currentPath, e.Value);
+        await session.SetSpaceWallpaperAsync(_spaceId, currentPath, e.Value);
         _currentWallpaperDim = e.Value;
         UpdateWallpaperPreview();
     }
@@ -398,10 +398,10 @@ public partial class SpaceSettingsPage : ContentPage
             await source.CopyToAsync(target);
 
             var session = AppServices.Get<AppSession>();
-            session.SetSpaceWallpaper(_spaceId, targetPath, session.GetSpaceWallpaperDim(_spaceId));
+            await session.SetSpaceWallpaperAsync(_spaceId, targetPath, await session.GetSpaceWallpaperDimAsync(_spaceId));
 
             _currentWallpaperPath = targetPath;
-            _currentWallpaperDim = session.GetSpaceWallpaperDim(_spaceId);
+            _currentWallpaperDim = await session.GetSpaceWallpaperDimAsync(_spaceId);
             SpaceWallpaperDimSwitch.IsToggled = _currentWallpaperDim;
             UpdateWallpaperPreview();
         }
