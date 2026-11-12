@@ -124,8 +124,7 @@ public partial class ChatsPage : ContentPage
         }
         else if (choice == "🧹 Удалить чат")
         {
-            var page = Shell.Current?.CurrentPage ?? Application.Current?.Windows.FirstOrDefault()?.Page;
-            var actionChoice = await page?.DisplayActionSheet(
+            var actionChoice = await DisplayActionSheet(
                 "Что сделать с чатом?",
                 "Отмена",
                 null,
@@ -142,7 +141,7 @@ public partial class ChatsPage : ContentPage
 
             if (!clearHistory)
             {
-                var scopeChoice = await page?.DisplayActionSheet(
+                var scopeChoice = await DisplayActionSheet(
                     "Удалить чат?",
                     "Отмена",
                     null,
@@ -158,7 +157,7 @@ public partial class ChatsPage : ContentPage
             }
             else
             {
-                var scopeChoice = await page?.DisplayActionSheet(
+                var scopeChoice = await DisplayActionSheet(
                     "Очистить историю?",
                     "Отмена",
                     null,
@@ -173,7 +172,7 @@ public partial class ChatsPage : ContentPage
                 deleteForEveryone = string.Equals(scopeChoice, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
             }
 
-            var confirmed = await page?.DisplayAlert(
+            var confirmed = await DisplayAlert(
                 "Удалить чат",
                 clearHistory
                     ? deleteForEveryone

@@ -30,6 +30,7 @@ public partial class SpaceChatPage : ContentPage
     private string? _myUserId;
     private bool _canModerate;
     private bool _canPost = true;
+    private bool _sendingAttachment;
     private SpaceMessageVm? _replyingTo;
     private List<SpaceMemberDto> _members = new();
     private readonly ObservableCollection<SpaceMessageVm> _pinnedItems = new();
@@ -985,10 +986,19 @@ public partial class SpaceChatPage : ContentPage
 #endif
     }
 
-    /// <summary>Кнопка 😊 — показать или скрыть эмодзи-панель.</summary>
+    /// <summary>Кнопка 😊 — показать или скрыть панель Эмодзи/Стикеры/GIF.</summary>
     private void OnEmojiButtonClicked(object sender, EventArgs e)
     {
+        AttachMenuPanel.IsVisible = false;
+
         EmojiPicker.IsVisible = !EmojiPicker.IsVisible;
+        StickerPicker.IsVisible = false;
+        GifPicker.IsVisible = false;
+
+        if (EmojiPicker.IsVisible)
+        {
+            MessageEntry.FocusInput();
+        }
     }
 
     /// <summary>Эмодзи из панели — вставить в позицию курсора поля ввода.</summary>
@@ -1001,39 +1011,118 @@ public partial class SpaceChatPage : ContentPage
         MessageEntry.FocusInput();
     }
 
+    /// <summary>Стикер из панели — отправляем как сообщение с Kind=Sticker.</summary>
+    private async void OnStickerPicked(string glyph)
+    {
+        if (string.IsNullOrWhiteSpace(glyph)) return;
+        EmojiPicker.IsVisible = false;
+        StickerPicker.IsVisible = false;
+        GifPicker.IsVisible = false;
+
+        try
+        {
+            var payload = new SpaceMessagePayload
+            {
+                Kind = MessageKinds.Sticker,
+                Text = glyph,
+                ReplyToMessageId = _replyingTo?.Id,
+                ReplyToText = _replyingTo?.ReplyToText,
+                Mentions = SpaceMentions.Parse(glyph, _members.Select(member => member.Username))
+            };
+
+            await _spaces.SendPayloadAsync(_spaceId, _topicId, payload);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", $"Не удалось отправить стикер: {ex.Message}", "OK");
+        }
+    }
+
+    /// <summary>GIF из панели — отправляем как медиа-вложение.</summary>
+    private async void OnGifPicked(GifPickerView.GifItem item)
+    {
+        if (item.Bytes.Length == 0) return;
+        EmojiPicker.IsVisible = false;
+        StickerPicker.IsVisible = false;
+        GifPicker.IsVisible = false;
+
+        EnqueueMediaItem(item.FileName, item.ContentType, item.Bytes, MessageKinds.File);
+
+        if (_pendingMedia.Count > 0)
+        {
+            SendQueuePanel.IsVisible = true;
+            _ = ProcessMediaQueueAsync();
+        }
+    }
+
     private async void OnAttachClicked(object sender, EventArgs e)
     {
-        var page = Application.Current?.Windows.FirstOrDefault()?.Page;
-        if (page is null)
+        if (AttachMenuPanel.IsVisible)
+        {
+            AttachMenuPanel.IsVisible = false;
+            return;
+        }
+
+        if (_sendingAttachment)
         {
             return;
         }
 
-        var choice = await page.DisplayActionSheet("Прикрепить", "Отмена", null, "Фото или GIF", "Файл", "Голосовое сообщение", "Видеокружок");
-        switch (choice)
+        AttachMenuPanel.IsVisible = true;
+    }
+
+    /// <summary>Выбор пункта меню скрепки: фото/видео, файл, музыка, голосовое, кружок.</summary>
+    private async void OnAttachMenuItemTapped(object sender, EventArgs e)
+    {
+        var action = (sender as Element)?.StyleId;
+        AttachMenuPanel.IsVisible = false;
+        if (_sendingAttachment)
         {
-            case "Фото или GIF":
-                var photos = await FilePicker.Default.PickMultipleAsync(
-                    new PickOptions { PickerTitle = "Выберите фото или GIF" });
-                if (photos is null || !photos.Any()) return;
-                await SendAttachmentsAsync(photos, isPhoto: true);
-                break;
-            case "Файл":
-                var files = await FilePicker.Default.PickMultipleAsync(
-                    new PickOptions { PickerTitle = "Выберите файлы" });
-                if (files is null || !files.Any()) return;
-                await SendAttachmentsAsync(files, isPhoto: false);
-                break;
-            case "Голосовое сообщение":
-                var voice = await RecordVoiceMessageAsync(page);
-                if (voice is null) return;
-                EnqueueMediaItem("audio.m4a", voice.Value.ContentType, voice.Value.Data, MessageKinds.Voice);
-                break;
-            case "Видеокружок":
-                var video = await RecordVideoCircleAsync();
-                if (video is null) return;
-                EnqueueMediaItem("circle.mp4", video.Value.ContentType, video.Value.Data, MessageKinds.VideoCircle);
-                break;
+            return;
+        }
+
+        _sendingAttachment = true;
+        try
+        {
+            switch (action)
+            {
+                case "photo":
+                    var mediaFiles = await FilePicker.Default.PickMultipleAsync(
+                        new PickOptions { PickerTitle = "Выберите фото или видео" });
+                    if (mediaFiles is null || !mediaFiles.Any()) return;
+                    await SendAttachmentsAsync(mediaFiles, isPhoto: true);
+                    break;
+
+                case "file":
+                    var files = await FilePicker.Default.PickMultipleAsync(
+                        new PickOptions { PickerTitle = "Выберите файлы" });
+                    if (files is null || !files.Any()) return;
+                    await SendAttachmentsAsync(files, isPhoto: false);
+                    break;
+
+                case "music":
+                    var audioFiles = await FilePicker.Default.PickMultipleAsync(
+                        new PickOptions { PickerTitle = "Выберите музыку" });
+                    if (audioFiles is null || !audioFiles.Any()) return;
+                    await SendAttachmentsAsync(audioFiles, isPhoto: false);
+                    break;
+
+                case "voice":
+                    var voice = await RecordVoiceMessageAsync(this);
+                    if (voice is null) return;
+                    EnqueueMediaItem("voice.m4a", voice.Value.ContentType, voice.Value.Data, MessageKinds.Voice);
+                    break;
+
+                case "circle":
+                    var video = await RecordVideoCircleAsync();
+                    if (video is null) return;
+                    EnqueueMediaItem("circle.mp4", video.Value.ContentType, video.Value.Data, MessageKinds.VideoCircle);
+                    break;
+            }
+        }
+        finally
+        {
+            _sendingAttachment = false;
         }
 
         if (_pendingMedia.Count > 0)
