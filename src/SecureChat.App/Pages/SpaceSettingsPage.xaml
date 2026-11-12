@@ -111,6 +111,59 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- Обои пространства -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Обои пространства" Style="{DynamicResource H2}" />
+
+                    <Border x:Name="SpaceWallpaperPreview"
+                            HeightRequest="110"
+                            WidthRequest="190"
+                            HorizontalOptions="Start"
+                            Stroke="{DynamicResource BorderColor}"
+                            StrokeThickness="1">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+                        <Grid BackgroundColor="{DynamicResource SurfaceAlt}">
+                            <Image x:Name="SpaceWallpaperPreviewImage"
+                                   Aspect="AspectFill" />
+                            <Label x:Name="SpaceWallpaperEmptyLabel"
+                                   Text="🖼"
+                                   FontSize="30"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="Из галереи"
+                                Style="{DynamicResource SecondaryButton}"
+                                Clicked="OnSpaceWallpaperGalleryClicked" />
+                        <Button Text="Из файла"
+                                Style="{DynamicResource SecondaryButton}"
+                                Clicked="OnSpaceWallpaperFileClicked" />
+                        <Button x:Name="SpaceWallpaperRemoveButton"
+                                Text="Убрать"
+                                Style="{DynamicResource GhostButton}"
+                                IsVisible="False"
+                                Clicked="OnSpaceWallpaperRemoveClicked" />
+                    </HorizontalStackLayout>
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Затемнять обои" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="Полупрозрачная вуаль поверх картинки для читабельности"
+                                   Style="{DynamicResource Caption}" />
+                        </VerticalStackLayout>
+                        <Switch x:Name="SpaceWallpaperDimSwitch"
+                                Toggled="OnSpaceWallpaperDimToggled"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
             <!-- Опасная зона -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">

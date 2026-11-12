@@ -62,6 +62,36 @@ public sealed class AppSession
     /// <summary>Затемнять обои полупрозрачной вуалью для читабельности.</summary>
     public bool WallpaperDim { get; set; } = true;
 
+    /// <summary>Обои для пространств: spaceId -> путь к картинке.</summary>
+    public Dictionary<string, string> SpaceWallpaperPaths { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Обои для пространств: spaceId -> затемнять вуалью.</summary>
+    public Dictionary<string, bool> SpaceWallpaperDims { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Получить путь к обоям пространства.</summary>
+    public string GetSpaceWallpaperPath(string spaceId) =>
+        SpaceWallpaperPaths.TryGetValue(spaceId, out var path) ? path : string.Empty;
+
+    /// <summary>Получить флаг затемнения для пространства.</summary>
+    public bool GetSpaceWallpaperDim(string spaceId) =>
+        SpaceWallpaperDims.TryGetValue(spaceId, out var dim) && dim;
+
+    /// <summary>Установить обои для пространства.</summary>
+    public void SetSpaceWallpaper(string spaceId, string path, bool dim)
+    {
+        SpaceWallpaperPaths[spaceId] = path;
+        SpaceWallpaperDims[spaceId] = dim;
+        NotifyAppearanceChanged();
+    }
+
+    /// <summary>Удалить обои пространства.</summary>
+    public void RemoveSpaceWallpaper(string spaceId)
+    {
+        SpaceWallpaperPaths.Remove(spaceId);
+        SpaceWallpaperDims.Remove(spaceId);
+        NotifyAppearanceChanged();
+    }
+
     /// <summary>Показывать аватары в переписке.</summary>
     public bool ShowAvatarsInChat { get; set; } = true;
 

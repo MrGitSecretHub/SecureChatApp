@@ -107,7 +107,9 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageReceived += OnSpaceMessageReceived;
         _spaces.SpaceMessageUpdated += OnSpaceMessageUpdated;
         _spaces.SpaceMessageDeleted += OnSpaceMessageDeleted;
+        AppServices.Get<AppSession>().AppearanceChanged += OnAppearanceChanged;
         RefreshSenderNameColors();
+        ApplySpaceWallpaper();
         await LoadAsync();
     }
 
@@ -129,6 +131,22 @@ public partial class SpaceChatPage : ContentPage
         }
     }
 
+    private void ApplySpaceWallpaper()
+    {
+        var session = AppServices.Get<AppSession>();
+        var path = session.GetSpaceWallpaperPath(_spaceId);
+        SpaceWallpaperImage.IsVisible = !string.IsNullOrEmpty(path);
+        SpaceWallpaperImage.Source = string.IsNullOrEmpty(path)
+            ? null
+            : ImageSource.FromFile(path);
+        SpaceWallpaperShade.IsVisible = !string.IsNullOrEmpty(path) && session.GetSpaceWallpaperDim(_spaceId);
+    }
+
+    private void OnAppearanceChanged()
+    {
+        MainThread.BeginInvokeOnMainThread(ApplySpaceWallpaper);
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
@@ -136,6 +154,7 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageReceived -= OnSpaceMessageReceived;
         _spaces.SpaceMessageUpdated -= OnSpaceMessageUpdated;
         _spaces.SpaceMessageDeleted -= OnSpaceMessageDeleted;
+        AppServices.Get<AppSession>().AppearanceChanged -= OnAppearanceChanged;
     }
 
     private void OnSpaceMessageUpdated(SpaceMessageDto message)

@@ -1,4 +1,9 @@
+using System;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
 using SecureChat.App.Services;
 using SecureChat.App.Views;
 using SecureChat.Core.Contracts;
@@ -14,6 +19,8 @@ public partial class SpaceSettingsPage : ContentPage
     private readonly string _spaceId;
     private readonly string _spaceType;
     private SpaceDto? _space;
+    private string? _currentWallpaperPath;
+    private bool _currentWallpaperDim;
 
     public SpaceSettingsPage(string spaceId, string spaceName, string spaceType)
     {
@@ -84,6 +91,13 @@ public partial class SpaceSettingsPage : ContentPage
         {
             await DisplayAlert("Ошибка", ex.Message, "OK");
         }
+
+        // Загрузка текущих обоев пространства
+        var session = AppServices.Get<AppSession>();
+        _currentWallpaperPath = session.GetSpaceWallpaperPath(_spaceId);
+        _currentWallpaperDim = session.GetSpaceWallpaperDim(_spaceId);
+        UpdateWallpaperPreview();
+        SpaceWallpaperDimSwitch.IsToggled = _currentWallpaperDim;
     }
 
     private async void OnSaveClicked(object sender, EventArgs e)
@@ -287,6 +301,113 @@ public partial class SpaceSettingsPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
+
+    // ============================== ОБОИ ПРОСТРАНСТВА ==============================
+
+    private void UpdateWallpaperPreview()
+    {
+        var session = AppServices.Get<AppSession>();
+        var path = session.GetSpaceWallpaperPath(_spaceId);
+        SpaceWallpaperPreviewImage.Source = string.IsNullOrEmpty(path)
+            ? null
+            : ImageSource.FromFile(path);
+        SpaceWallpaperPreview.IsVisible = !string.IsNullOrEmpty(path);
+        SpaceWallpaperEmptyLabel.IsVisible = string.IsNullOrEmpty(path);
+        SpaceWallpaperRemoveButton.IsVisible = !string.IsNullOrEmpty(path);
+    }
+
+    private async void OnSpaceWallpaperGalleryClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            var result = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Выберите обои",
+                FileTypes = FilePickerFileType.Images
+            });
+            if (result is null)
+            {
+                return;
+            }
+
+            await SaveWallpaperAsync(result);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
+
+    private async void OnSpaceWallpaperFileClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            var result = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Выберите файл обоев"
+            });
+            if (result is null)
+            {
+                return;
+            }
+
+            await SaveWallpaperAsync(result);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
+
+    private async void OnSpaceWallpaperRemoveClicked(object sender, EventArgs e)
+    {
+        var session = AppServices.Get<AppSession>();
+        session.RemoveSpaceWallpaper(_spaceId);
+        _currentWallpaperPath = string.Empty;
+        _currentWallpaperDim = true;
+        SpaceWallpaperDimSwitch.IsToggled = _currentWallpaperDim;
+        UpdateWallpaperPreview();
+    }
+
+    private async void OnSpaceWallpaperDimToggled(object sender, ToggledEventArgs e)
+    {
+        var session = AppServices.Get<AppSession>();
+        var currentPath = session.GetSpaceWallpaperPath(_spaceId);
+        if (string.IsNullOrEmpty(currentPath))
+        {
+            return;
+        }
+
+        session.SetSpaceWallpaper(_spaceId, currentPath, e.Value);
+        _currentWallpaperDim = e.Value;
+        UpdateWallpaperPreview();
+    }
+
+    private async Task SaveWallpaperAsync(FileResult result)
+    {
+        try
+        {
+            var ext = Path.GetExtension(result.FullPath);
+            var fileName = $"wallpaper.{_spaceId}{ext}";
+            var targetPath = Path.Combine(FileSystem.AppDataDirectory, fileName);
+
+            using var source = await result.OpenReadAsync();
+            using var target = File.Create(targetPath);
+            await source.CopyToAsync(target);
+
+            var session = AppServices.Get<AppSession>();
+            session.SetSpaceWallpaper(_spaceId, targetPath, session.GetSpaceWallpaperDim(_spaceId));
+
+            _currentWallpaperPath = targetPath;
+            _currentWallpaperDim = session.GetSpaceWallpaperDim(_spaceId);
+            SpaceWallpaperDimSwitch.IsToggled = _currentWallpaperDim;
+            UpdateWallpaperPreview();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", $"Не удалось сохранить обои: {ex.Message}", "OK");
         }
     }
 }

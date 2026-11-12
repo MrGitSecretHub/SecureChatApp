@@ -24,6 +24,18 @@
 
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
 
+        <!-- Обои пространства (настройки → «Обои чата»); слои под всем контентом -->
+        <Image Grid.Row="0"
+               Grid.RowSpan="6"
+               x:Name="SpaceWallpaperImage"
+               Aspect="AspectFill"
+               IsVisible="False"
+               InputTransparent="True" />
+        <BoxView Grid.Row="0"
+                 Grid.RowSpan="6"
+                 x:Name="SpaceWallpaperShade"
+                 InputTransparent="True" />
+
         <!-- Шапка: тип, название, кнопки -->
         <Grid Grid.Row="0"
               ColumnDefinitions="Auto,*,Auto,Auto,Auto"
