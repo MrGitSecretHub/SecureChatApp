@@ -1,4 +1,6 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Threading;
 using Microsoft.Maui.Controls;
 using SecureChat.App.Services;
 using SecureChat.App.Views;
@@ -12,6 +14,7 @@ public partial class ChatsPage : ContentPage
     private readonly ObservableCollection<ConversationVm> _conversations = new();
     private bool _subscribed;
     private bool _isArchiveMode;
+    private CancellationTokenSource? _hintCts;
 
     public ChatsPage()
     {
@@ -121,7 +124,7 @@ public partial class ChatsPage : ContentPage
         }
         else if (choice == "🧹 Удалить чат")
         {
-            var page = Shell.Current?.CurrentPage;
+            var page = Shell.Current?.CurrentPage ?? Application.Current?.Windows.FirstOrDefault()?.Page;
             var actionChoice = await page?.DisplayActionSheet(
                 "Что сделать с чатом?",
                 "Отмена",
@@ -188,6 +191,11 @@ public partial class ChatsPage : ContentPage
                     if (cleared)
                     {
                         await RefreshAsync();
+                        ShowHint(deleteForEveryone ? "История удалена у всех" : "История удалена только у вас");
+                    }
+                    else
+                    {
+                        ShowHint("Не удалось очистить историю", isError: true);
                     }
                 }
                 else
@@ -196,6 +204,11 @@ public partial class ChatsPage : ContentPage
                     if (deleted)
                     {
                         await RefreshAsync();
+                        ShowHint(deleteForEveryone ? "Чат удален у всех" : "Чат удален только у вас");
+                    }
+                    else
+                    {
+                        ShowHint("Не удалось удалить чат", isError: true);
                     }
                 }
             }
@@ -300,5 +313,35 @@ public partial class ChatsPage : ContentPage
     {
         StatusLabel.Text = message;
         StatusLabel.IsVisible = true;
+    }
+
+    private void ShowHint(string text, bool isError = false)
+    {
+        HintLabel.Text = text;
+        HintLabel.TextColor = isError ? (Color)Application.Current!.Resources["Warning"] : (Color)Application.Current!.Resources["TextMuted"];
+        HintLabel.IsVisible = true;
+
+        _hintCts?.Cancel();
+        _hintCts = new CancellationTokenSource();
+        _ = HideHintLaterAsync(isError ? 6000 : 4000, _hintCts.Token);
+    }
+
+    private void HideHint()
+    {
+        _hintCts?.Cancel();
+        HintLabel.IsVisible = false;
+    }
+
+    private async Task HideHintLaterAsync(int delayMs, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(delayMs, token);
+            MainThread.BeginInvokeOnMainThread(() => HintLabel.IsVisible = false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Новая подсказка заменила предыдущую.
+        }
     }
 }

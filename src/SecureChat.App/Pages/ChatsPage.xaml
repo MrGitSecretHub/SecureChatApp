@@ -195,6 +195,15 @@
                     TextColor="{DynamicResource Danger}"
                     Clicked="OnLogoutClicked"
                     ToolTipProperties.Text="Выйти из аккаунта" />
+            <Label x:Name="HintLabel"
+                   Grid.Row="4"
+                   Grid.ColumnSpan="4"
+                   Style="{DynamicResource Caption}"
+                   TextColor="{DynamicResource TextMuted}"
+                   IsVisible="False"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   VerticalOptions="Center" />
         </Grid>
     </Grid>
 </ContentPage>
