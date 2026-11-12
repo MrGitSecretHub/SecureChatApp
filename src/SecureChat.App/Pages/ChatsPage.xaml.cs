@@ -122,32 +122,81 @@ public partial class ChatsPage : ContentPage
         else if (choice == "🧹 Удалить чат")
         {
             var page = Application.Current?.Windows.FirstOrDefault()?.Page;
-            var pageChoice = await page?.DisplayActionSheet(
-                "Удалить чат?",
+            var actionChoice = await page?.DisplayActionSheet(
+                "Что сделать с чатом?",
                 "Отмена",
                 null,
-                "Удалить для всех",
-                "Удалить для себя");
+                "Удалить чат",
+                "Очистить историю");
 
-            if (pageChoice == "Отмена" || pageChoice is null)
+            if (actionChoice == "Отмена" || actionChoice is null)
             {
                 return;
             }
 
-            var deleteForEveryone = string.Equals(pageChoice, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+            bool deleteForEveryone = false;
+            bool clearHistory = string.Equals(actionChoice, "Очистить историю", StringComparison.OrdinalIgnoreCase);
+
+            if (!clearHistory)
+            {
+                var scopeChoice = await page?.DisplayActionSheet(
+                    "Удалить чат?",
+                    "Отмена",
+                    null,
+                    "Удалить для всех",
+                    "Удалить для себя");
+
+                if (scopeChoice == "Отмена" || scopeChoice is null)
+                {
+                    return;
+                }
+
+                deleteForEveryone = string.Equals(scopeChoice, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+            }
+            else
+            {
+                var scopeChoice = await page?.DisplayActionSheet(
+                    "Очистить историю?",
+                    "Отмена",
+                    null,
+                    "Удалить для всех",
+                    "Только у себя");
+
+                if (scopeChoice == "Отмена" || scopeChoice is null)
+                {
+                    return;
+                }
+
+                deleteForEveryone = string.Equals(scopeChoice, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+            }
 
             var confirmed = await page?.DisplayAlert(
                 "Удалить чат",
-                deleteForEveryone
-                    ? $"Переписка с {vm.Username} будет удалена у вас и у собеседника."
-                    : $"Чат с {vm.Username} будет удален только у вас. Собеседник увидит историю как раньше.",
+                clearHistory
+                    ? deleteForEveryone
+                        ? $"История переписки с {vm.Username} будет удалена у вас и у собеседника."
+                        : $"История переписки с {vm.Username} будет удалена только у вас."
+                    : deleteForEveryone
+                        ? $"Переписка с {vm.Username} будет удалена у вас и у собеседника."
+                        : $"Чат с {vm.Username} будет удален только у вас. Собеседник увидит историю как раньше.",
                 "Удалить", "Отмена") == true;
             if (confirmed)
             {
-                var deleted = await _chatManager.DeleteConversationAsync(vm.Username, deleteForEveryone);
-                if (deleted)
+                if (clearHistory)
                 {
-                    await RefreshAsync();
+                    var cleared = await _chatManager.ClearConversationAsync(vm.Username, deleteForEveryone);
+                    if (cleared)
+                    {
+                        await RefreshAsync();
+                    }
+                }
+                else
+                {
+                    var deleted = await _chatManager.DeleteConversationAsync(vm.Username, deleteForEveryone);
+                    if (deleted)
+                    {
+                        await RefreshAsync();
+                    }
                 }
             }
         }

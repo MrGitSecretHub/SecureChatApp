@@ -276,6 +276,32 @@ public sealed class LocalStore
         }
     }
 
+    /// <summary>Удаляет все сообщения в диалоге, но оставляет сам чат в списке.</summary>
+    public async Task<bool> ClearConversationMessagesAsync(string username)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var conversation = Find(username);
+            if (conversation is null)
+            {
+                return false;
+            }
+
+            conversation.Messages.Clear();
+            conversation.LastMessage = string.Empty;
+            conversation.LastMessageAtUnixMs = 0;
+            conversation.UnreadCount = 0;
+            await SaveAsync();
+            return true;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     public async Task<StoredConversation?> GetConversationAsync(string username)
     {
         await _lock.WaitAsync();

@@ -49,6 +49,8 @@ public sealed class ChatService : IDisposable
 
     public event Action<string>? PrivateConversationDeleted;
 
+    public event Action<string>? PrivateConversationCleared;
+
     public bool IsConnected => _usingTcp
         ? _tcp.IsConnected
         : _connection?.State == HubConnectionState.Connected;
@@ -153,6 +155,9 @@ public sealed class ChatService : IDisposable
         _connection.On<string>(
             "PrivateConversationDeleted",
             userId => PrivateConversationDeleted?.Invoke(userId));
+        _connection.On<string>(
+            "PrivateConversationCleared",
+            userId => PrivateConversationCleared?.Invoke(userId));
         _connection.Reconnecting += _ =>
         {
             ConnectionStateChanged?.Invoke(false);
@@ -327,6 +332,28 @@ public sealed class ChatService : IDisposable
 
         return await connection.InvokeAsync<bool>(
             "DeletePrivateConversation",
+            username,
+            cancellationToken);
+    }
+
+    public async Task<bool> ClearPrivateConversationAsync(string username, CancellationToken cancellationToken = default)
+    {
+        if (!IsConnected)
+        {
+            await ConnectAsync(cancellationToken);
+        }
+
+        var connection = _connection
+            ?? throw new InvalidOperationException("Нет подключения к серверу.");
+
+        if (_usingTcp)
+        {
+            // TCP-транспорт не поддерживает очистку для всех — только локально.
+            return false;
+        }
+
+        return await connection.InvokeAsync<bool>(
+            "ClearPrivateConversation",
             username,
             cancellationToken);
     }

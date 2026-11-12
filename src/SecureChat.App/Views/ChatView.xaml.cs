@@ -424,6 +424,8 @@ public partial class ChatView : ContentView
         _chatManager.MessageStatusChanged += OnMessageStatusChanged;
         _chatManager.MessageMediaChanged += OnMessageMediaChanged;
         _chatManager.MessageDeleted += OnMessageDeleted;
+        _chatManager.ConversationDeleted += OnConversationDeleted;
+        _chatManager.ConversationCleared += OnConversationCleared;
         _chatManager.TypingReceived += OnTypingReceived;
         _chatManager.Error += OnError;
         _chatManager.ConnectionStateChanged += OnConnectionStateChanged;
@@ -441,6 +443,8 @@ public partial class ChatView : ContentView
         _chatManager.MessageStatusChanged -= OnMessageStatusChanged;
         _chatManager.MessageMediaChanged -= OnMessageMediaChanged;
         _chatManager.MessageDeleted -= OnMessageDeleted;
+        _chatManager.ConversationDeleted -= OnConversationDeleted;
+        _chatManager.ConversationCleared -= OnConversationCleared;
         _chatManager.TypingReceived -= OnTypingReceived;
         _chatManager.Error -= OnError;
         _chatManager.ConnectionStateChanged -= OnConnectionStateChanged;
@@ -2157,6 +2161,25 @@ public partial class ChatView : ContentView
             {
                 _selected = null;
             }
+            RefreshDerived();
+        }
+    }
+
+    private void OnConversationDeleted(string username)
+    {
+        // Наш чат удалён собеседником — если это текущий чат, закрываем его.
+        if (_username is not null && string.Equals(_username, username, StringComparison.OrdinalIgnoreCase))
+        {
+            HostPage?.Navigation.PopAsync();
+        }
+    }
+
+    private void OnConversationCleared(string username)
+    {
+        // Собеседник очистил всю историю — если это текущий чат, очищаем ленту.
+        if (_username is not null && string.Equals(_username, username, StringComparison.OrdinalIgnoreCase))
+        {
+            _messages.Clear();
             RefreshDerived();
         }
     }
