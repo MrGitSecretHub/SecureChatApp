@@ -121,7 +121,7 @@ public partial class ChatsPage : ContentPage
         }
         else if (choice == "🧹 Удалить чат")
         {
-            var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+            var page = Shell.Current?.CurrentPage;
             var actionChoice = await page?.DisplayActionSheet(
                 "Что сделать с чатом?",
                 "Отмена",
