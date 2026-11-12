@@ -80,6 +80,8 @@ public sealed class ChatManager
         };
         _chatService.PrivateMessageDeleted += messageId =>
             _ = OnPrivateMessageDeletedAsync(messageId);
+        _chatService.PrivateConversationDeleted += userId =>
+            _ = OnPrivateConversationDeletedAsync(userId);
     }
 
     public event Action? ConversationsChanged;
@@ -91,6 +93,7 @@ public sealed class ChatManager
     public event Action<string>? TypingReceived;
     public event Action<string>? Error;
     public event Action<bool>? ConnectionStateChanged;
+    public event Action<string>? ConversationDeleted;
 
     /// <summary>Есть ли сейчас соединение с сервером. В офлайн-режиме false.</summary>
     public bool IsOnline => _chatService.IsConnected;
@@ -910,6 +913,42 @@ public sealed class ChatManager
         }
     }
 
+    /// <summary>
+    /// Удаляет чат (контакт) локально. Если deleteForEveryone = true и есть соединение,
+    /// удаляет всю переписку на сервере и уведомляет собеседника.
+    /// </summary>
+    public async Task<bool> DeleteConversationAsync(string username, bool deleteForEveryone = false)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return false;
+        }
+
+        if (string.Equals(username, SelfChatUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (deleteForEveryone)
+        {
+            var deleted = await _chatService.DeletePrivateConversationAsync(username);
+            if (!deleted)
+            {
+                // Сервер не смог удалить — fallback: только локально.
+            }
+        }
+
+        var removed = await _localStore.DeleteConversationAsync(username);
+        if (removed)
+        {
+            _mutedChats.TryRemove(username, out _);
+            ConversationsChanged?.Invoke();
+            ConversationDeleted?.Invoke(username);
+        }
+
+        return removed;
+    }
+
     private async Task OnPrivateMessageDeletedAsync(string messageId)
     {
         // Собеседник удалил сообщение для всех — убираем его локально.
@@ -924,6 +963,23 @@ public sealed class ChatManager
         {
             ConversationsChanged?.Invoke();
             MessageDeleted?.Invoke(messageId);
+        }
+    }
+
+    private async Task OnPrivateConversationDeletedAsync(string userId)
+    {
+        // Собеседник удалил всю переписку с нами — убираем чат локально.
+        var username = _activeChat;
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return;
+        }
+
+        var removed = await _localStore.DeleteConversationAsync(userId);
+        if (removed)
+        {
+            ConversationsChanged?.Invoke();
+            ConversationDeleted?.Invoke(userId);
         }
     }
 

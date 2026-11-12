@@ -635,6 +635,30 @@ public sealed class ChatHub : Hub
         return true;
     }
 
+    /// <summary>Удаляет всю личную переписку с пользователем для обеих сторон.</summary>
+    public async Task<bool> DeletePrivateConversation(string username)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(username))
+        {
+            return false;
+        }
+
+        var otherUser = await _repository.GetUserByUsernameAsync(username);
+        if (otherUser is null)
+        {
+            return false;
+        }
+
+        // Удаляем всю переписку между ними на сервере.
+        var deletedCount = await _repository.DeletePrivateConversationAsync(userId, otherUser.Id);
+
+        // Уведомляем получателя, что переписка удалена.
+        await Clients.User(otherUser.Id).SendAsync("PrivateConversationDeleted", userId);
+
+        return deletedCount > 0;
+    }
+
     public async Task<SpaceMessageDto?> SetSpaceReaction(string spaceId, string messageId, string emoji, bool on)
     {
         var userId = Context.UserIdentifier;

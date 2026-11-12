@@ -27,6 +27,7 @@ public partial class ChatsPage : ContentPage
         {
             _subscribed = true;
             _chatManager.ConversationsChanged += OnConversationsChanged;
+            _chatManager.ConversationDeleted += OnConversationDeleted;
             _chatManager.Error += OnError;
             _chatManager.ConnectionStateChanged += OnConnectionStateChanged;
         }
@@ -54,6 +55,7 @@ public partial class ChatsPage : ContentPage
         {
             _subscribed = false;
             _chatManager.ConversationsChanged -= OnConversationsChanged;
+            _chatManager.ConversationDeleted -= OnConversationDeleted;
             _chatManager.Error -= OnError;
             _chatManager.ConnectionStateChanged -= OnConnectionStateChanged;
         }
@@ -67,6 +69,9 @@ public partial class ChatsPage : ContentPage
 
     private void OnConnectionStateChanged(bool connected) =>
         MainThread.BeginInvokeOnMainThread(() => UpdateConnectionStatus(connected));
+
+    private void OnConversationDeleted(string username) =>
+        MainThread.BeginInvokeOnMainThread(async () => await RefreshAsync());
 
     private async void OnToggleArchiveModeClicked(object sender, EventArgs e)
     {
@@ -116,13 +121,30 @@ public partial class ChatsPage : ContentPage
         }
         else if (choice == "🧹 Удалить чат")
         {
-            var confirmed = await DisplayAlert(
+            var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+            var pageChoice = await page?.DisplayActionSheet(
+                "Удалить чат?",
+                "Отмена",
+                null,
+                "Удалить для всех",
+                "Удалить для себя");
+
+            if (pageChoice == "Отмена" || pageChoice is null)
+            {
+                return;
+            }
+
+            var deleteForEveryone = string.Equals(pageChoice, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+
+            var confirmed = await page?.DisplayAlert(
                 "Удалить чат",
-                $"Удалить чат с {vm.Username}? Сообщения будут удалены с этого устройства.",
-                "Удалить", "Отмена");
+                deleteForEveryone
+                    ? $"Переписка с {vm.Username} будет удалена у вас и у собеседника."
+                    : $"Чат с {vm.Username} будет удален только у вас. Собеседник увидит историю как раньше.",
+                "Удалить", "Отмена") == true;
             if (confirmed)
             {
-                var deleted = await _chatManager.DeleteConversationAsync(vm.Username);
+                var deleted = await _chatManager.DeleteConversationAsync(vm.Username, deleteForEveryone);
                 if (deleted)
                 {
                     await RefreshAsync();

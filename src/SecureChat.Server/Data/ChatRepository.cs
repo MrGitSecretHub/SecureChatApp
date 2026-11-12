@@ -906,6 +906,38 @@ public sealed class ChatRepository
         }
     }
 
+    /// <summary>Удаляет всю личную переписку между двумя пользователями.</summary>
+    public async Task<int> DeletePrivateConversationAsync(string userId1, string userId2, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId1) || string.IsNullOrWhiteSpace(userId2))
+        {
+            return 0;
+        }
+
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                DELETE FROM Messages
+                WHERE (SenderId = $userId1 AND RecipientId = $userId2)
+                   OR (SenderId = $userId2 AND RecipientId = $userId1);
+                """;
+            command.Parameters.AddWithValue("$userId1", userId1);
+            command.Parameters.AddWithValue("$userId2", userId2);
+
+            var result = await command.ExecuteNonQueryAsync(cancellationToken);
+            return result;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
     /// <summary>Возвращает получателя личного сообщения (или null, если не найдено).</summary>
     public async Task<(string SenderId, string RecipientId)?> GetPrivateMessageAsync(string messageId, CancellationToken cancellationToken = default)
     {
