@@ -418,7 +418,8 @@ Windows-приложения и Android-APK (артефакты публикую
 отладочным ключом — такой файл нельзя использовать для обновления уже
 установленного приложения.
 
-End-to-end smoke-тест сервера (регистрация, SignalR, E2E, доставка, ack):
+End-to-end smoke-тест сервера (регистрация, SignalR, E2E, доставка, ack,
+удаление сообщения/чата и очистка истории «для всех»):
 
 ```powershell
 dotnet run --project src/SecureChat.Server --launch-profile http
