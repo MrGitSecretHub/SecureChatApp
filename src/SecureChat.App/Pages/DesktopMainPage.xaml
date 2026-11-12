@@ -388,14 +388,23 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- Статус подключения -->
-            <Label x:Name="StatusLabel"
-                   FontSize="12"
-                   TextColor="{DynamicResource Danger}"
-                   HorizontalOptions="End"
-                   VerticalOptions="Start"
-                   Margin="18,10,18,0"
-                   IsVisible="False" />
+            <!-- Статус подключения и подсказка о результате действия -->
+            <VerticalStackLayout HorizontalOptions="End"
+                                 VerticalOptions="Start"
+                                 Margin="18,10,18,0"
+                                 Spacing="4">
+                <Label x:Name="StatusLabel"
+                       FontSize="12"
+                       TextColor="{DynamicResource Danger}"
+                       HorizontalOptions="End"
+                       IsVisible="False" />
+
+                <Label x:Name="HintLabel"
+                       FontSize="12"
+                       TextColor="{DynamicResource TextMuted}"
+                       HorizontalOptions="End"
+                       IsVisible="False" />
+            </VerticalStackLayout>
         </Grid>
     </Grid>
 </ContentPage>

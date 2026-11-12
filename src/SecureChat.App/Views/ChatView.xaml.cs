@@ -2168,10 +2168,20 @@ public partial class ChatView : ContentView
     private void OnConversationDeleted(string username)
     {
         // Наш чат удалён собеседником — если это текущий чат, закрываем его.
-        if (_username is not null && string.Equals(_username, username, StringComparison.OrdinalIgnoreCase))
+        if (_username is null || !string.Equals(_username, username, StringComparison.OrdinalIgnoreCase))
         {
-            HostPage?.Navigation.PopAsync();
+            return;
         }
+
+        // В Windows-клиенте чат живёт в сайдбаре — закрываем его там,
+        // на Android убираем экран переписки из стека навигации.
+        if (HostPage is DesktopMainPage desktop)
+        {
+            desktop.CloseChatFromPeer();
+            return;
+        }
+
+        HostPage?.Navigation.PopAsync();
     }
 
     private void OnConversationCleared(string username)

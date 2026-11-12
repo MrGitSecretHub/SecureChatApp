@@ -27,6 +27,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     private List<StoredConversation> _all = new();
     private CancellationTokenSource? _toastCts;
     private CancellationTokenSource? _statusCts;
+    private CancellationTokenSource? _hintCts;
     private IDisposable? _shortcuts;
     private string? _selectedUsername;
     private string? _toastUsername;
@@ -55,6 +56,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         _notifications.Activated += OnNotificationActivated;
 
         ChatHost.SettingsRequested += OnChatSettingsRequested;
+        ChatHost.CloseRequested += OnChatCloseRequested;
 
         Loaded += OnLoaded;
 
@@ -110,6 +112,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         _notifications.Activated -= OnNotificationActivated;
 
         ChatHost.SettingsRequested -= OnChatSettingsRequested;
+        ChatHost.CloseRequested -= OnChatCloseRequested;
 
         if (_windowHooked && Window is not null)
         {
@@ -122,6 +125,8 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         _toastCts?.Dispose();
         _statusCts?.Cancel();
         _statusCts?.Dispose();
+        _hintCts?.Cancel();
+        _hintCts?.Dispose();
 
         ChatHost.Close();
     }
@@ -318,6 +323,26 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         _suppressSelection = false;
     }
 
+    /// <summary>Собеседник удалил чат — закрываем открытую переписку.</summary>
+    public void CloseChatFromPeer()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (!_disposed)
+            {
+                CloseChat();
+            }
+        });
+    }
+
+    /// <summary>Кнопка ✕ в шапке переписки (Windows-клиент).</summary>
+    private void OnChatCloseRequested() => CloseChat();
+
     private async Task StartNewChatAsync()
     {
         if (_promptOpen || _disposed)
@@ -392,7 +417,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         var archiveAction = vm.IsArchived ? "📤 Разархивировать" : "📦 Архивировать";
         var muteAction = vm.IsMuted ? "🔔 Включить звук" : "🔇 Без звука";
         var choice = await DisplayActionSheet(vm.Username, "Отмена", null,
-            archiveAction, muteAction, "🧹 Удалить чат");
+            archiveAction, muteAction, "🧹 Удалить чат", "🧽 Очистить историю");
 
         if (choice == archiveAction)
         {
@@ -404,27 +429,69 @@ public partial class DesktopMainPage : ContentPage, IDisposable
             await _chatManager.SetConversationMutedAsync(vm.Username, !vm.IsMuted);
             await RefreshAsync();
         }
-        else if (choice == "🧹 Удалить чат")
+        else if (choice == "🧹 Удалить чат" || choice == "🧽 Очистить историю")
         {
-            var confirmed = await DisplayAlert(
-                "Удалить чат",
-                $"Удалить чат с {vm.Username}? Сообщения будут удалены с этого устройства.",
-                "Удалить", "Отмена");
-            if (confirmed)
-            {
-                var deleted = await _chatManager.DeleteConversationAsync(vm.Username);
-                if (deleted)
-                {
-                    if (string.Equals(_selectedUsername, vm.Username, StringComparison.OrdinalIgnoreCase))
-                    {
-                        _selectedUsername = null;
-                        ConversationsView.SelectedItem = null;
-                    }
+            await DeleteOrClearConversationAsync(vm.Username, clearHistory: choice == "🧽 Очистить историю");
+        }
+    }
 
-                    await RefreshAsync();
-                }
+    /// <summary>
+    /// Удаление чата или очистка истории: сначала выбор области («для всех» /
+    /// «только у себя»), затем подтверждение.
+    /// </summary>
+    private async Task DeleteOrClearConversationAsync(string username, bool clearHistory)
+    {
+        var scopeChoice = await DisplayActionSheet(
+            clearHistory ? "Очистить историю?" : "Удалить чат?",
+            "Отмена",
+            null,
+            "Удалить для всех",
+            clearHistory ? "Только у себя" : "Удалить для себя");
+
+        if (scopeChoice is null || scopeChoice == "Отмена")
+        {
+            return;
+        }
+
+        var forEveryone = string.Equals(scopeChoice, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+
+        var confirmed = await DisplayAlert(
+            clearHistory ? "Очистить историю" : "Удалить чат",
+            clearHistory
+                ? forEveryone
+                    ? $"История переписки с {username} будет удалена у вас и у собеседника."
+                    : $"История переписки с {username} будет удалена только у вас."
+                : forEveryone
+                    ? $"Переписка с {username} будет удалена у вас и у собеседника."
+                    : $"Чат с {username} будет удалён только у вас. Собеседник увидит историю как раньше.",
+            "Удалить", "Отмена") == true;
+        if (!confirmed)
+        {
+            return;
+        }
+
+        bool ok;
+        if (clearHistory)
+        {
+            ok = await _chatManager.ClearConversationAsync(username, forEveryone);
+            ShowHint(ok
+                ? forEveryone ? "История удалена у всех" : "История удалена только у вас"
+                : "Не удалось очистить историю", isError: !ok);
+        }
+        else
+        {
+            ok = await _chatManager.DeleteConversationAsync(username, forEveryone);
+            ShowHint(ok
+                ? forEveryone ? "Чат удалён у всех" : "Чат удалён только у вас"
+                : "Не удалось удалить чат", isError: !ok);
+
+            if (ok && string.Equals(_selectedUsername, username, StringComparison.OrdinalIgnoreCase))
+            {
+                CloseChat();
             }
         }
+
+        await RefreshAsync();
     }
 
     private async void OnContactsClicked(object sender, EventArgs e)
@@ -669,6 +736,44 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         if (!_disposed)
         {
             StatusLabel.IsVisible = false;
+        }
+    }
+
+    /// <summary>Короткая подсказка о результате действия (удаление/очистка чата).</summary>
+    private void ShowHint(string text, bool isError = false)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        HintLabel.Text = text;
+        HintLabel.TextColor = isError
+            ? (Color)Application.Current!.Resources["Danger"]
+            : (Color)Application.Current!.Resources["TextMuted"];
+        HintLabel.IsVisible = true;
+
+        _hintCts?.Cancel();
+        _hintCts = new CancellationTokenSource();
+        _ = HideHintLaterAsync(isError ? 6000 : 4000, _hintCts.Token);
+    }
+
+    private async Task HideHintLaterAsync(int delayMs, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(delayMs, token);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (!_disposed)
+                {
+                    HintLabel.IsVisible = false;
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Новая подсказка заменила предыдущую.
         }
     }
 

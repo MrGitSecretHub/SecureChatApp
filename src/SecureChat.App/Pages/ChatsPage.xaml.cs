@@ -111,7 +111,7 @@ public partial class ChatsPage : ContentPage
         var archiveAction = vm.IsArchived ? "📤 Разархивировать" : "📦 Архивировать";
         var muteAction = vm.IsMuted ? "🔔 Включить звук" : "🔇 Без звука";
         var choice = await DisplayActionSheet(vm.Username, "Отмена", null,
-            archiveAction, muteAction, "🧹 Удалить чат");
+            archiveAction, muteAction, "🧹 Удалить чат", "🧽 Очистить историю");
 
         if (choice == archiveAction)
         {
@@ -122,94 +122,73 @@ public partial class ChatsPage : ContentPage
             await _chatManager.SetConversationMutedAsync(vm.Username, !vm.IsMuted);
             await RefreshAsync();
         }
-        else if (choice == "🧹 Удалить чат")
+        else if (choice == "🧹 Удалить чат" || choice == "🧽 Очистить историю")
         {
-            var actionChoice = await DisplayActionSheet(
-                "Что сделать с чатом?",
-                "Отмена",
-                null,
-                "Удалить чат",
-                "Очистить историю");
+            await DeleteOrClearConversationAsync(
+                vm.Username,
+                clearHistory: choice == "🧽 Очистить историю");
+        }
+    }
 
-            if (actionChoice == "Отмена" || actionChoice is null)
+    /// <summary>
+    /// Удаление чата или очистка истории: сначала выбор области («для всех» / «только у себя»), затем подтверждение.
+    /// </summary>
+    private async Task DeleteOrClearConversationAsync(string username, bool clearHistory)
+    {
+        var scopeChoice = await DisplayActionSheet(
+            clearHistory ? "Очистить историю?" : "Удалить чат?",
+            "Отмена",
+            null,
+            "Удалить для всех",
+            clearHistory ? "Только у себя" : "Удалить для себя");
+
+        if (scopeChoice is null || scopeChoice == "Отмена")
+        {
+            return;
+        }
+
+        var forEveryone = string.Equals(scopeChoice, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+
+        var confirmed = await DisplayAlert(
+            clearHistory ? "Очистить историю" : "Удалить чат",
+            clearHistory
+                ? forEveryone
+                    ? $"История переписки с {username} будет удалена у вас и у собеседника."
+                    : $"История переписки с {username} будет удалена только у вас."
+                : forEveryone
+                    ? $"Переписка с {username} будет удалена у вас и у собеседника."
+                    : $"Чат с {username} будет удален только у вас. Собеседник увидит историю как раньше.",
+            "Удалить", "Отмена") == true;
+        if (!confirmed)
+        {
+            return;
+        }
+
+        bool ok;
+        if (clearHistory)
+        {
+            ok = await _chatManager.ClearConversationAsync(username, forEveryone);
+            if (ok)
             {
-                return;
-            }
-
-            bool deleteForEveryone = false;
-            bool clearHistory = string.Equals(actionChoice, "Очистить историю", StringComparison.OrdinalIgnoreCase);
-
-            if (!clearHistory)
-            {
-                var scopeChoice = await DisplayActionSheet(
-                    "Удалить чат?",
-                    "Отмена",
-                    null,
-                    "Удалить для всех",
-                    "Удалить для себя");
-
-                if (scopeChoice == "Отмена" || scopeChoice is null)
-                {
-                    return;
-                }
-
-                deleteForEveryone = string.Equals(scopeChoice, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+                await RefreshAsync();
+                ShowHint(forEveryone ? "История удалена у всех" : "История удалена только у вас");
             }
             else
             {
-                var scopeChoice = await DisplayActionSheet(
-                    "Очистить историю?",
-                    "Отмена",
-                    null,
-                    "Удалить для всех",
-                    "Только у себя");
-
-                if (scopeChoice == "Отмена" || scopeChoice is null)
-                {
-                    return;
-                }
-
-                deleteForEveryone = string.Equals(scopeChoice, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+                ShowHint("Не удалось очистить историю", isError: true);
             }
-
-            var confirmed = await DisplayAlert(
-                "Удалить чат",
-                clearHistory
-                    ? deleteForEveryone
-                        ? $"История переписки с {vm.Username} будет удалена у вас и у собеседника."
-                        : $"История переписки с {vm.Username} будет удалена только у вас."
-                    : deleteForEveryone
-                        ? $"Переписка с {vm.Username} будет удалена у вас и у собеседника."
-                        : $"Чат с {vm.Username} будет удален только у вас. Собеседник увидит историю как раньше.",
-                "Удалить", "Отмена") == true;
-            if (confirmed)
+        }
+        else
+        {
+            ok = await _chatManager.DeleteConversationAsync(username, forEveryone);
+            if (ok)
             {
-                if (clearHistory)
-                {
-                    var cleared = await _chatManager.ClearConversationAsync(vm.Username, deleteForEveryone);
-                    if (cleared)
-                    {
-                        await RefreshAsync();
-                        ShowHint(deleteForEveryone ? "История удалена у всех" : "История удалена только у вас");
-                    }
-                    else
-                    {
-                        ShowHint("Не удалось очистить историю", isError: true);
-                    }
-                }
-                else
-                {
-                    var deleted = await _chatManager.DeleteConversationAsync(vm.Username, deleteForEveryone);
-                    if (deleted)
-                    {
-                        await RefreshAsync();
-                        ShowHint(deleteForEveryone ? "Чат удален у всех" : "Чат удален только у вас");
-                    }
-                    else
-                    {
-                        ShowHint("Не удалось удалить чат", isError: true);
-                    }
-                }
+                await RefreshAsync();
+                ShowHint(forEveryone ? "Чат удален у всех" : "Чат удален только у вас");
+            }
+            else
+            {
+                ShowHint("Не удалось удалить чат", isError: true);
             }
         }
     }

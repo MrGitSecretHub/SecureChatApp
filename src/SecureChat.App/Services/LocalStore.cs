@@ -1588,6 +1588,8 @@ public sealed class LocalStore
         LastMessageAtUnixMs = source.LastMessageAtUnixMs,
         UnreadCount = source.UnreadCount,
         KeysChanged = source.KeysChanged,
+        IsArchived = source.IsArchived,
+        IsMuted = source.IsMuted,
         Messages = source.Messages.Select(CloneMessage).ToList()
     };
 
