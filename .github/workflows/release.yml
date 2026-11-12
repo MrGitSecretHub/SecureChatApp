@@ -1,0 +1,132 @@
+name: release
+
+# Релиз 1.1 и последующие: тег вида v1.1.0 собирает Android-APK и
+# Windows-версию и публикует их в GitHub Release.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui-android
+
+      # Ключ подписи лежит в секретах репозитория:
+      #   ANDROID_KEYSTORE_BASE64 — base64 файла keys/securechat-release.keystore
+      #   ANDROID_KEYSTORE_PASS   — пароль ключа
+      #   ANDROID_KEY_ALIAS       — алиас ключа
+      # Если секреты не заданы, APK подписывается отладочным ключом.
+      - name: Prepare signing key
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          mkdir -p keys
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > keys/securechat-release.keystore
+          cat > src/SecureChat.App/keystore.props <<'PROPS'
+          <Project>
+            <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+              <AndroidKeyStore>true</AndroidKeyStore>
+              <AndroidSigningKeyStore>$(MSBuildThisFileDirectory)../../keys/securechat-release.keystore</AndroidSigningKeyStore>
+              <AndroidSigningKeyAlias>$(KEY_ALIAS)</AndroidSigningKeyAlias>
+              <AndroidSigningKeyPass>$(KEYSTORE_PASS)</AndroidSigningKeyPass>
+              <AndroidSigningStorePass>$(KEYSTORE_PASS)</AndroidSigningStorePass>
+            </PropertyGroup>
+          </Project>
+          PROPS
+
+      - name: Build Android APK
+        run: dotnet build src/SecureChat.App/SecureChat.App.csproj -f net9.0-android -c Release
+
+      - name: Collect APK
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          $apk = Get-ChildItem "src/SecureChat.App/bin/Release/net9.0-android/*.apk" |
+                 Where-Object { $_.Name -like "*Signed*" } | Select-Object -First 1
+          if (-not $apk) { $apk = Get-ChildItem "src/SecureChat.App/bin/Release/net9.0-android/*.apk" | Select-Object -First 1 }
+          Copy-Item $apk.FullName "release/SecureChat-1.1.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: securechat-apk
+          path: release/SecureChat-1.1.apk
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Install MAUI workload
+        run: dotnet workload restore src/SecureChat.App/SecureChat.App.csproj
+
+      - name: Build Windows app
+        run: dotnet build src/SecureChat.App/SecureChat.App.csproj -f net9.0-windows10.0.19041.0 -c Release
+
+      - name: Pack Windows build
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          Compress-Archive -Path "src/SecureChat.App/bin/Release/net9.0-windows10.0.19041.0/win10-x64/*" -DestinationPath "release/SecureChat-1.1-win-x64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: securechat-windows
+          path: release/SecureChat-1.1-win-x64.zip
+          if-no-files-found: error
+
+  publish:
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/securechat-apk/SecureChat-1.1.apk
+            artifacts/securechat-windows/SecureChat-1.1-win-x64.zip
+          generate_release_notes: true
+          body: |
+            SecureChat 1.1 — «Telegram-подобный интерфейс».
+
+            Изменения: меню скрепки в стиле Telegram, удаление и очистка
+            переписки («для себя» / «для всех»), обои пространств, панель
+            Эмодзи | Стикеры | GIF, обновление базы данных.
+
+            Полный список — в CHANGELOG.md репозитория.
+
+            Ограничения: push-уведомления в фоне не реализованы (уведомления
+            приходят, пока живёт процесс приложения), рабочая конфигурация
+            использует cleartext HTTP — для боевого развёртывания нужен HTTPS.
