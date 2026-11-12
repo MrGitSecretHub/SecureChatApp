@@ -825,12 +825,12 @@
             
 
 
-            <!-- Меню скрепки, как в Telegram (выезжает вверх над полем ввода) -->
+            <!-- Меню скрепки, как в Telegram (выезжает вверх над кнопкой 📎) -->
             <Border Grid.Row="6"
                     x:Name="AttachMenuPanel"
                     HorizontalOptions="Start"
-                    VerticalOptions="End"
-                    Margin="14,0,0,4"
+                    VerticalOptions="Start"
+                    Margin="14,-290,0,0"
                     BackgroundColor="{DynamicResource SurfaceAlt}"
                     Stroke="{DynamicResource BorderColor}"
                     StrokeThickness="1"
