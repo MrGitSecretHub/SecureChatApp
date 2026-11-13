@@ -2782,6 +2782,10 @@ public partial class ChatView : ContentView
             AddMenuItem("📋 Копировать ссылку", () => CopyUrlsAsync(message));
         }
         AddMenuItem("🔗 Ссылка на сообщение", () => CopyMessageLinkAsync(message));
+        if (message.Kind is not MessageKinds.Text and not MessageKinds.Sticker)
+        {
+            AddMenuItem("💾 Сохранить на устройство", () => SaveMessageMediaAsync(message));
+        }
         if (!string.Equals(_username, ChatManager.SelfChatUsername, StringComparison.OrdinalIgnoreCase))
         {
             AddMenuItem(message.IsArchived ? "📤 Разархивировать" : "📦 Архивировать",
@@ -2793,8 +2797,58 @@ public partial class ChatView : ContentView
         ContextMenuOverlay.IsVisible = true;
     }
 
-    private async Task ToggleArchiveAsync(MessageVm message)
+    /// <summary>Сохраняет вложение сообщения в галерею или в папку на устройстве.</summary>
+    private async Task SaveMessageMediaAsync(MessageVm message)
     {
+        var username = _username;
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return;
+        }
+
+        try
+        {
+            var bytes = await _chatManager.GetLocalMediaAsync(message.Id);
+            if (bytes is null)
+            {
+                if (!_chatManager.IsOnline)
+                {
+                    ShowHint("Нет подключения: вложение загрузится, когда связь восстановится.", isError: true);
+                    return;
+                }
+
+                await _chatManager.EnsureMediaAsync(username, message.Id, manual: true);
+                bytes = await _chatManager.GetLocalMediaAsync(message.Id);
+            }
+
+            if (bytes is null)
+            {
+                ShowHint("Вложение недоступно на этом устройстве.", isError: true);
+                return;
+            }
+
+            var fileName = string.IsNullOrWhiteSpace(message.FileName) ? "file" : message.FileName;
+            var result = await AppServices.Get<MediaSaveService>()
+                .SaveAsync(fileName, message.ContentType, bytes);
+
+            if (string.IsNullOrEmpty(result))
+            {
+                return;
+            }
+
+            ShowHint(
+                result.StartsWith("Не удалось", StringComparison.Ordinal)
+                    ? result
+                    : $"Сохранено: {result}",
+                isError: result.StartsWith("Не удалось", StringComparison.Ordinal));
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось сохранить: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task ToggleArchiveAsync(MessageVm message)    {
         if (_username is null)
         {
             return;

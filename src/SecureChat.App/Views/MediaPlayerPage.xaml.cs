@@ -1,3 +1,5 @@
+using SecureChat.App.Services;
+
 namespace SecureChat.App.Views;
 
 /// <summary>
@@ -12,9 +14,15 @@ namespace SecureChat.App.Views;
 /// </summary>
 public partial class MediaPlayerPage : ContentPage
 {
+    private readonly string _filePath;
+    private readonly string? _contentType;
+
     public MediaPlayerPage(string filePath, string? fileName, string? contentType, bool isVideoCircle = false)
     {
         InitializeComponent();
+
+        _filePath = filePath;
+        _contentType = contentType;
 
         Title = string.IsNullOrWhiteSpace(fileName) ? "Медиа" : fileName;
         BindingContext = this;
@@ -552,5 +560,33 @@ public partial class MediaPlayerPage : ContentPage
     {
         MediaWebView.Source = null;
         await Navigation.PopModalAsync();
+    }
+
+    /// <summary>Сохранить видео или аудио на устройство.</summary>
+    private async void OnSaveClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var fileName = string.IsNullOrWhiteSpace(Title) ? "media" : Title;
+            var bytes = await File.ReadAllBytesAsync(_filePath);
+            var contentType = ResolveMime(_contentType, _filePath);
+
+            var result = await AppServices.Get<MediaSaveService>()
+                .SaveAsync(fileName, contentType, bytes);
+
+            if (string.IsNullOrEmpty(result))
+            {
+                return;
+            }
+
+            await DisplayAlert(
+                result.StartsWith("Не удалось", StringComparison.Ordinal) ? "Ошибка" : "Сохранено",
+                result,
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", $"Не удалось сохранить: {ex.Message}", "OK");
+        }
     }
 }

@@ -21,6 +21,18 @@
             </Image.GestureRecognizers>
         </Image>
 
+        <Button Text="💾"
+                Style="{DynamicResource SecondaryButton}"
+                FontSize="18"
+                Padding="10"
+                WidthRequest="44"
+                HeightRequest="44"
+                HorizontalOptions="End"
+                VerticalOptions="Start"
+                Margin="12,12,64,0"
+                Clicked="OnSaveClicked"
+                ToolTipProperties.Text="Сохранить на устройство" />
+
         <Button Text="✕"
                 Style="{DynamicResource SecondaryButton}"
                 FontSize="18"

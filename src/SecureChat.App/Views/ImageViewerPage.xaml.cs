@@ -1,4 +1,5 @@
 using System.IO;
+using SecureChat.App.Services;
 
 namespace SecureChat.App.Views;
 
@@ -11,6 +12,9 @@ public partial class ImageViewerPage : ContentPage
     private const double MaxScale = 4.0;
     private const double DoubleTapScale = 2.5;
 
+    private readonly byte[] _bytes;
+    private readonly string _fileName;
+
     private double _currentScale = 1;
     private double _startScale = 1;
     private double _offsetX;
@@ -21,6 +25,9 @@ public partial class ImageViewerPage : ContentPage
     public ImageViewerPage(byte[] imageBytes, string? fileName)
     {
         InitializeComponent();
+
+        _bytes = imageBytes;
+        _fileName = string.IsNullOrWhiteSpace(fileName) ? "photo.jpg" : fileName;
 
         var isAnimatedGif = GifWebView.IsGifData(imageBytes);
         Title = string.IsNullOrWhiteSpace(fileName)
@@ -183,5 +190,31 @@ public partial class ImageViewerPage : ContentPage
     private async void OnCloseClicked(object? sender, EventArgs e)
     {
         await Navigation.PopModalAsync();
+    }
+
+    /// <summary>Сохранить фото на устройство: в галерею или в папку «Pictures».</summary>
+    private async void OnSaveClicked(object? sender, EventArgs e)
+    {
+        var contentType = Path.GetExtension(_fileName).ToLowerInvariant() switch
+        {
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".gif" => "image/gif",
+            ".heic" => "image/heic",
+            _ => "image/jpeg"
+        };
+
+        var result = await AppServices.Get<MediaSaveService>()
+            .SaveAsync(_fileName, contentType, _bytes);
+
+        if (string.IsNullOrEmpty(result))
+        {
+            return;
+        }
+
+        await DisplayAlert(
+            result.StartsWith("Не удалось", StringComparison.Ordinal) ? "Ошибка" : "Сохранено",
+            result,
+            "OK");
     }
 }
