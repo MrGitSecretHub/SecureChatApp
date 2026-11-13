@@ -24,7 +24,10 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     private readonly ObservableCollection<ConversationVm> _conversations = new();
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
-    private List<StoredConversation> _all = new();
+    // Вкладки («папки») считают бейджи по полному списку, поэтому держим оба среза:
+    // обычные чаты (с «Избранным» во главе) и архив.
+    private IReadOnlyList<StoredConversation> _regular = Array.Empty<StoredConversation>();
+    private IReadOnlyList<StoredConversation> _archived = Array.Empty<StoredConversation>();
     private CancellationTokenSource? _toastCts;
     private CancellationTokenSource? _statusCts;
     private CancellationTokenSource? _hintCts;
@@ -37,7 +40,6 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     private bool _windowHooked;
     private bool _promptOpen;
     private bool _disposed;
-    private bool _isArchiveMode;
 
     public DesktopMainPage()
     {
@@ -202,25 +204,22 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         await _refreshLock.WaitAsync();
         try
         {
-            var conversations = _isArchiveMode
-                ? await _chatManager.GetArchivedConversationsAsync()
-                : await _chatManager.GetConversationsAsync();
+            var regular = await _chatManager.GetConversationsAsync();
             if (_disposed)
             {
                 return;
             }
 
+            // «Избранное» всегда во главе списка обычных чатов.
             var selfConversation = await _chatManager.GetOrCreateSelfConversationAsync();
-            var all = new List<StoredConversation>();
-            if (!_isArchiveMode)
-            {
-                all.Add(selfConversation);
-            }
-            all.AddRange(conversations.Where(c => c.Username != ChatManager.SelfChatUsername));
+            var regularAll = new List<StoredConversation> { selfConversation };
+            regularAll.AddRange(regular.Where(c => c.Username != ChatManager.SelfChatUsername));
+            var archivedAll = await _chatManager.GetArchivedConversationsAsync();
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                _all = all;
+                _regular = regularAll;
+                _archived = archivedAll;
                 ApplyFilter();
                 UpdateWindowTitle();
             });
@@ -238,12 +237,19 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     private void ApplyFilter()
     {
         var query = SearchEntry.Text?.Trim();
+        var folder = _session.ChatFolder;
+        var source = folder == ChatFolders.Archive ? _archived : _regular;
 
         _suppressSelection = true;
         _conversations.Clear();
 
-        foreach (var conversation in _all)
+        foreach (var conversation in source)
         {
+            if (!ChatFolders.Matches(folder, conversation))
+            {
+                continue;
+            }
+
             if (!string.IsNullOrWhiteSpace(query) &&
                 !conversation.Username.Contains(query, StringComparison.OrdinalIgnoreCase) &&
                 !conversation.LastMessage.Contains(query, StringComparison.OrdinalIgnoreCase))
@@ -263,6 +269,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
                 string.Equals(item.Username, _selectedUsername, StringComparison.OrdinalIgnoreCase));
 
         _suppressSelection = false;
+        UpdateFolderTabs();
     }
 
     private void UpdateWindowTitle()
@@ -272,7 +279,8 @@ public partial class DesktopMainPage : ContentPage, IDisposable
             return;
         }
 
-        var unread = _all.Sum(item => item.UnreadCount);
+        var unread = _regular.Sum(item => item.UnreadCount) +
+                     _archived.Sum(item => item.UnreadCount);
         Window.Title = unread > 0 ? $"SecureChat ({unread})" : "SecureChat";
     }
 
@@ -391,10 +399,33 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     private async void OnSearchUsersClicked(object sender, EventArgs e) =>
         await Navigation.PushAsync(new SearchUsersPage());
 
-    private async void OnArchiveClicked(object sender, EventArgs e)
+    /// <summary>Переключение вкладки списка чатов («Все», «Непрочитанные», …).</summary>
+    private void OnFolderClicked(object sender, EventArgs e)
     {
-        _isArchiveMode = !_isArchiveMode;
-        await RefreshAsync();
+        if (sender is not Button { CommandParameter: string folder })
+        {
+            return;
+        }
+
+        _session.ChatFolder = folder;
+        ApplyFilter();
+    }
+
+    /// <summary>Вкладки: бейджи-счётчики по полному списку и подсветка активной.</summary>
+    private void UpdateFolderTabs()
+    {
+        Color Res(string key) => (Color)Application.Current!.Resources[key];
+        foreach (var button in new[]
+                 {
+                     FolderAllButton, FolderUnreadButton, FolderMutedButton, FolderArchiveButton,
+                 })
+        {
+            var folder = (string)button.CommandParameter;
+            button.Text = ChatFolders.TabText(folder, _regular, _archived.Count);
+            var selected = string.Equals(folder, _session.ChatFolder, StringComparison.Ordinal);
+            button.BackgroundColor = selected ? Res("Accent") : Res("SurfaceAlt");
+            button.TextColor = selected ? Res("AccentText") : Res("TextMuted");
+        }
     }
 
     private async void OnConversationMenuClicked(object sender, EventArgs e)

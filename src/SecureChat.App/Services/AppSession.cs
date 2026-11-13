@@ -158,6 +158,9 @@ public sealed class AppSession
     /// <summary>Автозагрузка вложений: «Всегда», «По Wi-Fi» или «Никогда».</summary>
     public string AutoDownloadMedia { get; set; } = MediaAutoDownload.Wifi;
 
+    /// <summary>Выбранная вкладка списка чатов: «Все», «Непрочитанные», «Без звука», «Архив».</summary>
+    public string ChatFolder { get; set; } = ChatFolders.All;
+
     /// <summary>Разрешена ли автозагрузка вложений при текущем подключении.</summary>
     public bool IsAutoDownloadAllowed => MediaAutoDownload.IsAllowed(AutoDownloadMedia);
 

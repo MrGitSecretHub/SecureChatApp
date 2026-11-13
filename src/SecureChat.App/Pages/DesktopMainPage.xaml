@@ -130,10 +130,10 @@
                 </Grid>
             </Border>
 
-            <!-- Статус и поиск -->
+            <!-- Статус, поиск и вкладки чатов -->
             <Grid Grid.Row="2"
                   Margin="12,0,12,8"
-                  RowDefinitions="Auto,Auto"
+                  RowDefinitions="Auto,Auto,Auto"
                   RowSpacing="8">
                 <Picker Grid.Row="0"
                         x:Name="StatusPicker"
@@ -145,6 +145,47 @@
                            Placeholder="Поиск по чатам (Enter — по сообщениям)"
                            TextChanged="OnSearchTextChanged"
                            SearchButtonPressed="OnGlobalSearchPressed" />
+                <!-- Вкладки списка, как папки в Telegram. Полоса прокрутки — Automatic:
+                     на Windows колесо мыши горизонталь не крутит, без неё обрезанные
+                     вкладки были бы недоступны. -->
+                <ScrollView Grid.Row="2"
+                            Orientation="Horizontal"
+                            HeightRequest="36">
+                    <HorizontalStackLayout Spacing="6">
+                        <Button x:Name="FolderAllButton"
+                                Text="Все"
+                                CommandParameter="Все"
+                                Clicked="OnFolderClicked"
+                                FontSize="11"
+                                HeightRequest="30"
+                                Padding="8,2"
+                                CornerRadius="14" />
+                        <Button x:Name="FolderUnreadButton"
+                                Text="Непрочитанные"
+                                CommandParameter="Непрочитанные"
+                                Clicked="OnFolderClicked"
+                                FontSize="11"
+                                HeightRequest="30"
+                                Padding="8,2"
+                                CornerRadius="14" />
+                        <Button x:Name="FolderMutedButton"
+                                Text="Без звука"
+                                CommandParameter="Без звука"
+                                Clicked="OnFolderClicked"
+                                FontSize="11"
+                                HeightRequest="30"
+                                Padding="8,2"
+                                CornerRadius="14" />
+                        <Button x:Name="FolderArchiveButton"
+                                Text="Архив"
+                                CommandParameter="Архив"
+                                Clicked="OnFolderClicked"
+                                FontSize="11"
+                                HeightRequest="30"
+                                Padding="8,2"
+                                CornerRadius="14" />
+                    </HorizontalStackLayout>
+                </ScrollView>
             </Grid>
 
             <!-- Список чатов -->
@@ -260,7 +301,7 @@
                   RowDefinitions="Auto,Auto"
                   RowSpacing="8">
                 <Grid Grid.Row="0"
-                      ColumnDefinitions="*,*,*,*,*"
+                      ColumnDefinitions="*,*,*,*"
                       ColumnSpacing="8">
                     <Button Grid.Column="0"
                             Text="➕"
@@ -294,14 +335,6 @@
                             BackgroundColor="{DynamicResource SurfaceAlt}"
                             Clicked="OnBrowserClicked"
                             ToolTipProperties.Text="Встроенный браузер" />
-                    <Button Grid.Column="4"
-                            Text="📥"
-                            FontSize="16"
-                            HeightRequest="42"
-                            Style="{DynamicResource IconButton}"
-                            BackgroundColor="{DynamicResource SurfaceAlt}"
-                            Clicked="OnArchiveClicked"
-                            ToolTipProperties.Text="Архив чатов" />
                 </Grid>
                 <Button Grid.Row="1"
                         Text="Выйти из аккаунта"

@@ -11,9 +11,12 @@ public partial class ChatsPage : ContentPage
 {
     private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
     private readonly AccountService _account = AppServices.Get<AccountService>();
+    private readonly AppSession _session = AppServices.Get<AppSession>();
     private readonly ObservableCollection<ConversationVm> _conversations = new();
+    // Полный список нужен для бейджей вкладок даже когда показан архив.
+    private IReadOnlyList<StoredConversation> _regular = Array.Empty<StoredConversation>();
+    private IReadOnlyList<StoredConversation> _archived = Array.Empty<StoredConversation>();
     private bool _subscribed;
-    private bool _isArchiveMode;
     private CancellationTokenSource? _hintCts;
 
     public ChatsPage()
@@ -76,14 +79,33 @@ public partial class ChatsPage : ContentPage
     private void OnConversationDeleted(string username) =>
         MainThread.BeginInvokeOnMainThread(async () => await RefreshAsync());
 
-    private async void OnToggleArchiveModeClicked(object sender, EventArgs e)
+    /// <summary>Переключение вкладки списка чатов («Все», «Непрочитанные», …).</summary>
+    private void OnFolderClicked(object sender, EventArgs e)
     {
-        _isArchiveMode = !_isArchiveMode;
-        ArchiveToggleButton.Text = _isArchiveMode ? "💬" : "📦";
-        ToolTipProperties.SetText(ArchiveToggleButton, _isArchiveMode
-            ? "Показать обычные чаты"
-            : "Показать архив чатов");
-        await RefreshAsync();
+        if (sender is not Button { CommandParameter: string folder })
+        {
+            return;
+        }
+
+        _session.ChatFolder = folder;
+        _ = RefreshAsync();
+    }
+
+    /// <summary>Вкладки: бейджи-счётчики по полному списку и подсветка активной.</summary>
+    private void UpdateFolderTabs()
+    {
+        Color Res(string key) => (Color)Application.Current!.Resources[key];
+        foreach (var button in new[]
+                 {
+                     FolderAllButton, FolderUnreadButton, FolderMutedButton, FolderArchiveButton,
+                 })
+        {
+            var folder = (string)button.CommandParameter;
+            button.Text = ChatFolders.TabText(folder, _regular, _archived.Count);
+            var selected = string.Equals(folder, _session.ChatFolder, StringComparison.Ordinal);
+            button.BackgroundColor = selected ? Res("Accent") : Res("SurfaceAlt");
+            button.TextColor = selected ? Res("AccentText") : Res("TextMuted");
+        }
     }
 
     private async Task ArchiveConversationAsync(string username, bool archived)
@@ -209,26 +231,32 @@ public partial class ChatsPage : ContentPage
 
     private async Task RefreshAsync()
     {
-        if (AppServices.Get<AppSession>().IsAuthenticated)
+        if (_session.IsAuthenticated)
         {
-            var conversations = _isArchiveMode
-                ? await _chatManager.GetArchivedConversationsAsync()
-                : await _chatManager.GetConversationsAsync();
+            var regular = await _chatManager.GetConversationsAsync();
 
             // «Избранное» (чат с самим собой) всегда показывается в начале списка.
-            if (!_isArchiveMode)
-            {
-                var self = await _chatManager.GetOrCreateSelfConversationAsync();
-                conversations = new[] { self }.Concat(conversations
-                    .Where(c => c.Username != ChatManager.SelfChatUsername))
-                    .ToList();
-            }
+            var self = await _chatManager.GetOrCreateSelfConversationAsync();
+            _regular = new[] { self }.Concat(regular
+                .Where(c => c.Username != ChatManager.SelfChatUsername))
+                .ToList();
+            _archived = await _chatManager.GetArchivedConversationsAsync();
+
+            var folder = _session.ChatFolder;
+            var source = folder == ChatFolders.Archive ? _archived : _regular;
 
             _conversations.Clear();
-            foreach (var conversation in conversations)
+            foreach (var conversation in source)
             {
+                if (!ChatFolders.Matches(folder, conversation))
+                {
+                    continue;
+                }
+
                 _conversations.Add(ConversationVm.From(conversation));
             }
+
+            UpdateFolderTabs();
         }
     }
 
