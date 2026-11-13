@@ -39,6 +39,10 @@ public partial class SpaceChatPage : ContentPage
     private readonly ObservableCollection<SpaceMessageVm> _pinnedItems = new();
     private int _currentPinnedIndex = -1;
 
+    // Переход к упоминаниям и ответам: список целевых сообщений лент + курсор.
+    private readonly List<SpaceMessageVm> _mentionTargets = new();
+    private int _mentionCursor = -1;
+
     /// <summary>Очередь отправки медиа в пространстве.</summary>
     private readonly ObservableCollection<PendingMediaItem> _pendingMedia = new();
     public IEnumerable<PendingMediaItem> PendingMedia => _pendingMedia;
@@ -220,6 +224,9 @@ public partial class SpaceChatPage : ContentPage
             _isMuted = await _chat.IsSpaceMutedAsync(_spaceId);
             MuteButton.Text = _isMuted ? "🔕" : "🔔";
 
+            // @all позволяют только владелец и администраторы.
+            MessageEntry.SetShowAll(_canModerate);
+
             // Для подсветки @упоминаний в сообщениях, отправленных до появления
             // этой функции (payload старых версий не несёт список упомянутых).
             SpaceMessageVm.SetFallbackMembers(
@@ -261,6 +268,7 @@ public partial class SpaceChatPage : ContentPage
             }
 
             RefreshDateLabels();
+            RefreshMentionJump();
             if (AppServices.Get<AppSession>().LinkPreviewEnabled)
             {
                 _ = EnsureSpacePreviewsAsync(_messages.ToList());
@@ -301,7 +309,8 @@ public partial class SpaceChatPage : ContentPage
             payload,
             _myUserId ?? string.Empty,
             _canModerate,
-            isChannel: _spaceType == SpaceTypes.Channel);
+            isChannel: _spaceType == SpaceTypes.Channel,
+            myUsername: AppServices.Get<AppSession>().User?.Username);
         vm.MentionTapped += OnMessageMentionTapped;
         vm.LinkTapped += OnMessageLinkTapped;
         return vm;
@@ -401,6 +410,7 @@ public partial class SpaceChatPage : ContentPage
                 });
             _messages.Add(vm);
             RefreshDateLabels();
+            RefreshMentionJump();
             if (AppServices.Get<AppSession>().LinkPreviewEnabled && vm.HasUrls)
             {
                 _ = EnsurePreviewAsync(vm);
@@ -436,9 +446,11 @@ public partial class SpaceChatPage : ContentPage
                 Text = text,
                 ReplyToMessageId = replyTarget?.Id,
                 ReplyToText = replyTarget?.ReplyToText,
-                Mentions = SpaceMentions.Parse(
+                ReplyToSender = replyTarget?.Sender,
+                Mentions = SpaceMentions.ParseForSend(
                     text,
-                    _members.Select(member => member.Username))
+                    _members.Select(member => member.Username),
+                    allowAll: _canModerate)
             };
 
             var sent = await _spaces.SendPayloadAsync(_spaceId, _topicId, payload);
@@ -530,6 +542,47 @@ public partial class SpaceChatPage : ContentPage
             }
 
             previous = local;
+        }
+    }
+
+    /// <summary>Цели перехода: загруженные сообщения с упоминанием или ответом мне.</summary>
+    private void RefreshMentionJump()
+    {
+        _mentionTargets.Clear();
+        foreach (var item in _messages)
+        {
+            if (!item.IsMine && (item.MentionedMe || item.RepliedToMe || item.MentionedByAll))
+            {
+                _mentionTargets.Add(item);
+            }
+        }
+
+        if (_mentionCursor >= _mentionTargets.Count)
+        {
+            _mentionCursor = -1;
+        }
+
+        MentionsButton.IsVisible = _mentionTargets.Count > 0;
+        MentionsButton.Text = _mentionTargets.Count > 0 ? $"🎯 {_mentionTargets.Count}" : "🎯";
+    }
+
+    /// <summary>Тап по 🎯 — прокрутка к следующему упоминанию/ответу, по кругу.</summary>
+    private void OnMentionsClicked(object sender, EventArgs e)
+    {
+        if (_mentionTargets.Count == 0)
+        {
+            return;
+        }
+
+        _mentionCursor = (_mentionCursor + 1) % _mentionTargets.Count;
+        var target = _mentionTargets[_mentionCursor];
+        try
+        {
+            MessagesView.ScrollTo(target, position: ScrollToPosition.Center, animate: true);
+        }
+        catch
+        {
+            // Сообщение могло ещё не отрисоваться — следующий тап повторит попытку.
         }
     }
 
@@ -1203,6 +1256,7 @@ public partial class SpaceChatPage : ContentPage
                 Text = glyph,
                 ReplyToMessageId = _replyingTo?.Id,
                 ReplyToText = _replyingTo?.ReplyToText,
+                ReplyToSender = _replyingTo?.Sender,
                 Mentions = SpaceMentions.Parse(glyph, _members.Select(member => member.Username))
             };
 

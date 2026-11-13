@@ -78,7 +78,16 @@ public sealed class SpaceMentionNotifier
             }
 
             var payload = await _spaces.DecryptPayloadAsync(message.SpaceId, message);
-            if (!SpaceMentions.HasMentionFor(payload, me.Username))
+
+            // Триггеры, как в Telegram: личное @упоминание, ответ на моё сообщение, @all.
+            var personal = payload is not null && payload.Mentions.Any(name =>
+                string.Equals(name, me.Username, StringComparison.OrdinalIgnoreCase));
+            var forAll = payload is not null && payload.Mentions.Contains(
+                SpaceMentions.AllToken, StringComparer.OrdinalIgnoreCase);
+            var repliedToMe = payload is not null && string.Equals(
+                payload.ReplyToSender, me.Username, StringComparison.OrdinalIgnoreCase);
+
+            if (!personal && !forAll && !repliedToMe)
             {
                 return;
             }
@@ -91,7 +100,12 @@ public sealed class SpaceMentionNotifier
 
             var spaceName = await ResolveSpaceNameAsync(message.SpaceId);
             var preview = MessagePreview.Build(payload!.Text ?? string.Empty);
-            var body = $"{message.SenderUsername} упомянул(а) вас: {preview}";
+            var what = personal
+                ? "упомянул(а) вас"
+                : repliedToMe
+                    ? "ответил(а) на ваше сообщение"
+                    : "упомянул(а) всех участников";
+            var body = $"{message.SenderUsername} {what}: {preview}";
 
             var viaSystem = false;
             if (DeviceInfo.Platform == DevicePlatform.Android && !AppLifecycle.IsForeground)

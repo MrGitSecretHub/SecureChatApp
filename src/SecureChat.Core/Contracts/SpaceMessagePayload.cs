@@ -23,6 +23,11 @@ public sealed class SpaceMessagePayload
     public string Text { get; set; } = string.Empty;
     public string? ReplyToMessageId { get; set; }
     public string? ReplyToText { get; set; }
+
+    /// <summary>Логин автора сообщения, на которое дан ответ. Нужен получателю,
+    /// чтобы без кэша id понять «это ответили мне» и показать уведомление.</summary>
+    public string? ReplyToSender { get; set; }
+
     public bool IsForwarded { get; set; }
     public SpaceMediaAttachment? Media { get; set; }
 
@@ -117,7 +122,8 @@ public static class SpaceMentions
         return result;
     }
 
-    /// <summary>Упомянули ли конкретного участника (учитывается логин участника, регистронезависимо).</summary>
+    /// <summary>Упомянули ли конкретного участника (учитывается логин участника,
+    /// регистронезависимо). Спец-метка @all считается упоминанием всех.</summary>
     public static bool HasMentionFor(SpaceMessagePayload? payload, string username)
     {
         if (payload is null || string.IsNullOrWhiteSpace(username))
@@ -126,7 +132,44 @@ public static class SpaceMentions
         }
 
         return payload.Mentions
-            .Any(name => string.Equals(name, username, StringComparison.OrdinalIgnoreCase));
+            .Any(name => string.Equals(name, username, StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(name, AllToken, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Спец-логин «@all»: упомянуть всех участников пространства.</summary>
+    public const string AllToken = "all";
+
+    /// <summary>Есть ли в тексте «@all» (как отдельный токен).</summary>
+    public static bool HasAll(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return false;
+        }
+
+        foreach (Match match in Token.Matches(text))
+        {
+            if (string.Equals(match.Groups[1].Value, AllToken, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Списки упомянутых при отправке: обычные участники плюс «all», если
+    /// разрешение на @all дано и токен есть в тексте.</summary>
+    public static List<string> ParseForSend(string? text, IEnumerable<string> knownUsernames, bool allowAll)
+    {
+        var result = Parse(text, knownUsernames);
+        if (allowAll && HasAll(text) &&
+            !result.Contains(AllToken, StringComparer.OrdinalIgnoreCase))
+        {
+            result.Add(AllToken);
+        }
+
+        return result;
     }
 
     /// <summary>Разбивает текст на куски: обычные или упоминания (для подсветки в интерфейсе).</summary>

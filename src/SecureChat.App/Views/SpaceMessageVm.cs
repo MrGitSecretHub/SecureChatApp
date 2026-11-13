@@ -292,6 +292,24 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         }
     }
 
+    /// <summary>В этом сообщении упомянули лично меня.</summary>
+    public bool MentionedMe { get; private set; }
+
+    /// <summary>Упомянули всех через @all (без личного упоминания).</summary>
+    public bool MentionedByAll { get; private set; }
+
+    /// <summary>Это ответ на моё сообщение.</summary>
+    public bool RepliedToMe { get; private set; }
+
+    /// <summary>Плашка в ленте: упоминание или ответ, адресованные мне.</summary>
+    public bool ShowMentionBadge => !IsMine && (MentionedMe || MentionedByAll || RepliedToMe);
+
+    public string MentionBadgeText => MentionedMe
+        ? "🔔 Упомянули вас"
+        : RepliedToMe
+            ? "↩ Ответ вам"
+            : "📢 Упомянули всех";
+
     /// <summary>Имена для подсветки: из payload или (для старых сообщений) по текущим участникам.</summary>
     private IReadOnlyCollection<string> RenderMentions()
     {
@@ -572,7 +590,8 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         SpaceMessagePayload payload,
         string myUserId,
         bool canModerate,
-        bool isChannel = false)
+        bool isChannel = false,
+        string? myUsername = null)
     {
         var mine = string.Equals(source.SenderId, myUserId, StringComparison.Ordinal);
         var vm = new SpaceMessageVm(isChannel)
@@ -609,6 +628,17 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         vm.RebuildTextFormatted();
         vm.RebuildLinks();
         vm.SetReactions(source.Reactions, myUserId);
+
+        if (!string.IsNullOrEmpty(myUsername))
+        {
+            vm.MentionedMe = vm.Mentions.Any(name =>
+                string.Equals(name, myUsername, StringComparison.OrdinalIgnoreCase));
+            vm.MentionedByAll = !vm.MentionedMe && vm.Mentions.Contains(
+                SpaceMentions.AllToken, StringComparer.OrdinalIgnoreCase);
+            vm.RepliedToMe = string.Equals(payload.ReplyToSender, myUsername,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
         return vm;
     }
 

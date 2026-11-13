@@ -19,7 +19,14 @@ public partial class MentionEntryView : ContentView
     public sealed class MentionItem
     {
         public required string Username { get; init; }
-        public string Initial => Username.Length == 0 ? "?" : Username[..1].ToUpperInvariant();
+
+        public string Initial => string.Equals(Username, "all", StringComparison.OrdinalIgnoreCase)
+            ? "👥"
+            : Username.Length == 0 ? "?" : Username[..1].ToUpperInvariant();
+
+        public string Subtitle => string.Equals(Username, "all", StringComparison.OrdinalIgnoreCase)
+            ? "упомянуть всех участников"
+            : "@" + Username;
     }
 
     private readonly List<string> _usernames = new();
@@ -52,6 +59,11 @@ public partial class MentionEntryView : ContentView
         _usernames.Sort(StringComparer.OrdinalIgnoreCase);
         HideMenu();
     }
+
+    /// <summary>Показывать в меню строку «@all» (владелец и администраторы).</summary>
+    public void SetShowAll(bool showAll) => _showAll = showAll;
+
+    private bool _showAll;
 
     /// <summary>Скрывает меню упоминаний.</summary>
     public void HideMenu()
@@ -192,6 +204,13 @@ public partial class MentionEntryView : ContentView
         _tokenStart = start;
         _token = typed;
 
+        // Строка «@all» — первой, если модератору разрешено и префикс подходит.
+        if (_showAll && "all".StartsWith(typed, StringComparison.OrdinalIgnoreCase))
+        {
+            matches.RemoveAll(name => string.Equals(name, "all", StringComparison.OrdinalIgnoreCase));
+            matches.Insert(0, "all");
+        }
+
         if (matches.Count == 0)
         {
             HideMenu();
@@ -305,7 +324,7 @@ public partial class MentionEntryView : ContentView
                         },
                         new Label
                         {
-                            Text = "@" + item.Username,
+                            Text = item.Subtitle,
                             FontSize = 12,
                             TextColor = ResolveResource<Color>("TextMuted", Colors.Gray),
                             VerticalOptions = LayoutOptions.Center

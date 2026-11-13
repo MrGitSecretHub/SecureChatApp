@@ -38,7 +38,7 @@
 
         <!-- Шапка: тип, название, кнопки -->
         <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*,Auto,Auto,Auto"
+              ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto"
               ColumnSpacing="8"
               Padding="14,10"
               BackgroundColor="{DynamicResource Surface}">
@@ -83,12 +83,20 @@
                     IsVisible="False"
                     ToolTipProperties.Text="Темы форума" />
             <Button Grid.Column="3"
+                    x:Name="MentionsButton"
+                    Text="🎯"
+                    FontSize="14"
+                    Style="{DynamicResource IconButton}"
+                    Clicked="OnMentionsClicked"
+                    IsVisible="False"
+                    ToolTipProperties.Text="Перейти к упоминаниям и ответам вам" />
+            <Button Grid.Column="4"
                     Text="⚙️"
                     FontSize="16"
                     Style="{DynamicResource IconButton}"
                     Clicked="OnSettingsClicked"
                     ToolTipProperties.Text="Настройки пространства" />
-            <Button Grid.Column="4"
+            <Button Grid.Column="5"
                     x:Name="MuteButton"
                     Text="🔔"
                     FontSize="16"
@@ -318,6 +326,17 @@
                             </Border.GestureRecognizers>
 
                             <VerticalStackLayout Spacing="4">
+
+                                <!-- Плашка «упомянули/ответили вам» -->
+                                <Label Text="{Binding MentionBadgeText}"
+                                       IsVisible="{Binding ShowMentionBadge}"
+                                       FontSize="10"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource AccentText}"
+                                       BackgroundColor="{DynamicResource Accent}"
+                                       Padding="6,1"
+                                       Margin="0,0,0,2"
+                                       HorizontalOptions="Start" />
 
                                 <Label Text="{Binding Sender}"
                                        IsVisible="{Binding ShowAvatar}"

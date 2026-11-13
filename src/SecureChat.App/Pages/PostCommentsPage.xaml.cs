@@ -123,7 +123,8 @@ public partial class PostCommentsPage : ContentPage
 
     private SpaceMessageVm CreateVm(SpaceMessageDto message, SpaceMessagePayload payload)
     {
-        var vm = SpaceMessageVm.From(message, payload, _myUserId, _canModerate);
+        var vm = SpaceMessageVm.From(message, payload, _myUserId, _canModerate,
+            myUsername: AppServices.Get<AppSession>().User?.Username);
         vm.MentionTapped += OnMentionTapped;
         vm.LinkTapped += OnLinkTapped;
         return vm;
