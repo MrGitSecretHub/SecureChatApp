@@ -1312,6 +1312,105 @@ public sealed class LocalStore
         return DecryptMedia(messageId, protectedBytes);
     }
 
+    /// <summary>Сколько места занимает кэш вложений: байты и число файлов.</summary>
+    public async Task<(long Bytes, int Files)> GetMediaCacheInfoAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+
+        long bytes = 0;
+        var files = 0;
+
+        try
+        {
+            if (Directory.Exists(MediaDirectory))
+            {
+                foreach (var file in Directory.EnumerateFiles(MediaDirectory, "*.bin"))
+                {
+                    var info = new FileInfo(file);
+                    if (!info.Exists)
+                    {
+                        continue;
+                    }
+
+                    bytes += info.Length;
+                    files++;
+                }
+            }
+        }
+        catch
+        {
+            // Не удалось посчитать кэш — покажем нули.
+        }
+
+        return (bytes, files);
+    }
+
+    /// <summary>
+    /// Освобождает место: удаляет локальные копии вложений. Сообщения и их
+    /// шифротексты остаются, файлы снова скачаются при открытии.
+    /// </summary>
+    public async Task<long> ClearMediaCacheAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+
+            var removed = 0L;
+            foreach (var conversation in _state!.Conversations)
+            {
+                foreach (var message in conversation.Messages)
+                {
+                    if (message.MediaDownloaded)
+                    {
+                        message.MediaDownloaded = false;
+                    }
+                }
+            }
+
+            await SaveAsync();
+
+            try
+            {
+                if (Directory.Exists(MediaDirectory))
+                {
+                    foreach (var file in Directory.EnumerateFiles(MediaDirectory, "*.bin"))
+                    {
+                        try
+                        {
+                            var length = new FileInfo(file).Length;
+                            File.Delete(file);
+                            removed += length;
+                        }
+                        catch
+                        {
+                            // Файл занят — пропускаем.
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Часть файлов могла остаться.
+            }
+
+            return removed;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Удаляет все сообщения локально.</summary>
     public async Task DeleteAllAsync()
     {
         await _lock.WaitAsync();

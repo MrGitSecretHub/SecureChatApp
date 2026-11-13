@@ -471,9 +471,33 @@
                                                 <Border.StrokeShape>
                                                     <RoundRectangle CornerRadius="10" />
                                                 </Border.StrokeShape>
-                                                <Label Text="Загрузка изображения…"
-                                                       FontSize="12"
-                                                       TextColor="{DynamicResource TextMuted}" />
+                                                <VerticalStackLayout Spacing="6">
+                                                    <Label Text="Загрузка изображения…"
+                                                           FontSize="12"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           IsVisible="{Binding ShowMediaDownloadText}" />
+                                                    <Grid IsVisible="{Binding IsMediaDownloading}"
+                                                          ColumnDefinitions="*,Auto"
+                                                          ColumnSpacing="8">
+                                                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                                            <ProgressBar Progress="{Binding MediaProgress}"
+                                                                         ProgressColor="{DynamicResource Accent}"
+                                                                         BackgroundColor="{DynamicResource BorderColor}"
+                                                                         HeightRequest="4" />
+                                                            <Label Text="{Binding MediaProgressText}"
+                                                                   FontSize="11"
+                                                                   TextColor="{DynamicResource TextMuted}" />
+                                                        </VerticalStackLayout>
+                                                        <Button Grid.Column="1"
+                                                                Text="✕"
+                                                                Style="{DynamicResource IconButton}"
+                                                                Clicked="OnCancelMediaDownloadClicked"
+                                                                CommandParameter="{Binding Id}"
+                                                                WidthRequest="30"
+                                                                HeightRequest="30"
+                                                                VerticalOptions="Center" />
+                                                    </Grid>
+                                                </VerticalStackLayout>
                                             </Border>
                                             <Grid IsVisible="{Binding IsImageReady}">
                                                 <views:GifWebView IsVisible="{Binding IsAnimatedGif}"
@@ -506,10 +530,33 @@
                                                               Bytes="{Binding VideoBytes}"
                                                               MediaContentType="{Binding ContentType}"
                                                               SurfaceHex="#000000" />
-                                            <Label IsVisible="{Binding IsVideoPending}"
-                                                   Text="Загрузка видео…"
-                                                   FontSize="12"
-                                                   TextColor="{DynamicResource TextMuted}" />
+                                            <Grid IsVisible="{Binding IsVideoPending}"
+                                                  ColumnDefinitions="*,Auto"
+                                                  ColumnSpacing="8">
+                                                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                                    <Label Text="Загрузка видео…"
+                                                           FontSize="12"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           IsVisible="{Binding ShowMediaDownloadText}" />
+                                                    <ProgressBar Progress="{Binding MediaProgress}"
+                                                                 ProgressColor="{DynamicResource Accent}"
+                                                                 BackgroundColor="{DynamicResource BorderColor}"
+                                                                 HeightRequest="4"
+                                                                 IsVisible="{Binding IsMediaDownloading}" />
+                                                    <Label Text="{Binding MediaProgressText}"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           IsVisible="{Binding IsMediaDownloading}" />
+                                                </VerticalStackLayout>
+                                                <Button Grid.Column="1"
+                                                        Text="✕"
+                                                        Style="{DynamicResource IconButton}"
+                                                        Clicked="OnCancelMediaDownloadClicked"
+                                                        CommandParameter="{Binding Id}"
+                                                        WidthRequest="30"
+                                                        HeightRequest="30"
+                                                        VerticalOptions="Center" />
+                                            </Grid>
                                         </Grid>
 
                                         <!-- Файл -->
@@ -540,17 +587,36 @@
                                                            FontSize="11"
                                                            TextColor="{DynamicResource TextMuted}"
                                                            IsVisible="{Binding IsFilePending}" />
+                                                    <ProgressBar Progress="{Binding MediaProgress}"
+                                                                 ProgressColor="{DynamicResource Accent}"
+                                                                 BackgroundColor="{DynamicResource BorderColor}"
+                                                                 HeightRequest="4"
+                                                                 IsVisible="{Binding IsMediaDownloading}" />
+                                                    <Label Text="{Binding MediaProgressText}"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           IsVisible="{Binding IsMediaDownloading}" />
                                                 </VerticalStackLayout>
-                                                <Button Grid.Column="2"
-                                                        Text="{Binding ActionButtonText}"
-                                                        IsVisible="{Binding CanOpenFile}"
-                                                        Style="{DynamicResource GhostButton}"
-                                                        FontSize="12"
-                                                        Padding="8,2"
-                                                        HeightRequest="28"
-                                                        VerticalOptions="Center"
-                                                        CommandParameter="{Binding .}"
-                                                        Clicked="OnMediaActionClicked" />
+                                                <HorizontalStackLayout Grid.Column="2"
+                                                                     Spacing="4"
+                                                                     VerticalOptions="Center">
+                                                    <Button Text="✕"
+                                                            IsVisible="{Binding IsMediaDownloading}"
+                                                            Style="{DynamicResource IconButton}"
+                                                            Clicked="OnCancelMediaDownloadClicked"
+                                                            CommandParameter="{Binding Id}"
+                                                            WidthRequest="30"
+                                                            HeightRequest="30" />
+                                                    <Button Text="{Binding ActionButtonText}"
+                                                            IsVisible="{Binding CanOpenFile}"
+                                                            Style="{DynamicResource GhostButton}"
+                                                            FontSize="12"
+                                                            Padding="8,2"
+                                                            HeightRequest="28"
+                                                            VerticalOptions="Center"
+                                                            CommandParameter="{Binding .}"
+                                                            Clicked="OnMediaActionClicked" />
+                                                </HorizontalStackLayout>
                                             </Grid>
                                         </Border>
 

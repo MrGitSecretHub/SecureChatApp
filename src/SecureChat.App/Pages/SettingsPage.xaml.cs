@@ -57,6 +57,18 @@ public partial class SettingsPage : ContentPage
             ThemePicker.SelectedIndex = 0;
         }
 
+        AutoDownloadPicker.Items.Clear();
+        foreach (var option in MediaAutoDownload.Options)
+        {
+            AutoDownloadPicker.Items.Add(option);
+        }
+
+        AutoDownloadPicker.SelectedIndex = Math.Max(
+            0,
+            Array.IndexOf(MediaAutoDownload.Options, _session.AutoDownloadMedia));
+
+        _ = RefreshMediaCacheAsync();
+
         FontScalePicker.Items.Clear();
         FontScalePicker.Items.Add("Маленький");
         FontScalePicker.Items.Add("Обычный");
@@ -513,6 +525,67 @@ public partial class SettingsPage : ContentPage
         _session.NotifyAppearanceChanged();
         await App.SaveAppearanceAsync();
     }
+
+    /// <summary>Показывает, сколько места занимают локальные копии вложений.</summary>
+    private async Task RefreshMediaCacheAsync()
+    {
+        try
+        {
+            var (bytes, files) = await _localStore.GetMediaCacheInfoAsync();
+            MediaCacheLabel.Text = files == 0
+                ? "Вложения не загружены — места не занимает."
+                : $"{FormatBytes(bytes)} · файлов: {files}";
+            ClearMediaCacheButton.IsEnabled = files > 0;
+        }
+        catch
+        {
+            MediaCacheLabel.Text = "Не удалось посчитать размер кэша.";
+        }
+    }
+
+    /// <summary>Удаляет локальные копии вложений: переписка остаётся.</summary>
+    private async void OnClearMediaCacheClicked(object? sender, EventArgs e)
+    {
+        var confirmed = await DisplayAlert(
+            "Освободить место",
+            "Локальные копии вложений будут удалены. Переписка и файлы на сервере останутся — вложения снова скачаются, когда их откроют.",
+            "Очистить", "Отмена");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var freed = await _localStore.ClearMediaCacheAsync();
+        await RefreshMediaCacheAsync();
+
+        await DisplayAlert(
+            "Готово",
+            freed > 0
+                ? $"Освобождено {FormatBytes(freed)}."
+                : "Локальных копий вложений не было.",
+            "OK");
+    }
+
+    /// <summary>Режим автозагрузки вложений.</summary>
+    private async void OnAutoDownloadChanged(object? sender, EventArgs e)
+    {
+        var index = AutoDownloadPicker.SelectedIndex;
+        if (index < 0 || index >= MediaAutoDownload.Options.Length)
+        {
+            return;
+        }
+
+        _session.AutoDownloadMedia = MediaAutoDownload.Options[index];
+        await SavePrivacyAsync();
+    }
+
+    private static string FormatBytes(long bytes) => bytes switch
+    {
+        <= 0 => "0 Б",
+        < 1024 => $"{bytes} Б",
+        < 1024 * 1024 => $"{bytes / 1024.0:0.#} КБ",
+        _ => $"{bytes / (1024.0 * 1024):0.#} МБ"
+    };
 
     private void OnNicknameChanged(object sender, TextChangedEventArgs e)
     {

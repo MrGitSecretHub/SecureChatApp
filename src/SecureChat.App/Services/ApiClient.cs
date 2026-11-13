@@ -298,6 +298,7 @@ public sealed class ApiClient : IDisposable
         string serverUrl,
         string token,
         string mediaId,
+        IProgress<long>? progress = null,
         CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(
@@ -317,13 +318,33 @@ public sealed class ApiClient : IDisposable
             throw new ApiException(response.StatusCode, "Вложение слишком большое.");
         }
 
-        var data = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-        if (data.Length > MediaLimits.MaxBytes)
+        // Читаем поток частями, чтобы показывать прогресс и не держать
+        // в памяти две копии файла.
+        var total = response.Content.Headers.ContentLength ?? 0;
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var output = new MemoryStream();
+        var buffer = new byte[128 * 1024];
+        long downloaded = 0;
+
+        while (true)
         {
-            throw new ApiException(response.StatusCode, "Вложение слишком большое.");
+            var count = await stream.ReadAsync(buffer, cancellationToken);
+            if (count <= 0)
+            {
+                break;
+            }
+
+            downloaded += count;
+            if (downloaded > MediaLimits.MaxBytes)
+            {
+                throw new ApiException(response.StatusCode, "Вложение слишком большое.");
+            }
+
+            await output.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
+            progress?.Report(downloaded);
         }
 
-        return data;
+        return output.ToArray();
     }
 
     private static async Task EnsureSuccessAsync(

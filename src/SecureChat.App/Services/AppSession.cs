@@ -155,6 +155,12 @@ public sealed class AppSession
     /// <summary>Заблокированные пользователи (имена пользователей).</summary>
     public List<string> BlockedUsernames { get; set; } = new();
 
+    /// <summary>Автозагрузка вложений: «Всегда», «По Wi-Fi» или «Никогда».</summary>
+    public string AutoDownloadMedia { get; set; } = MediaAutoDownload.Wifi;
+
+    /// <summary>Разрешена ли автозагрузка вложений при текущем подключении.</summary>
+    public bool IsAutoDownloadAllowed => MediaAutoDownload.IsAllowed(AutoDownloadMedia);
+
     public bool IsBlocked(string username) =>
         BlockedUsernames.Any(name => string.Equals(name, username, StringComparison.OrdinalIgnoreCase));
 

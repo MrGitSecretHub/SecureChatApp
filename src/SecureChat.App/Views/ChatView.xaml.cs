@@ -423,6 +423,7 @@ public partial class ChatView : ContentView
         _chatManager.MessageAdded += OnMessageAdded;
         _chatManager.MessageStatusChanged += OnMessageStatusChanged;
         _chatManager.MessageMediaChanged += OnMessageMediaChanged;
+        _chatManager.MessageMediaProgress += OnMessageMediaProgress;
         _chatManager.MessageDeleted += OnMessageDeleted;
         _chatManager.ConversationDeleted += OnConversationDeleted;
         _chatManager.ConversationCleared += OnConversationCleared;
@@ -442,6 +443,7 @@ public partial class ChatView : ContentView
         _chatManager.MessageAdded -= OnMessageAdded;
         _chatManager.MessageStatusChanged -= OnMessageStatusChanged;
         _chatManager.MessageMediaChanged -= OnMessageMediaChanged;
+        _chatManager.MessageMediaProgress -= OnMessageMediaProgress;
         _chatManager.MessageDeleted -= OnMessageDeleted;
         _chatManager.ConversationDeleted -= OnConversationDeleted;
         _chatManager.ConversationCleared -= OnConversationCleared;
@@ -741,6 +743,27 @@ public partial class ChatView : ContentView
                 _ = ReloadMediaAsync(message, username);
             }
         });
+
+    /// <summary>Прогресс загрузки вложения: обновляем полосу в пузыре сообщения.</summary>
+    private void OnMessageMediaProgress(string messageId, string username, long downloaded, long total) =>
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (!IsCurrent(username))
+            {
+                return;
+            }
+
+            FindMessage(messageId)?.SetMediaProgress(downloaded, total);
+        });
+
+    /// <summary>Кнопка ✕ у загружаемого вложения — отменить загрузку.</summary>
+    private void OnCancelMediaDownloadClicked(object sender, EventArgs e)
+    {
+        if (sender is Button { CommandParameter: string messageId })
+        {
+            _chatManager.CancelMediaDownload(messageId);
+        }
+    }
 
     private void OnTypingReceived(string username) =>
         MainThread.BeginInvokeOnMainThread(() =>
@@ -2368,7 +2391,7 @@ public partial class ChatView : ContentView
                     return;
                 }
 
-                await _chatManager.EnsureMediaAsync(_username, message.Id);
+                await _chatManager.EnsureMediaAsync(_username, message.Id, manual: true);
                 bytes = await _chatManager.GetLocalMediaAsync(message.Id);
             }
 
@@ -2412,7 +2435,7 @@ public partial class ChatView : ContentView
                     return;
                 }
 
-                await _chatManager.EnsureMediaAsync(user, message.Id);
+                await _chatManager.EnsureMediaAsync(user, message.Id, manual: true);
             }
 
             var bytes = await _chatManager.GetLocalMediaAsync(message.Id);
@@ -2481,7 +2504,7 @@ public partial class ChatView : ContentView
                     return;
                 }
 
-                await _chatManager.EnsureMediaAsync(_username, message.Id);
+                await _chatManager.EnsureMediaAsync(_username, message.Id, manual: true);
             }
 
             var bytes = await _chatManager.GetLocalMediaAsync(message.Id);
@@ -2612,7 +2635,7 @@ public partial class ChatView : ContentView
                     return;
                 }
 
-                await _chatManager.EnsureMediaAsync(_username, message.Id);
+                await _chatManager.EnsureMediaAsync(_username, message.Id, manual: true);
             }
 
             var bytes = await _chatManager.GetLocalMediaAsync(message.Id);

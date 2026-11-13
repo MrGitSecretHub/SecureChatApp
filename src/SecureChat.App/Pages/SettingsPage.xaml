@@ -584,6 +584,45 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- ============================================================
+                 МЕДИА И ПАМЯТЬ
+                 ============================================================ -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="10">
+
+                    <Label Text="Медиа и память" Style="{DynamicResource H2}" />
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="Занято вложениями" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label x:Name="MediaCacheLabel"
+                                   Text="Считаем…"
+                                   Style="{DynamicResource Caption}" />
+                        </VerticalStackLayout>
+                        <Button Grid.Column="1"
+                                x:Name="ClearMediaCacheButton"
+                                Text="Освободить место"
+                                Style="{DynamicResource SecondaryButton}"
+                                VerticalOptions="Center"
+                                Clicked="OnClearMediaCacheClicked" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="Автозагрузка вложений" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="«По Wi-Fi» не тянет крупные файлы через мобильную сеть"
+                                   Style="{DynamicResource Caption}" />
+                        </VerticalStackLayout>
+                        <Picker x:Name="AutoDownloadPicker"
+                                Grid.Column="1"
+                                SelectedIndexChanged="OnAutoDownloadChanged"
+                                VerticalOptions="Center"
+                                TextColor="{DynamicResource TextPrimary}" />
+                    </Grid>
+
+                </VerticalStackLayout>
+            </Border>
+
             <Label Text="SecureChat 1.1 — учебно-демонстрационное защищённое приложение."
                    Style="{DynamicResource Caption}"
                    HorizontalTextAlignment="Center" />

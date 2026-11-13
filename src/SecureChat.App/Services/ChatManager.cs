@@ -18,6 +18,7 @@ public sealed class ChatManager
     private readonly ChatService _chatService;
     private readonly ApiClient _apiClient;
     private readonly ConcurrentDictionary<string, Task> _mediaDownloads = new();
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _mediaDownloadCts = new();
     private readonly ConcurrentDictionary<string, bool> _mutedChats = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _queueFlushGate = new(1, 1);
     private readonly object _reconnectSync = new();
@@ -92,6 +93,9 @@ public sealed class ChatManager
     public event Action<string>? MessageDeleted;
     public event Action<string, string>? MessageStatusChanged;
     public event Action<string, string>? MessageMediaChanged;
+
+    /// <summary>Прогресс загрузки вложения: идентификатор, чат, скачано байт, всего байт.</summary>
+    public event Action<string, string, long, long>? MessageMediaProgress;
     public event Action<string>? TypingReceived;
     public event Action<string>? Error;
     public event Action<bool>? ConnectionStateChanged;
@@ -651,9 +655,16 @@ public sealed class ChatManager
     /// Загружает вложение с сервера, если его ещё нет локально. Повторный
     /// вызов для того же сообщения переиспользует уже идущую загрузку.
     /// </summary>
-    public Task EnsureMediaAsync(string username, string messageId)
+    public Task EnsureMediaAsync(string username, string messageId, bool manual = false)
     {
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(messageId))
+        {
+            return Task.CompletedTask;
+        }
+
+        // Автозагрузка может быть отключена («Никогда» или «По Wi-Fi» вне Wi-Fi):
+        // тогда файл скачает сам пользователь по кнопке «Загрузить».
+        if (!manual && !_session.IsAutoDownloadAllowed)
         {
             return Task.CompletedTask;
         }
@@ -1361,6 +1372,9 @@ public sealed class ChatManager
 
     private async Task DownloadMediaCoreAsync(string username, string messageId)
     {
+        var cts = new CancellationTokenSource();
+        _mediaDownloadCts[messageId] = cts;
+
         try
         {
             var message = await _localStore.GetMessageAsync(username, messageId);
@@ -1373,10 +1387,19 @@ public sealed class ChatManager
                 return;
             }
 
+            var progress = new Progress<long>(downloaded =>
+                MessageMediaProgress?.Invoke(
+                    messageId,
+                    username,
+                    downloaded,
+                    message.MediaSize > 0 ? message.MediaSize : 0));
+
             var ciphertext = await _apiClient.DownloadMediaAsync(
                 _session.ServerUrl,
                 _session.Token!,
-                message.MediaId);
+                message.MediaId,
+                progress,
+                cts.Token);
 
             var plaintext = await Task.Run(() => MediaCrypto.Decrypt(
                 message.MediaId,
@@ -1395,6 +1418,10 @@ public sealed class ChatManager
                 MessageMediaChanged?.Invoke(messageId, username);
             }
         }
+        catch (OperationCanceledException)
+        {
+            // Загрузку отменил пользователь — молча прерываем.
+        }
         catch (Exception ex)
         {
             if (_chatService.IsConnected)
@@ -1405,6 +1432,25 @@ public sealed class ChatManager
         finally
         {
             _mediaDownloads.TryRemove(messageId, out _);
+            _mediaDownloadCts.TryRemove(messageId, out var source);
+            source?.Dispose();
+            MessageMediaProgress?.Invoke(messageId, username, -1, 0);
+        }
+    }
+
+    /// <summary>Отменяет загрузку вложения (вызвано кнопкой ✕ в пузыре).</summary>
+    public void CancelMediaDownload(string messageId)
+    {
+        if (_mediaDownloadCts.TryGetValue(messageId, out var source))
+        {
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Загрузка уже завершилась.
+            }
         }
     }
 

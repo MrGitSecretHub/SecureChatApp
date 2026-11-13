@@ -647,6 +647,7 @@ public sealed class SpaceService
             _session.ServerUrl,
             _session.Token!,
             media.Id,
+            null,
             cancellationToken);
 
         return await Task.Run(

@@ -97,6 +97,54 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     public bool IsVideoPending => IsVideoMedia && !IsVideoOversize && VideoBytes is null;
 
+    /// <summary>Идёт загрузка вложения (фото, видео или файла).</summary>
+    public bool IsMediaDownloading { get; private set; }
+
+    /// <summary>Показывать простую надпись «Загрузка…» (когда прогресса ещё нет).</summary>
+    public bool ShowMediaDownloadText => !IsMediaDownloading;
+
+    /// <summary>Прогресс загрузки вложения: 0..1.</summary>
+    public double MediaProgress { get; private set; }
+
+    /// <summary>Текст прогресса: «37% · 12,4 МБ из 33 МБ».</summary>
+    public string MediaProgressText => MediaProgress > 0
+        ? $"{MediaProgress * 100:0}% · {FormatSize(_mediaProgressDownloaded)} из {FormatSize(_mediaTotal)}"
+        : "Загрузка…";
+
+    private long _mediaProgressDownloaded;
+    private long _mediaTotal;
+
+    /// <summary>Обновляет прогресс загрузки вложения (downloaded = -1 — загрузка закончена).</summary>
+    public void SetMediaProgress(long downloaded, long total)
+    {
+        if (downloaded < 0)
+        {
+            if (!IsMediaDownloading)
+            {
+                return;
+            }
+
+            IsMediaDownloading = false;
+            MediaProgress = 0;
+            _mediaProgressDownloaded = 0;
+            _mediaTotal = 0;
+            Notify(nameof(IsMediaDownloading));
+            Notify(nameof(ShowMediaDownloadText));
+            Notify(nameof(MediaProgress));
+            Notify(nameof(MediaProgressText));
+            return;
+        }
+
+        _mediaProgressDownloaded = downloaded;
+        _mediaTotal = total;
+        MediaProgress = total > 0 ? Math.Clamp((double)downloaded / total, 0, 1) : 0;
+        IsMediaDownloading = true;
+        Notify(nameof(IsMediaDownloading));
+        Notify(nameof(ShowMediaDownloadText));
+        Notify(nameof(MediaProgress));
+        Notify(nameof(MediaProgressText));
+    }
+
     /// <summary>Длительность видео из mp4-заголовка, «ММ:СС»; пусто — неизвестна.</summary>
     public string VideoDurationText => _videoDurationText;
 
@@ -709,6 +757,7 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     private static string FormatSize(long bytes) => bytes switch
     {
+        <= 0 => "—",
         < 1024 => $"{bytes} Б",
         < 1024 * 1024 => $"{bytes / 1024.0:0.#} КБ",
         _ => $"{bytes / (1024.0 * 1024):0.#} МБ"
