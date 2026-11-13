@@ -20,6 +20,7 @@ namespace SecureChat.App.Pages;
 public partial class SpaceChatPage : ContentPage
 {
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
+    private readonly ChatManager _chat = AppServices.Get<ChatManager>();
     private readonly LinkPreviewService _previewService = AppServices.Get<LinkPreviewService>();
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<SpaceMessageVm> _messages = new();
@@ -30,6 +31,7 @@ public partial class SpaceChatPage : ContentPage
     private SpaceMessageVm? _pinnedMessage;
     private string? _myUserId;
     private bool _canModerate;
+    private bool _isMuted;
     private bool _canPost = true;
     private bool _sendingAttachment;
     private SpaceMessageVm? _replyingTo;
@@ -213,6 +215,10 @@ public partial class SpaceChatPage : ContentPage
             _canModerate = members.Any(member =>
                 string.Equals(member.UserId, _myUserId, StringComparison.Ordinal) &&
                 (member.Role == SpaceRoles.Owner || member.Role == SpaceRoles.Admin));
+
+            // Состояние локального мута пространства (иконка в шапке).
+            _isMuted = await _chat.IsSpaceMutedAsync(_spaceId);
+            MuteButton.Text = _isMuted ? "🔕" : "🔔";
 
             // Для подсветки @упоминаний в сообщениях, отправленных до появления
             // этой функции (payload старых версий не несёт список упомянутых).
@@ -619,6 +625,30 @@ public partial class SpaceChatPage : ContentPage
         try
         {
             await Navigation.PushAsync(new SpaceSettingsPage(_spaceId, SpaceTitleLabel.Text, _spaceType));
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
+
+    /// <summary>Локальное отключение звука пространства: звук и уведомления об упоминаниях.</summary>
+    private async void OnToggleMuteClicked(object sender, EventArgs e)
+    {
+        _isMuted = !_isMuted;
+        await _chat.SetSpaceMutedAsync(_spaceId, _isMuted);
+        MuteButton.Text = _isMuted ? "🔕" : "🔔";
+        ToolTipProperties.SetText(MuteButton, _isMuted
+            ? "Звук пространства выключен — включить"
+            : "Звук и уведомления об упоминаниях в этом пространстве");
+    }
+
+    /// <summary>Тап по заголовку — карточка пространства.</summary>
+    private async void OnHeaderTapped(object? sender, EventArgs e)
+    {
+        try
+        {
+            await Navigation.PushAsync(new SpaceProfilePage(_spaceId));
         }
         catch (Exception ex)
         {

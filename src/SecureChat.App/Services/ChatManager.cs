@@ -492,6 +492,20 @@ public sealed class ChatManager
     public Task<bool> DeleteChatFolderAsync(string name) =>
         _localStore.DeleteChatFolderAsync(name);
 
+    // ================================================================
+    // ЗВУК ПРОСТРАНСТВ — локальная настройка устройства
+    // ================================================================
+
+    /// <summary>Звук и уведомления об упоминаниях в этом пространстве отключены.</summary>
+    public async Task<bool> IsSpaceMutedAsync(string spaceId)
+    {
+        var ids = await _localStore.GetMutedSpaceIdsAsync();
+        return ids.Any(id => string.Equals(id, spaceId, StringComparison.Ordinal));
+    }
+
+    public Task SetSpaceMutedAsync(string spaceId, bool muted) =>
+        _localStore.SetSpaceMutedAsync(spaceId, muted);
+
     /// <summary>Уведомления и звук для чата отключены.</summary>
     public bool IsConversationMuted(string username) =>
         _mutedChats.ContainsKey(username);

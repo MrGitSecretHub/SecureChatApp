@@ -99,6 +99,9 @@ public sealed class LocalState
 
     /// <summary>Обои пространств: spaceId -> затемнять вуалью.</summary>
     public Dictionary<string, bool> SpaceWallpaperDims { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Пространства с отключённым звуком (локальная настройка устройства).</summary>
+    public List<string> SpaceMutedIds { get; set; } = new();
 }
 
 /// <summary>Исходящее сообщение, ожидающее отправки после восстановления связи.</summary>
@@ -274,6 +277,46 @@ public sealed class LocalStore
             conversation.IsMuted = muted;
             await SaveAsync();
             return true;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Локальная настройка: пространства с отключённым звуком.</summary>
+    public async Task<IReadOnlyList<string>> GetMutedSpaceIdsAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            return _state!.SpaceMutedIds.ToList();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    public async Task SetSpaceMutedAsync(string spaceId, bool muted)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var list = _state!.SpaceMutedIds;
+            var exists = list.Any(item => string.Equals(item, spaceId, StringComparison.Ordinal));
+            if (muted && !exists)
+            {
+                list.Add(spaceId);
+            }
+            else if (!muted && exists)
+            {
+                list.RemoveAll(item => string.Equals(item, spaceId, StringComparison.Ordinal));
+            }
+
+            await SaveAsync();
         }
         finally
         {

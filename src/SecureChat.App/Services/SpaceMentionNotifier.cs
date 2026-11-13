@@ -83,6 +83,12 @@ public sealed class SpaceMentionNotifier
                 return;
             }
 
+            // Отключение звука конкретного пространства гасит и уведомления об упоминаниях.
+            if (await _chat.IsSpaceMutedAsync(message.SpaceId))
+            {
+                return;
+            }
+
             var spaceName = await ResolveSpaceNameAsync(message.SpaceId);
             var preview = MessagePreview.Build(payload!.Text ?? string.Empty);
             var body = $"{message.SenderUsername} упомянул(а) вас: {preview}";

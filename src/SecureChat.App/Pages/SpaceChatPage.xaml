@@ -61,6 +61,9 @@
                                  Spacing="2"
                                  Margin="4,0,0,0"
                                  VerticalOptions="Center">
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnHeaderTapped" />
+                </VerticalStackLayout.GestureRecognizers>
                 <Label x:Name="SpaceTitleLabel"
                        FontSize="16"
                        FontAttributes="Bold"
@@ -85,6 +88,13 @@
                     Style="{DynamicResource IconButton}"
                     Clicked="OnSettingsClicked"
                     ToolTipProperties.Text="Настройки пространства" />
+            <Button Grid.Column="4"
+                    x:Name="MuteButton"
+                    Text="🔔"
+                    FontSize="16"
+                    Style="{DynamicResource IconButton}"
+                    Clicked="OnToggleMuteClicked"
+                    ToolTipProperties.Text="Звук и уведомления об упоминаниях в этом пространстве" />
         </Grid>
 
         <!-- Закреплённое сообщение -->

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Pages.SpaceProfilePage"
+             Title="Пространство">
+    <ScrollView BackgroundColor="{DynamicResource PageBackground}">
+        <VerticalStackLayout Padding="16"
+                             Spacing="14"
+                             MaximumWidthRequest="760">
+
+            <!-- Шапка карточки -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                        <Border WidthRequest="64"
+                                HeightRequest="64"
+                                BackgroundColor="{DynamicResource AccentSoft}"
+                                VerticalOptions="Start">
+                            <Border.StrokeShape>
+                                <Ellipse />
+                            </Border.StrokeShape>
+                            <Label x:Name="SpaceIconLabel"
+                                   Text="👥"
+                                   FontSize="26"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                            <Label x:Name="SpaceNameLabel"
+                                   FontSize="19"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource TextPrimary}"
+                                   LineBreakMode="TailTruncation" />
+                            <Label x:Name="SpaceTypeLabel"
+                                   FontSize="12"
+                                   TextColor="{DynamicResource Accent}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <Label x:Name="DescriptionLabel"
+                           FontSize="13"
+                           TextColor="{DynamicResource TextPrimary}"
+                           LineBreakMode="WordWrap" />
+
+                    <Label x:Name="StatsLabel"
+                           Style="{DynamicResource Caption}" />
+                    <Label x:Name="OwnerLabel"
+                           Style="{DynamicResource Caption}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Действия -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                            <Label Text="Звук и уведомления" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="Звук упоминаний в этом пространстве (настройки — у владельца и админов)"
+                                   Style="{DynamicResource Caption}" />
+                        </VerticalStackLayout>
+                        <Switch x:Name="MuteSwitch"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center"
+                                Toggled="OnMuteToggled" />
+                    </Grid>
+
+                    <Button x:Name="SettingsButton"
+                            Text="⚙️ Настройки пространства"
+                            Style="{DynamicResource SecondaryButton}"
+                            IsVisible="False"
+                            Clicked="OnSettingsClicked" />
+                    <Button x:Name="LeaveButton"
+                            Text="🚪 Выйти из пространства"
+                            Style="{DynamicResource GhostButton}"
+                            TextColor="{DynamicResource Danger}"
+                            Clicked="OnLeaveClicked" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

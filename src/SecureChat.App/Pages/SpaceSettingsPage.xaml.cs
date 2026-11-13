@@ -85,7 +85,8 @@ public partial class SpaceSettingsPage : ContentPage
                 ? $"{_members.Count} участников. Нажмите на участника, чтобы изменить роль."
                 : "Пока нет участников.";
 
-            MembersView.ItemsSource = _members;
+            // Секции по ролям, как в Telegram: владелец, администраторы, участники, гости.
+            MembersView.ItemsSource = BuildMemberGroups();
         }
         catch (Exception ex)
         {
@@ -188,6 +189,44 @@ public partial class SpaceSettingsPage : ContentPage
         }
     }
 
+    private sealed record MemberGroup(string Name, List<SpaceMemberVm> Items);
+
+    /// <summary>Секции списка участников по ролям, как в Telegram.</summary>
+    private List<MemberGroup> BuildMemberGroups()
+    {
+        var groups = new List<MemberGroup>();
+
+        void Add(string name, params string[] roles)
+        {
+            var items = _members
+                .Where(m => roles.Any(role => string.Equals(m.Role, role, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(m => m.Username, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (items.Count > 0)
+            {
+                groups.Add(new MemberGroup(name, items));
+            }
+        }
+
+        Add("Владелец", SpaceRoles.Owner);
+        Add("Администраторы", SpaceRoles.Admin);
+        Add("Участники", SpaceRoles.Member);
+        Add("Гости (только чтение)", SpaceRoles.Guest);
+
+        // Неизвестные серверные роли — в «Участники», чтобы люди не терялись.
+        var known = groups.SelectMany(g => g.Items).ToList();
+        var rest = _members
+            .Except(known)
+            .OrderBy(m => m.Username, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (rest.Count > 0)
+        {
+            groups.Add(new MemberGroup("Участники", rest));
+        }
+
+        return groups;
+    }
+
     private async void OnMemberTapped(object sender, SelectionChangedEventArgs e)
     {
         if (e.CurrentSelection.FirstOrDefault() is not SpaceMemberVm member)
@@ -197,38 +236,53 @@ public partial class SpaceSettingsPage : ContentPage
 
         MembersView.SelectedItem = null;
 
-        // Владелец меняет участников; остальные видят только сведения.
-        var isAdmin = _space?.MyRole is SpaceRoles.Owner or SpaceRoles.Admin;
-        if (!isAdmin)
-        {
-            await DisplayAlert(
-                member.Username,
-                $"{member.RoleText} · {member.CanPostText}\nИзменять состав могут владелец и администраторы.",
-                "OK");
-            return;
-        }
+            var isAdmin = _space?.MyRole is SpaceRoles.Owner or SpaceRoles.Admin;
 
-        if (member.Role == SpaceRoles.Owner)
-        {
-            await DisplayAlert(member.Username, "Это владелец пространства — его роль не меняют.", "OK");
-            return;
-        }
+        var actions = new List<string> { "👤 Открыть профиль" };
+            if (isAdmin)
+            {
+                actions.Add("Изменить роль");
+                actions.Add(member.CanPost ? "🔇 Запретить писать" : "✏️ Разрешить писать");
+                actions.Add(member.IsMuted ? "🔊 Снять запрет записи" : "⏱ Запрет записи на время…");
+                actions.Add("Удалить из пространства");
+            }
 
-        var actions = new List<string>
-        {
-            "Изменить роль",
-            member.CanPost ? "🔇 Запретить писать" : "✏️ Разрешить писать",
-            member.IsMuted ? "🔊 Снять запрет записи" : "⏱ Запрет записи на время…",
-            "Удалить из пространства",
-        };
+            var choice = await DisplayActionSheet(
+                member.Username, "Отмена", null, actions.ToArray());
 
-        var choice = await DisplayActionSheet(
-            member.Username, "Отмена", null, actions.ToArray());
+            if (string.IsNullOrWhiteSpace(choice) || choice == "Отмена")
+            {
+                return;
+            }
 
-        if (string.IsNullOrWhiteSpace(choice) || choice == "Отмена")
-        {
-            return;
-        }
+            if (choice == "👤 Открыть профиль")
+            {
+                try
+                {
+                    await Navigation.PushAsync(new UserProfilePage(member.Username));
+                }
+                catch (Exception ex)
+                {
+                    await DisplayAlert("Ошибка", ex.Message, "OK");
+                }
+
+                return;
+            }
+
+            if (member.Role == SpaceRoles.Owner)
+            {
+                await DisplayAlert(member.Username, "Это владелец пространства — его роль не меняют.", "OK");
+                return;
+            }
+
+            if (!isAdmin)
+            {
+                await DisplayAlert(
+                    member.Username,
+                    $"{member.RoleText} · {member.CanPostText}\nИзменять состав могут владелец и администраторы.",
+                    "OK");
+                return;
+            }
 
         try
         {
