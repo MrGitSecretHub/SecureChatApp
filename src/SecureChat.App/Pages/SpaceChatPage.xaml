@@ -1031,6 +1031,30 @@
                        VerticalOptions="Center" />
             </HorizontalStackLayout>
         </Border>
+
+        <!-- Баннер ожидания E2E-ключа после вступления в публичное пространство -->
+        <Border Grid.Row="5"
+                x:Name="KeyWaitBanner"
+                IsVisible="False"
+                BackgroundColor="{DynamicResource SurfaceAlt}"
+                Stroke="{DynamicResource Warning}"
+                StrokeThickness="1"
+                Margin="12,0,12,8"
+                Padding="10,8">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="10" />
+            </Border.StrokeShape>
+            <HorizontalStackLayout VerticalOptions="Center" Spacing="8">
+                <Label Text="🔑"
+                       FontSize="15"
+                       VerticalOptions="Center" />
+                <Label Text="История зашифрована: E2E-ключ передаст любой участник в сети — обычно это секунды. Перезагрузите чат, когда ключ придёт."
+                       FontSize="14"
+                       TextColor="{DynamicResource TextPrimary}"
+                       LineBreakMode="WordWrap"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
+        </Border>
     </Grid>
 </ContentPage>
 

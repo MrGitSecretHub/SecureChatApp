@@ -233,6 +233,19 @@ public partial class SpaceChatPage : ContentPage
                 _spaceId,
                 members.Select(member => member.Username));
 
+            // Публичное пространство после вступления: ключа может ещё не быть —
+            // тогда лента не читается, показываем баннер ожидания.
+            if (await _spaces.GetSpaceKeyAsync(_spaceId) is null)
+            {
+                _messages.Clear();
+                Composer.IsVisible = false;
+                ReadOnlyBanner.IsVisible = false;
+                KeyWaitBanner.IsVisible = true;
+                SpaceInfoLabel.Text = $"{members.Count} участников";
+                return;
+            }
+
+            KeyWaitBanner.IsVisible = false;
             var messages = await _spaces.GetMessagesAsync(_spaceId, _topicId);
 
             var commentCounts = new Dictionary<string, int>(StringComparer.Ordinal);

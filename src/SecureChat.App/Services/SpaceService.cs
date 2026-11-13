@@ -132,6 +132,58 @@ public sealed class SpaceService
         connection.On<SpaceDto>(
             "SpaceAdded",
             async _ => { await JoinGroupsForCurrentConnectionAsync(); });
+
+        // Кто-то вступил в публичное пространство: ключ до него должен доставить
+        // любой онлайн-участник — пробуем мы, если ключ у нас есть.
+        connection.On<string, string, string>(
+            "SpaceMemberNeedKey",
+            (spaceId, userId, username) => _ = ProvideSpaceKeyAsync(spaceId, userId, username));
+    }
+
+    /// <summary>Авто-раздача E2E-ключа новому участнику публичного пространства.</summary>
+    private async Task ProvideSpaceKeyAsync(string spaceId, string userId, string username)
+    {
+        try
+        {
+            var me = _session.User;
+            if (me is null || string.Equals(me.Id, userId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var spaceKey = await GetSpaceKeyAsync(spaceId);
+            if (spaceKey is null)
+            {
+                return; // у нас ключа нет — пусть доставит кто-то другой
+            }
+
+            var token = _session.Token;
+            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(username))
+            {
+                return;
+            }
+
+            var profile = await _apiClient.GetUserAsync(_session.ServerUrl, token, username, CancellationToken.None);
+            if (profile is null ||
+                !string.Equals(profile.Id, userId, StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(profile.EncryptionPublicKey))
+            {
+                return;
+            }
+
+            var envelope = SpaceCrypto.EncryptSpaceKey(spaceKey, spaceId, userId, profile.EncryptionPublicKey);
+            var connection = Connection;
+            if (connection is null || connection.State != HubConnectionState.Connected)
+            {
+                return;
+            }
+
+            await connection.InvokeAsync<bool>("SaveSpaceMemberKey", spaceId, userId, ChatJson.Serialize(envelope));
+        }
+        catch
+        {
+            // Раздача ключа не должна ломать приём сообщений.
+        }
     }
 
     /// <summary>Добавляет текущее подключение во все группы пространств пользователя.</summary>

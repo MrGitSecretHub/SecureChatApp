@@ -391,7 +391,9 @@ public sealed class ChatHub : Hub
         }
 
         var space = await _spaces.GetAsync(spaceId, requesterId);
-        if (space is null || !IsAdmin(space.MyRole))
+        // Ключ может передать ЛЮБОЙ участник: так устроен авто-вход в публичные
+        // пространства (приглашение же остаётся админской операцией).
+        if (space is null || string.IsNullOrEmpty(space.MyRole))
         {
             return false;
         }
@@ -412,6 +414,17 @@ public sealed class ChatHub : Hub
         }
 
         await _spaces.SaveSpaceKeyAsync(spaceId, targetUserId, envelopeJson);
+
+        // Сообщаем новому участнику: ключ есть — пространство расшифровуемо.
+        try
+        {
+            await Clients.User(targetUserId).SendAsync("SpaceAdded", space);
+        }
+        catch
+        {
+            // Уведомление — дело второе, ключ уже сохранён.
+        }
+
         return true;
     }
 
@@ -463,9 +476,23 @@ public sealed class ChatHub : Hub
             return false;
         }
 
-        // Публичные пространства видны всем, но писать в них может только владелец/админ.
-        var added = await _spaces.AddMemberAsync(spaceId, userId, SpaceRoles.Guest, canPost: false);
+        var members = await _spaces.GetMembersAsync(spaceId);
+        if (members.Any(item => string.Equals(item.UserId, userId, StringComparison.Ordinal)))
+        {
+            return true; // уже участник
+        }
+
+        // Публичное пространство: вступление без приглашения. Право писать — по типу,
+        // как при приглашении (в группах пишут все, в канал/форум/сообщество — по назначению).
+        var canPost = string.Equals(space.Type, SpaceTypes.Group, StringComparison.OrdinalIgnoreCase);
+        var added = await _spaces.AddMemberAsync(spaceId, userId, SpaceRoles.Member, canPost);
         await Groups.AddToGroupAsync($"space:{spaceId}", userId);
+
+        // E2E-ключ新ему участнику передаёт любой онлайн-участник: просим группу.
+        var joiner = await _repository.GetUserByIdAsync(userId);
+        await Clients.Group($"space:{spaceId}")
+            .SendAsync("SpaceMemberNeedKey", spaceId, userId, joiner?.Username ?? string.Empty);
+
         return added;
     }
 

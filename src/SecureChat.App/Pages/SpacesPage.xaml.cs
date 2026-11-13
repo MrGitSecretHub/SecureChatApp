@@ -98,13 +98,38 @@ public partial class SpacesPage : ContentPage
 
         SpacesView.SelectedItem = null;
 
-        // Публичные пространства видны всем, но шифротексты читает только участник.
+        // Публичное пространство: вступить может каждый, без приглашения.
         if (item.IsJoinable)
         {
-            await DisplayAlert(
+            var join = await DisplayAlert(
                 item.Name,
-                "Это публичное пространство, но вы ещё не его участник. Читать переписку могут только участники: попросите владельца или администратора добавить вас по логину.",
-                "Понятно");
+                "Публичное пространство. Историей владеют только участники: общий E2E-ключ передаст вам любой участник, как только будет в сети — обычно это секунды.",
+                "Вступить", "Отмена");
+            if (!join)
+            {
+                return;
+            }
+
+            try
+            {
+                if (await _spaces.JoinAsync(item.Id))
+                {
+                    await DisplayAlert(item.Name,
+                        "Вы в пространстве. Если ключ ещё не дошёл — переоткройте чат чуть позже.",
+                        "Хорошо");
+                }
+                else
+                {
+                    await DisplayAlert("Ошибка", "Не удалось вступить.", "OK");
+                }
+
+                await LoadAsync();
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Ошибка", ex.Message, "OK");
+            }
+
             return;
         }
 
