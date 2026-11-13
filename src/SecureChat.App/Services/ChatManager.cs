@@ -423,6 +423,7 @@ public sealed class ChatManager
             Kind = message.Kind,
             IsPinned = message.IsPinned,
             IsForwarded = message.IsForwarded,
+            ForwardedFrom = message.ForwardedFrom,
             Reactions = LocalStore.ReadReactions(message.ReactionsJson),
             AlbumId = message.AlbumId,
             AlbumIndex = message.AlbumIndex,
@@ -568,7 +569,11 @@ public sealed class ChatManager
         string.Equals(userId, RequireUser().Id, StringComparison.Ordinal);
 
     /// <summary>Сообщения в «Избранном» хранятся только на устройстве и на сервер не уходят.</summary>
-    private async Task SaveSelfMessageAsync(string text, string kind = MessageKinds.Text)
+    private async Task SaveSelfMessageAsync(
+        string text,
+        string kind = MessageKinds.Text,
+        bool isForwarded = false,
+        string? forwardedFrom = null)
     {
         var self = await GetOrCreateSelfConversationAsync();
         var message = new StoredMessage
@@ -580,7 +585,9 @@ public sealed class ChatManager
             Status = "Сохранено",
             DeliveryStatus = "Доставлено",
             Kind = kind,
-            SenderUsername = self.Username
+            SenderUsername = self.Username,
+            IsForwarded = isForwarded,
+            ForwardedFrom = isForwarded ? forwardedFrom : null
         };
 
         if (await _localStore.AddMessageAsync(self.Username, message, incrementUnread: false))
@@ -590,7 +597,13 @@ public sealed class ChatManager
         }
     }
 
-    private async Task SaveSelfMediaAsync(string fileName, string contentType, string kind, byte[] data)
+    private async Task SaveSelfMediaAsync(
+        string fileName,
+        string contentType,
+        string kind,
+        byte[] data,
+        bool isForwarded = false,
+        string? forwardedFrom = null)
     {
         var self = await GetOrCreateSelfConversationAsync();
         var messageId = Guid.NewGuid().ToString("N");
@@ -610,7 +623,9 @@ public sealed class ChatManager
             ContentType = contentType,
             MediaSize = data.LongLength,
             MediaDownloaded = true,
-            SenderUsername = self.Username
+            SenderUsername = self.Username,
+            IsForwarded = isForwarded,
+            ForwardedFrom = isForwarded ? forwardedFrom : null
         };
 
         if (await _localStore.AddMessageAsync(self.Username, message, incrementUnread: false))
@@ -789,7 +804,8 @@ public sealed class ChatManager
         string? replyToMessageId = null,
         string? replyToText = null,
         string? replyToFileName = null,
-        string kind = MessageKinds.Text)
+        string kind = MessageKinds.Text,
+        string? forwardedFrom = null)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -798,7 +814,7 @@ public sealed class ChatManager
 
         if (IsSelfUser(recipientUserId))
         {
-            await SaveSelfMessageAsync(text, kind);
+            await SaveSelfMessageAsync(text, kind, isForwarded, forwardedFrom);
             return;
         }
 
@@ -816,6 +832,7 @@ public sealed class ChatManager
             Kind = kind,
             SentAtUnixMs = sentAt,
             IsForwarded = isForwarded,
+            ForwardedFrom = isForwarded ? forwardedFrom : null,
             ReplyToMessageId = replyToMessageId,
             ReplyToText = replyToText,
             ReplyToFileName = replyToFileName
@@ -850,6 +867,7 @@ public sealed class ChatManager
             IsMine = true,
             Status = LocalStore.QueuedStatus,
             IsForwarded = isForwarded,
+            ForwardedFrom = isForwarded ? forwardedFrom : null,
             Kind = kind,
             SenderUsername = user.Username,
             ReplyToMessageId = replyToMessageId,
@@ -1172,6 +1190,7 @@ public sealed class ChatManager
                 Kind = message.Kind,
                 IsPinned = pinned ?? message.IsPinned,
                 IsForwarded = message.IsForwarded,
+                ForwardedFrom = message.ForwardedFrom,
                 Reactions = reactions?.ToList()
                     ?? LocalStore.ReadReactions(message.ReactionsJson)
             };
@@ -1233,7 +1252,8 @@ public sealed class ChatManager
         CancellationToken cancellationToken = default,
         string? albumId = null,
         int albumIndex = 0,
-        int albumCount = 0)
+        int albumCount = 0,
+        string? forwardedFrom = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
         ArgumentNullException.ThrowIfNull(data);
@@ -1271,7 +1291,7 @@ public sealed class ChatManager
 
         if (IsSelfUser(conversation.UserId))
         {
-            await SaveSelfMediaAsync(safeName, normalizedContentType, kind, data);
+            await SaveSelfMediaAsync(safeName, normalizedContentType, kind, data, isForwarded, forwardedFrom);
             return;
         }
 
@@ -1303,6 +1323,7 @@ public sealed class ChatManager
             MediaTag = encryptedMedia.Tag,
             MediaDownloaded = true,
             IsForwarded = isForwarded,
+            ForwardedFrom = isForwarded ? forwardedFrom : null,
             SenderUsername = user.Username,
             AlbumId = albumCount > 1 ? albumId : null,
             AlbumIndex = albumCount > 1 ? albumIndex : 0,
@@ -1722,6 +1743,7 @@ public sealed class ChatManager
                 SenderAvatarBase64 = fetchedProfile?.AvatarBase64,
                 IsPinned = payload.IsPinned,
                 IsForwarded = payload.IsForwarded,
+                ForwardedFrom = string.IsNullOrWhiteSpace(payload.ForwardedFrom) ? null : payload.ForwardedFrom,
                 ReplyToMessageId = payload.ReplyToMessageId,
                 ReplyToText = payload.ReplyToText,
                 ReplyToFileName = payload.ReplyToFileName,

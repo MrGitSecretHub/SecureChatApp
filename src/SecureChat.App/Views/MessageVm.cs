@@ -518,8 +518,35 @@ public sealed class MessageVm : INotifyPropertyChanged
     public bool IsForwarded
     {
         get => _isForwarded;
-        private set => Set(ref _isForwarded, value);
+        private set
+        {
+            if (Set(ref _isForwarded, value))
+            {
+                Notify(nameof(ForwardedText));
+            }
+        }
     }
+
+    private string? _forwardedFrom;
+
+    /// <summary>Автор исходного сообщения, если оно переслано (логин).</summary>
+    public string? ForwardedFrom
+    {
+        get => _forwardedFrom;
+        private set
+        {
+            if (Set(ref _forwardedFrom, value))
+            {
+                Notify(nameof(ForwardedText));
+            }
+        }
+    }
+
+    /// <summary>Метка пересылки: «↪ Переслано от anna» или просто «↪ Переслано».</summary>
+    public string ForwardedText => string.IsNullOrWhiteSpace(_forwardedFrom)
+        ? "↪ Переслано"
+        : $"↪ Переслано от {_forwardedFrom}";
+
 
     public bool IsPlaying
     {
@@ -795,6 +822,7 @@ public sealed class MessageVm : INotifyPropertyChanged
         IsEdited = message.IsEdited;
         EditedText = message.EditedText;
         IsForwarded = message.IsForwarded;
+        ForwardedFrom = message.ForwardedFrom;
         IsDraft = message.IsDraft;
         ReplyToText = message.ReplyToText;
         ReplyToMessageId = message.ReplyToMessageId;

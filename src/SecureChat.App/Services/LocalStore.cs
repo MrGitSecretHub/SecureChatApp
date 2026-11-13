@@ -24,6 +24,7 @@ public sealed class StoredMessage
     public bool MediaDownloaded { get; set; }
     public bool IsFavorite { get; set; }
     public bool IsForwarded { get; set; }
+    public string? ForwardedFrom { get; set; }
     public string? ReplyToMessageId { get; set; }
     public string? ReplyToText { get; set; }
     public string? ReplyToFileName { get; set; }
@@ -1719,6 +1720,7 @@ public sealed class LocalStore
         MediaDownloaded = source.MediaDownloaded,
         IsFavorite = source.IsFavorite,
         IsForwarded = source.IsForwarded,
+        ForwardedFrom = source.ForwardedFrom,
         ReplyToMessageId = source.ReplyToMessageId,
         ReplyToText = source.ReplyToText,
         ReplyToFileName = source.ReplyToFileName,

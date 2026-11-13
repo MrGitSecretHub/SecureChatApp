@@ -39,6 +39,9 @@ public sealed class MessagePayload
     /// <summary>Переслано ли сообщение.</summary>
     public bool IsForwarded { get; set; }
 
+    /// <summary>Автор исходного сообщения, если оно переслано (логин).</summary>
+    public string? ForwardedFrom { get; set; }
+
     /// <summary>Ответ на сообщение: идентификатор исходного сообщения.</summary>
     public string? ReplyToMessageId { get; set; }
 

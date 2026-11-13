@@ -1489,7 +1489,7 @@ public partial class ChatView : ContentView
             var flags = string.Empty;
             if (message.IsForwarded)
             {
-                flags += " <span class=\"tag\">↪ Переслано</span>";
+                flags += $" <span class=\"tag\">{Escape(message.ForwardedText)}</span>";
             }
 
             if (message.IsEdited)
@@ -1542,6 +1542,21 @@ public partial class ChatView : ContentView
         catch
         {
             // Лог — не критично.
+        }
+    }
+
+    /// <summary>Процесс запущен с правами администратора (важно для перетаскивания, UIPI).</summary>
+    private static bool IsRunningElevated()
+    {
+        try
+        {
+            using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            return new System.Security.Principal.WindowsPrincipal(identity)
+                .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -1627,7 +1642,7 @@ public partial class ChatView : ContentView
                     true);
             }
 
-            LogDrop($"hooks: content={content.GetType().Name}");
+            LogDrop($"hooks: content={content.GetType().Name} elevated={IsRunningElevated()}");
         }
 
         EnableDropInTree(Handler?.PlatformView as Microsoft.UI.Xaml.DependencyObject);
@@ -2469,6 +2484,14 @@ public partial class ChatView : ContentView
 
         try
         {
+            // Метка «Переслано от …» — автор исходного сообщения. Если сообщение
+            // уже пересланное, сохраняем первоначального автора, а не ретранслятора.
+            var origin = !string.IsNullOrWhiteSpace(message.ForwardedFrom)
+                ? message.ForwardedFrom
+                : !string.IsNullOrWhiteSpace(message.SenderDisplay)
+                    ? message.SenderDisplay
+                    : _username;
+
             if (message.Kind is MessageKinds.Text or MessageKinds.Sticker)
             {
                 await _chatManager.SendMessageToUserAsync(
@@ -2477,7 +2500,8 @@ public partial class ChatView : ContentView
                     message.Text,
                     target.EncryptionPublicKey,
                     isForwarded: true,
-                    kind: message.Kind);
+                    kind: message.Kind,
+                    forwardedFrom: origin);
             }
             else
             {
@@ -2494,7 +2518,8 @@ public partial class ChatView : ContentView
                     message.ContentType,
                     bytes,
                     isForwarded: true,
-                    messageKind: message.Kind);
+                    messageKind: message.Kind,
+                    forwardedFrom: origin);
             }
 
             ShowHint($"Переслано в {target.Username}.", isError: false);
@@ -3157,7 +3182,9 @@ public partial class ChatView : ContentView
         }
         if (message.IsForwarded)
         {
-            text.AppendLine("Переслано: да");
+            text.AppendLine(string.IsNullOrWhiteSpace(message.ForwardedFrom)
+                ? "Переслано: да"
+                : $"Переслано от: {message.ForwardedFrom}");
         }
         if (message.IsEdited)
         {
