@@ -123,6 +123,32 @@ dotnet run --project src/SecureChat.Server --launch-profile https
 - HTTP: `http://localhost:5080`
 - Проверка: `http://localhost:5080/api/health`
 
+### HTTPS для доступа по LAN
+
+`dotnet dev-certs https --trust` выписывает сертификат только для `localhost`,
+поэтому клиенты по адресy `https://<IP-компьютера>:5443` получают ошибку
+«The SSL connection could not be established». Для LAN нужен сертификат с этим
+адресом в SAN. Он выписывается скриптом (права администратора не требуются):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/New-LanTlsCertificate.ps1
+```
+
+Скрипт кладёт `lan-tls.pfx`, `lan-tls.password.txt` и `lan-tls.cer` в
+`src/SecureChat.Server/App_Data/` (папка в `.gitignore`) и доверяет сертификат
+текущей учётной записи. Сертификат попадает в SAN автоматически: `localhost`,
+имя компьютера и все активные IPv4-адреса машины (при необходимости список
+можно задать параметром `-IpAddresses 192.168.50.216`). После этого сервер
+нужно перезапустить — в логе появится строка
+`HTTPS-сертификат: LAN-сертификат (CN=SecureChat LAN server, до ...)`.
+
+Другие учётные записи Windows доверяют сертификат отдельно: открыть
+`lan-tls.cer` → «Установить сертификат» → «Текущий пользователь» →
+«Доверенные корневые центры сертификации». На Android-устройстве пользовательский
+корневой сертификат по умолчанию не доверяется, поэтому телефон либо продолжает
+работать по HTTP с LAN-IP, либо требует отдельной настройки
+`network_security_config.xml`.
+
 Для доступа с Android-эмулятора (HTTP, только локальная отладка):
 
 ```powershell

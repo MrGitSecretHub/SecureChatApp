@@ -94,11 +94,19 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
+// HTTPS для LAN: сертификат с адресами сервера в SAN (App_Data/lan-tls.pfx).
+// Без него Kestrel отдаёт dev-сертификат localhost, и клиенты по IP его отклоняют.
+var lanCertificate = LanTlsCertificate.TryLoad(ServerDataPaths.ResolveDataDirectory(builder.Environment));
+
 // Kestrel по умолчанию режет тело запроса на 30 МБ: поднимаем под лимит медиа
 // (плюс небольшой запас под обрамление HTTP-запроса).
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxRequestBodySize = MediaLimits.MaxBytes + 64L * 1024;
+    if (lanCertificate is not null)
+    {
+        options.ConfigureHttpsDefaults(https => https.ServerCertificate = lanCertificate);
+    }
 });
 
 var app = builder.Build();
@@ -144,6 +152,12 @@ app.Logger.LogInformation(
     "SecureChat server запущен. JWT issuer={Issuer}, audience={Audience}",
     jwtSettings.Issuer,
     jwtSettings.Audience);
+
+app.Logger.LogInformation(
+    "HTTPS-сертификат: {Source}",
+    lanCertificate is null
+        ? "dev-сертификат localhost (для LAN выполните tools/New-LanTlsCertificate.ps1)"
+        : $"LAN-сертификат ({lanCertificate.Subject}, до {lanCertificate.NotAfter:yyyy-MM-dd})");
 
 // Выводим все доступные сетевые адреса для подключения клиентов (LAN, Wi-Fi, Ethernet и т.д.)
 try
