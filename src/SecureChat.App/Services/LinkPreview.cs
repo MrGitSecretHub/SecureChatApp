@@ -15,4 +15,7 @@ public sealed class LinkPreview
         _imageSource ??= ImageUrl is not null && Uri.TryCreate(ImageUrl, UriKind.Absolute, out var uri)
             ? ImageSource.FromUri(uri)
             : null;
+
+    /// <summary>Есть ли картинка: без неё карточка показывается только текстом.</summary>
+    public bool HasImage => ImageSource is not null;
 }

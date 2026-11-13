@@ -433,39 +433,38 @@
                                                 <DataTemplate>
                                                     <Border BackgroundColor="{DynamicResource SurfaceAlt}"
                                                             StrokeThickness="0"
-                                                            Padding="10"
-                                                            HorizontalOptions="Start">
+                                                            Padding="8"
+                                                            HorizontalOptions="Start"
+                                                            MaximumWidthRequest="260">
                                                         <Border.StrokeShape>
                                                             <RoundRectangle CornerRadius="10" />
                                                         </Border.StrokeShape>
                                                         <Border.GestureRecognizers>
                                                             <TapGestureRecognizer Tapped="OnLinkPreviewTapped" />
                                                         </Border.GestureRecognizers>
-                                                        <Grid ColumnDefinitions="70,*" ColumnSpacing="10">
+                                                        <VerticalStackLayout Spacing="4">
                                                             <Image Source="{Binding ImageSource}"
+                                                                   IsVisible="{Binding HasImage}"
                                                                    Aspect="AspectFill"
-                                                                   WidthRequest="70"
-                                                                   HeightRequest="60"
-                                                                   HorizontalOptions="Start"
-                                                                   VerticalOptions="Start" />
-                                                            <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                                                <Label Text="{Binding Title}"
-                                                                       FontSize="13"
-                                                                       FontAttributes="Bold"
-                                                                       TextColor="{DynamicResource TextPrimary}"
-                                                                       LineBreakMode="TailTruncation"
-                                                                       MaxLines="2" />
-                                                                <Label Text="{Binding Description}"
-                                                                       FontSize="11"
-                                                                       TextColor="{DynamicResource TextMuted}"
-                                                                       LineBreakMode="TailTruncation"
-                                                                       MaxLines="2" />
-                                                                <Label Text="{Binding Domain}"
-                                                                       FontSize="11"
-                                                                       TextColor="{DynamicResource TextMuted}"
-                                                                       LineBreakMode="TailTruncation" />
-                                                            </VerticalStackLayout>
-                                                        </Grid>
+                                                                   WidthRequest="244"
+                                                                   HeightRequest="110"
+                                                                   HorizontalOptions="Fill" />
+                                                            <Label Text="{Binding Title}"
+                                                                   FontSize="13"
+                                                                   FontAttributes="Bold"
+                                                                   TextColor="{DynamicResource TextPrimary}"
+                                                                   LineBreakMode="WordWrap"
+                                                                   MaxLines="2" />
+                                                            <Label Text="{Binding Description}"
+                                                                   FontSize="11"
+                                                                   TextColor="{DynamicResource TextMuted}"
+                                                                   LineBreakMode="TailTruncation"
+                                                                   MaxLines="2" />
+                                                            <Label Text="{Binding Domain}"
+                                                                   FontSize="11"
+                                                                   TextColor="{DynamicResource TextMuted}"
+                                                                   LineBreakMode="TailTruncation" />
+                                                        </VerticalStackLayout>
                                                     </Border>
                                                 </DataTemplate>
                                             </BindableLayout.ItemTemplate>
