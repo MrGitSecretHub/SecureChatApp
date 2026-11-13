@@ -97,6 +97,108 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     public bool IsVideoPending => IsVideoMedia && !IsVideoOversize && VideoBytes is null;
 
+    /// <summary>Иконка вложения по виду: фото, видео, голосовое, кружок, аудио, документ.</summary>
+    public string MediaIcon => Kind switch
+    {
+        MessageKinds.Image => "📷",
+        MessageKinds.VideoCircle => "📹",
+        MessageKinds.Voice => "🎤",
+        MessageKinds.Sticker => "🧩",
+        _ when IsVideoFile => "🎬",
+        _ when ContentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) => "🎵",
+        _ => "📄"
+    };
+
+    /// <summary>Подпись вида вложения для вкладки «Медиа и файлы».</summary>
+    public string MediaTypeText => Kind switch
+    {
+        MessageKinds.Image => "Фото",
+        MessageKinds.VideoCircle => "Видеокружок",
+        MessageKinds.Voice => "Голосовое сообщение",
+        _ when IsVideoFile => "Видео",
+        _ when ContentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) => "Аудио",
+        _ => "Файл"
+    };
+
+    /// <summary>Показывать иконку вида вложения (фото без превью — тоже иконка).</summary>
+    public bool ShowMediaIcon => !IsImage || !IsImageReady;
+
+    /// <summary>Одно фото обычным пузырём (в альбоме фото показываются сеткой).</summary>
+    public bool ShowSingleImage => IsImage && !IsAlbumHead;
+
+    /// <summary>Идентификатор альбома (пусто — одиночное вложение).</summary>
+    public string AlbumId { get; private set; } = string.Empty;
+
+    /// <summary>Номер вложения в альбоме (с нуля).</summary>
+    public int AlbumIndex { get; private set; }
+
+    /// <summary>Всего вложений в альбоме.</summary>
+    public int AlbumCount { get; private set; }
+
+    /// <summary>Вложение входит в альбом.</summary>
+    public bool IsAlbum => !string.IsNullOrEmpty(AlbumId) && AlbumCount > 1;
+
+    /// <summary>Первое вложение альбома — в нём показываем весь блок сеткой.</summary>
+    public bool IsAlbumHead => IsAlbum && AlbumIndex == 0;
+
+    /// <summary>Продолжение альбома — скрыто, фото показано в первом вложении.</summary>
+    public bool IsAlbumTail => IsAlbum && AlbumIndex > 0;
+
+    /// <summary>Превью фото альбома (до четырёх).</summary>
+    public ObservableCollection<ImageSource> AlbumImages { get; } = new();
+
+    /// <summary>Фото альбома по слотам сетки 2×2.</summary>
+    public ImageSource? AlbumImage0 { get; private set; }
+    public ImageSource? AlbumImage1 { get; private set; }
+    public ImageSource? AlbumImage2 { get; private set; }
+    public ImageSource? AlbumImage3 { get; private set; }
+
+    public bool HasAlbumImage0 => AlbumImage0 is not null;
+    public bool HasAlbumImage1 => AlbumImage1 is not null;
+    public bool HasAlbumImage2 => AlbumImage2 is not null;
+    public bool HasAlbumImage3 => AlbumImage3 is not null;
+
+    /// <summary>Подпись «2 из 5» под альбомом.</summary>
+    public string AlbumLabel => IsAlbum ? $"{AlbumIndex + 1} из {AlbumCount}" : string.Empty;
+
+    /// <summary>Подпись «3 фото» под блоком альбома.</summary>
+    public string AlbumCountLabel => IsAlbum ? $"{AlbumCount} фото" : string.Empty;
+
+    /// <summary>Превью фото альбома для сетки 2×2.</summary>
+    public void SetAlbumImages(IReadOnlyList<ImageSource> images)
+    {
+        AlbumImage0 = images.Count > 0 ? images[0] : null;
+        AlbumImage1 = images.Count > 1 ? images[1] : null;
+        AlbumImage2 = images.Count > 2 ? images[2] : null;
+        AlbumImage3 = images.Count > 3 ? images[3] : null;
+
+        Notify(nameof(AlbumImage0));
+        Notify(nameof(AlbumImage1));
+        Notify(nameof(AlbumImage2));
+        Notify(nameof(AlbumImage3));
+        Notify(nameof(HasAlbumImage0));
+        Notify(nameof(HasAlbumImage1));
+        Notify(nameof(HasAlbumImage2));
+        Notify(nameof(HasAlbumImage3));
+    }
+
+    /// <summary>Прогресс загрузки вложения (downloaded = -1 — загрузка закончена).</summary>
+    public void SetAlbum(string? albumId, int albumIndex, int albumCount)
+    {
+        AlbumId = albumId ?? string.Empty;
+        AlbumIndex = albumIndex;
+        AlbumCount = albumCount;
+        Notify(nameof(AlbumId));
+        Notify(nameof(AlbumIndex));
+        Notify(nameof(AlbumCount));
+        Notify(nameof(IsAlbum));
+        Notify(nameof(IsAlbumHead));
+        Notify(nameof(IsAlbumTail));
+        Notify(nameof(AlbumLabel));
+        Notify(nameof(AlbumCountLabel));
+        Notify(nameof(ShowSingleImage));
+    }
+
     /// <summary>Идёт загрузка вложения (фото, видео или файла).</summary>
     public bool IsMediaDownloading { get; private set; }
 
@@ -703,6 +805,7 @@ public sealed class MessageVm : INotifyPropertyChanged
             : string.IsNullOrEmpty(message.SenderUsername) ? peerName : message.SenderUsername;
         SenderAvatarBase64 = message.SenderAvatarBase64;
         _username = peerName;
+        SetAlbum(message.AlbumId, message.AlbumIndex, message.AlbumCount);
         SetReactions(LocalStore.ReadReactions(message.ReactionsJson), ownName);
     }
 

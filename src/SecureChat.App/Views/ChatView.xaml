@@ -9,6 +9,7 @@
             <views:DeliveryToDotsConverter x:Key="DeliveryToDotsConverter" />
             <views:PausePlayConverter x:Key="PausePlayConverter" />
             <views:PercentToDoubleConverter x:Key="PercentToDoubleConverter" />
+            <views:InvertedBoolConverter x:Key="InvertedBool" />
 
             <DataTemplate x:Key="PendingMediaItemTemplate">
                 <Grid ColumnDefinitions="36,Auto,*,32" ColumnSpacing="6" Padding="4">
@@ -321,7 +322,8 @@
 
                             <Grid ColumnDefinitions="36,*"
                                   ColumnSpacing="6"
-                                  Padding="14,2">
+                                  Padding="14,2"
+                                  IsVisible="{Binding IsAlbumTail, Converter={StaticResource InvertedBool}}">
 
                                 <!-- Аватар собеседника (у первого сообщения в серии) -->
                                 <Grid Grid.Column="0"
@@ -460,8 +462,72 @@
                                             </Grid>
                                         </Border>
 
+                                        <!-- Альбом: несколько фото сеткой 2×2, как в Telegram -->
+                                        <Grid IsVisible="{Binding IsAlbumHead}"
+                                              ColumnDefinitions="Auto,Auto"
+                                              RowDefinitions="Auto,Auto,Auto"
+                                              ColumnSpacing="2"
+                                              RowSpacing="2"
+                                              Margin="0,2">
+                                            <Border Grid.Row="0"
+                                                    Grid.Column="0"
+                                                    IsVisible="{Binding HasAlbumImage0}"
+                                                    StrokeThickness="0">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="8" />
+                                                </Border.StrokeShape>
+                                                <Image Source="{Binding AlbumImage0}"
+                                                       Aspect="AspectFill"
+                                                       WidthRequest="150"
+                                                       HeightRequest="150" />
+                                            </Border>
+                                            <Border Grid.Row="0"
+                                                    Grid.Column="1"
+                                                    IsVisible="{Binding HasAlbumImage1}"
+                                                    StrokeThickness="0">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="8" />
+                                                </Border.StrokeShape>
+                                                <Image Source="{Binding AlbumImage1}"
+                                                       Aspect="AspectFill"
+                                                       WidthRequest="150"
+                                                       HeightRequest="150" />
+                                            </Border>
+                                            <Border Grid.Row="1"
+                                                    Grid.Column="0"
+                                                    IsVisible="{Binding HasAlbumImage2}"
+                                                    StrokeThickness="0">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="8" />
+                                                </Border.StrokeShape>
+                                                <Image Source="{Binding AlbumImage2}"
+                                                       Aspect="AspectFill"
+                                                       WidthRequest="150"
+                                                       HeightRequest="150" />
+                                            </Border>
+                                            <Border Grid.Row="1"
+                                                    Grid.Column="1"
+                                                    IsVisible="{Binding HasAlbumImage3}"
+                                                    StrokeThickness="0">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="8" />
+                                                </Border.StrokeShape>
+                                                <Image Source="{Binding AlbumImage3}"
+                                                       Aspect="AspectFill"
+                                                       WidthRequest="150"
+                                                       HeightRequest="150" />
+                                            </Border>
+                                            <Label Grid.Row="2"
+                                                   Grid.ColumnSpan="2"
+                                                   Text="{Binding AlbumCountLabel}"
+                                                   FontSize="11"
+                                                   TextColor="{DynamicResource TextMuted}"
+                                                   HorizontalTextAlignment="Center"
+                                                   IsVisible="{Binding IsAlbumHead}" />
+                                        </Grid>
+
                                         <!-- Изображение -->
-                                        <Grid IsVisible="{Binding IsImage}"
+                                        <Grid IsVisible="{Binding ShowSingleImage}"
                                               RowDefinitions="Auto,Auto"
                                               RowSpacing="4">
                                             <Border IsVisible="{Binding IsImagePending}"
@@ -1288,45 +1354,70 @@
                                     SelectionMode="None"
                                     BackgroundColor="Transparent">
                         <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="views:MessageVm">
-                                <Grid Padding="12,8"
-                                      ColumnDefinitions="44,*"
-                                      ColumnSpacing="10">
-                                    <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnMediaItemTapped" />
-                                    </Grid.GestureRecognizers>
-                                    <Border Grid.Column="0"
-                                            WidthRequest="44"
-                                            HeightRequest="44"
-                                            BackgroundColor="{DynamicResource SurfaceAlt}"
-                                            StrokeThickness="0"
-                                            VerticalOptions="Center">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="10" />
-                                        </Border.StrokeShape>
-                                        <Grid>
-                                            <Image Source="{Binding ImageSource}"
-                                                   Aspect="AspectFill"
-                                                   IsVisible="{Binding IsImageReady}" />
-                                            <Label Text="📄"
-                                                   FontSize="20"
-                                                   VerticalTextAlignment="Center"
-                                                   IsVisible="{Binding IsFile}" />
-                                        </Grid>
-                                    </Border>
-                                    <VerticalStackLayout Grid.Column="1"
-                                                         Spacing="2"
-                                                         VerticalOptions="Center">
-                                        <Label Text="{Binding FileName}"
-                                               FontSize="13"
+                            <DataTemplate x:DataType="views:MediaListItemVm">
+                                <VerticalStackLayout Spacing="0">
+
+                                    <!-- Заголовок группы по дате -->
+                                    <Border IsVisible="{Binding IsHeader}"
+                                            BackgroundColor="Transparent"
+                                            Padding="12,12,12,4">
+                                        <Label Text="{Binding Title}"
+                                               FontSize="12"
                                                FontAttributes="Bold"
-                                               TextColor="{DynamicResource TextPrimary}"
-                                               LineBreakMode="TailTruncation" />
-                                        <Label Text="{Binding FileSizeText}"
-                                               FontSize="11"
                                                TextColor="{DynamicResource TextMuted}" />
-                                    </VerticalStackLayout>
-                                </Grid>
+                                    </Border>
+
+                                    <!-- Само вложение -->
+                                    <Grid IsVisible="{Binding IsItem}"
+                                          Padding="12,4"
+                                          ColumnDefinitions="44,*"
+                                          ColumnSpacing="10">
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnMediaItemTapped" />
+                                        </Grid.GestureRecognizers>
+                                        <Border Grid.Column="0"
+                                                WidthRequest="44"
+                                                HeightRequest="44"
+                                                BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                StrokeThickness="0"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="10" />
+                                            </Border.StrokeShape>
+                                            <Grid>
+                                                <Image Source="{Binding Message.ImageSource}"
+                                                       Aspect="AspectFill"
+                                                       IsVisible="{Binding Message.IsImageReady}" />
+                                                <Label Text="{Binding Message.MediaIcon}"
+                                                       FontSize="20"
+                                                       VerticalTextAlignment="Center"
+                                                       HorizontalTextAlignment="Center"
+                                                       IsVisible="{Binding Message.ShowMediaIcon}" />
+                                            </Grid>
+                                        </Border>
+                                        <VerticalStackLayout Grid.Column="1"
+                                                             Spacing="2"
+                                                             VerticalOptions="Center">
+                                            <Label Text="{Binding Message.FileName}"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{DynamicResource TextPrimary}"
+                                                   LineBreakMode="TailTruncation" />
+                                            <HorizontalStackLayout Spacing="6">
+                                                <Label Text="{Binding Message.MediaTypeText}"
+                                                       FontSize="11"
+                                                       TextColor="{DynamicResource TextMuted}" />
+                                                <Label Text="{Binding Message.FileSizeText}"
+                                                       FontSize="11"
+                                                       TextColor="{DynamicResource TextMuted}" />
+                                                <Label Text="{Binding Message.VideoDurationText}"
+                                                       FontSize="11"
+                                                       TextColor="{DynamicResource TextMuted}"
+                                                       IsVisible="{Binding Message.HasVideoDuration}" />
+                                            </HorizontalStackLayout>
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </VerticalStackLayout>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>

@@ -36,6 +36,15 @@ public sealed class StoredMessage
     public string? ReactionsJson { get; set; } = string.Empty;
     public bool IsDraft { get; set; } = false;
     public string? DraftText { get; set; } = string.Empty;
+
+    /// <summary>Идентификатор альбома (несколько фото одним блоком).</summary>
+    public string? AlbumId { get; set; }
+
+    /// <summary>Номер вложения в альбоме (с нуля).</summary>
+    public int AlbumIndex { get; set; }
+
+    /// <summary>Всего вложений в альбоме.</summary>
+    public int AlbumCount { get; set; }
 }
 
 public sealed class StoredConversation
@@ -1721,6 +1730,9 @@ public sealed class LocalStore
         IsPinned = source.IsPinned,
         ReactionsJson = source.ReactionsJson,
         IsDraft = source.IsDraft,
-        DraftText = source.DraftText
+        DraftText = source.DraftText,
+        AlbumId = source.AlbumId,
+        AlbumIndex = source.AlbumIndex,
+        AlbumCount = source.AlbumCount
     };
 }

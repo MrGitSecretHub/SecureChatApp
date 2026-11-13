@@ -38,7 +38,7 @@ public partial class ChatView : ContentView
     private readonly LinkPreviewService _previewService = AppServices.Get<LinkPreviewService>();
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<MessageVm> _messages = new();
-    private readonly ObservableCollection<MessageVm> _mediaItems = new();
+    private readonly ObservableCollection<MediaListItemVm> _mediaItems = new();
     private readonly ObservableCollection<MessageVm> _pinnedItems = new();
 
     private StoredConversation? _conversation;
@@ -72,6 +72,16 @@ public partial class ChatView : ContentView
         public string ContentType { get; set; } = string.Empty;
         public byte[] Data { get; set; } = Array.Empty<byte>();
         public string? MessageKind { get; set; }
+
+        /// <summary>Идентификатор альбома (несколько фото одним блоком).</summary>
+        public string? AlbumId { get; set; }
+
+        /// <summary>Номер фото в альбоме (с нуля).</summary>
+        public int AlbumIndex { get; set; }
+
+        /// <summary>Всего фото в альбоме.</summary>
+        public int AlbumCount { get; set; }
+
         public CancellationTokenSource Cts { get; } = new();
 
         private int _progress;
@@ -535,6 +545,7 @@ public partial class ChatView : ContentView
                 current.DisplayText.Contains(_messageQuery, StringComparison.OrdinalIgnoreCase);
         }
 
+        UpdateAlbumPreviews();
         RefreshSidePanels();
     }
 
@@ -560,13 +571,43 @@ public partial class ChatView : ContentView
         PinnedCountLabel.Text = counter;
         PinnedEmptyLabel.IsVisible = !hasPinned;
 
+        // Медиа и файлы: сгруппированы по датам, как в Telegram.
         _mediaItems.Clear();
+        var mediaCount = 0;
+        DateTime? currentDate = null;
         foreach (var item in _messages.Reverse().Where(item => item.IsImage || item.IsFile))
         {
-            _mediaItems.Add(item);
+            var date = item.LocalDate;
+            if (currentDate != date)
+            {
+                currentDate = date;
+                _mediaItems.Add(MediaListItemVm.Header(MediaDateHeader(date)));
+            }
+
+            _mediaItems.Add(MediaListItemVm.Item(item));
+            mediaCount++;
         }
 
-        MediaEmptyLabel.IsVisible = _mediaItems.Count == 0;
+        MediaEmptyLabel.IsVisible = mediaCount == 0;
+    }
+
+    /// <summary>Заголовок группы медиа: «Сегодня», «Вчера» или дата.</summary>
+    private static string MediaDateHeader(DateTime date)
+    {
+        var today = DateTime.Today;
+        if (date == today)
+        {
+            return "Сегодня";
+        }
+
+        if (date == today.AddDays(-1))
+        {
+            return "Вчера";
+        }
+
+        return date.Year == today.Year
+            ? date.ToString("d MMMM")
+            : date.ToString("d MMMM yyyy");
     }
 
     private static string PinnedCounterText(int index, int count) =>
@@ -587,6 +628,8 @@ public partial class ChatView : ContentView
             MainThread.BeginInvokeOnMainThread(() =>
                 item.SetImageBytes(copy));
         }
+
+        UpdateAlbumPreviews();
 
         // Видео (кружки и видео-файлы): та же догрузка, что у картинок.
         // Большие видео в память VM не тащим (OOM): файл качается в кэш
@@ -613,6 +656,29 @@ public partial class ChatView : ContentView
             var copy = bytes;
             MainThread.BeginInvokeOnMainThread(() =>
                 item.SetVideoBytes(copy));
+        }
+    }
+
+    /// <summary>
+    /// Альбом: первое фото блока показывает сетку 2×2 из фото альбома,
+    /// остальные фото альбома в переписке скрыты.
+    /// </summary>
+    private void UpdateAlbumPreviews()
+    {
+        foreach (var group in _messages
+                     .Where(item => item.IsAlbum)
+                     .GroupBy(item => item.AlbumId, StringComparer.Ordinal))
+        {
+            var ordered = group.OrderBy(item => item.AlbumIndex).ToList();
+            var head = ordered[0];
+
+            var images = ordered
+                .Where(item => item.ImageSource is not null)
+                .Select(item => item.ImageSource!)
+                .Take(4)
+                .ToList();
+
+            head.SetAlbumImages(images);
         }
     }
 
@@ -654,6 +720,7 @@ public partial class ChatView : ContentView
             }
 
             RefreshSidePanels();
+            UpdateAlbumPreviews();
         });
     }
 
@@ -1150,6 +1217,11 @@ public partial class ChatView : ContentView
         _sendingAttachment = true;
         try
         {
+            // Несколько фото отправляются альбомом: у них общий идентификатор
+            // и номер в альбоме (как в Telegram).
+            var albumId = items.Count > 1 ? Guid.NewGuid().ToString("N") : null;
+            var albumIndex = 0;
+
             foreach (var (fileName, data, contentType, kind) in items)
             {
                 var prepared = kind is null
@@ -1161,8 +1233,13 @@ public partial class ChatView : ContentView
                     FileName = fileName,
                     Data = prepared.Data,
                     ContentType = prepared.ContentType,
-                    MessageKind = kind
+                    MessageKind = kind,
+                    AlbumId = albumId,
+                    AlbumIndex = albumIndex,
+                    AlbumCount = items.Count
                 });
+
+                albumIndex++;
             }
 
             SendQueuePanel.IsVisible = true;
@@ -1219,7 +1296,10 @@ public partial class ChatView : ContentView
                         messageKind: item.MessageKind,
                         clientMessageId: item.Id,
                         progress: progress,
-                        cancellationToken: item.Cts.Token);
+                        cancellationToken: item.Cts.Token,
+                        albumId: item.AlbumId,
+                        albumIndex: item.AlbumIndex,
+                        albumCount: item.AlbumCount);
 
                     item.Progress = 100;
                     item.Status = "Готово";
@@ -2948,6 +3028,7 @@ public partial class ChatView : ContentView
     private static MessageVm? GetMessage(object? sender) => sender switch
     {
         Button { CommandParameter: MessageVm button } => button,
+        BindableObject { BindingContext: MediaListItemVm media } => media.Message,
         BindableObject { BindingContext: MessageVm item } => item,
         _ => null
     };

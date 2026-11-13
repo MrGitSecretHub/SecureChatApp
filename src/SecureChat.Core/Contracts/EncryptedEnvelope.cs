@@ -47,6 +47,18 @@ public sealed class MessagePayload
 
     /// <summary>Имя вложения исходного сообщения, если отвечают на медиа.</summary>
     public string? ReplyToFileName { get; set; }
+
+    /// <summary>
+    /// Идентификатор альбома: несколько фото, отправленных вместе, собираются
+    /// в один блок, как в Telegram. Пусто — обычное одиночное вложение.
+    /// </summary>
+    public string? AlbumId { get; set; }
+
+    /// <summary>Номер вложения в альбоме (с нуля).</summary>
+    public int AlbumIndex { get; set; }
+
+    /// <summary>Всего вложений в альбоме.</summary>
+    public int AlbumCount { get; set; }
 }
 
 public static class MessageKinds

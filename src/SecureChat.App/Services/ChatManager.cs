@@ -423,7 +423,10 @@ public sealed class ChatManager
             Kind = message.Kind,
             IsPinned = message.IsPinned,
             IsForwarded = message.IsForwarded,
-            Reactions = LocalStore.ReadReactions(message.ReactionsJson)
+            Reactions = LocalStore.ReadReactions(message.ReactionsJson),
+            AlbumId = message.AlbumId,
+            AlbumIndex = message.AlbumIndex,
+            AlbumCount = message.AlbumCount
         };
 
         if (message.Kind != MessageKinds.Text && message.Kind != MessageKinds.Sticker)
@@ -1227,7 +1230,10 @@ public sealed class ChatManager
         string? messageKind = null,
         string? clientMessageId = null,
         IProgress<int>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? albumId = null,
+        int albumIndex = 0,
+        int albumCount = 0)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
         ArgumentNullException.ThrowIfNull(data);
@@ -1297,7 +1303,10 @@ public sealed class ChatManager
             MediaTag = encryptedMedia.Tag,
             MediaDownloaded = true,
             IsForwarded = isForwarded,
-            SenderUsername = user.Username
+            SenderUsername = user.Username,
+            AlbumId = albumCount > 1 ? albumId : null,
+            AlbumIndex = albumCount > 1 ? albumIndex : 0,
+            AlbumCount = albumCount > 1 ? albumCount : 0
         };
 
         if (await _localStore.AddMessageAsync(username, localMessage, incrementUnread: false))
@@ -1716,6 +1725,9 @@ public sealed class ChatManager
                 ReplyToMessageId = payload.ReplyToMessageId,
                 ReplyToText = payload.ReplyToText,
                 ReplyToFileName = payload.ReplyToFileName,
+                AlbumId = string.IsNullOrWhiteSpace(payload.AlbumId) ? null : payload.AlbumId,
+                AlbumIndex = payload.AlbumIndex,
+                AlbumCount = payload.AlbumCount,
                 ReactionsJson = payload.Reactions is null or { Count: 0 }
                     ? string.Empty
                     : JsonSerializer.Serialize(payload.Reactions)
