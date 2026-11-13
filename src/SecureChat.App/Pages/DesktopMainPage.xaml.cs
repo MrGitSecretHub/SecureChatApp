@@ -28,6 +28,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     // обычные чаты (с «Избранным» во главе) и архив.
     private IReadOnlyList<StoredConversation> _regular = Array.Empty<StoredConversation>();
     private IReadOnlyList<StoredConversation> _archived = Array.Empty<StoredConversation>();
+    private IReadOnlyList<StoredChatFolder> _folders = Array.Empty<StoredChatFolder>();
     private CancellationTokenSource? _toastCts;
     private CancellationTokenSource? _statusCts;
     private CancellationTokenSource? _hintCts;
@@ -215,11 +216,14 @@ public partial class DesktopMainPage : ContentPage, IDisposable
             var regularAll = new List<StoredConversation> { selfConversation };
             regularAll.AddRange(regular.Where(c => c.Username != ChatManager.SelfChatUsername));
             var archivedAll = await _chatManager.GetArchivedConversationsAsync();
+            var foldersAll = await _chatManager.GetChatFoldersAsync();
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 _regular = regularAll;
                 _archived = archivedAll;
+                _folders = foldersAll;
+                RebuildFolderChips();
                 ApplyFilter();
                 UpdateWindowTitle();
             });
@@ -238,6 +242,13 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     {
         var query = SearchEntry.Text?.Trim();
         var folder = _session.ChatFolder;
+        var custom = ChatFolders.Find(_folders, folder);
+        if (custom is null && !ChatFolders.IsFixed(folder))
+        {
+            // Папку удалили или переименовали — возвращаемся к «Все».
+            folder = _session.ChatFolder = ChatFolders.All;
+        }
+
         var source = folder == ChatFolders.Archive ? _archived : _regular;
 
         _suppressSelection = true;
@@ -245,7 +256,14 @@ public partial class DesktopMainPage : ContentPage, IDisposable
 
         foreach (var conversation in source)
         {
-            if (!ChatFolders.Matches(folder, conversation))
+            if (custom is not null)
+            {
+                if (!ChatFolders.Contains(custom, conversation))
+                {
+                    continue;
+                }
+            }
+            else if (!ChatFolders.Matches(folder, conversation))
             {
                 continue;
             }
@@ -270,6 +288,54 @@ public partial class DesktopMainPage : ContentPage, IDisposable
 
         _suppressSelection = false;
         UpdateFolderTabs();
+    }
+
+    /// <summary>Чипы пользовательских папок после фиксированных вкладок.</summary>
+    private void RebuildFolderChips()
+    {
+        UserFolderChips.Children.Clear();
+        foreach (var folder in _folders)
+        {
+            var chip = new Button
+            {
+                Text = folder.Name,
+                CommandParameter = folder.Name,
+                FontSize = 11,
+                HeightRequest = 30,
+                Padding = new Thickness(8, 2),
+                CornerRadius = 14,
+            };
+            chip.Clicked += OnFolderClicked;
+            UserFolderChips.Children.Add(chip);
+        }
+    }
+
+    /// <summary>Меню управления папками: создать или открыть любую на настройку.</summary>
+    private async void OnFoldersManageClicked(object sender, EventArgs e)
+    {
+        const string create = "＋ Создать папку";
+        if (_folders.Count == 0)
+        {
+            await Navigation.PushAsync(new FolderEditPage(null));
+            await RefreshAsync();
+            return;
+        }
+
+        var names = _folders.Select(f => f.Name).ToArray();
+        var choice = await DisplayActionSheet(
+            "Папки чатов", "Отмена", null,
+            names.Prepend(create).ToArray());
+
+        if (string.IsNullOrEmpty(choice) || choice == "Отмена")
+        {
+            return;
+        }
+
+        var existing = string.Equals(choice, create, StringComparison.Ordinal)
+            ? null
+            : ChatFolders.Find(_folders, choice);
+        await Navigation.PushAsync(new FolderEditPage(existing));
+        await RefreshAsync();
     }
 
     private void UpdateWindowTitle()
@@ -411,18 +477,23 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         ApplyFilter();
     }
 
-    /// <summary>Вкладки: бейджи-счётчики по полному списку и подсветка активной.</summary>
+    /// <summary>Вкладки (фиксированные и папки): бейджи-счётчики и подсветка активной.</summary>
     private void UpdateFolderTabs()
     {
         Color Res(string key) => (Color)Application.Current!.Resources[key];
+        var active = _session.ChatFolder;
+
         foreach (var button in new[]
                  {
                      FolderAllButton, FolderUnreadButton, FolderMutedButton, FolderArchiveButton,
-                 })
+                 }.Concat(UserFolderChips.Children.OfType<Button>()))
         {
             var folder = (string)button.CommandParameter;
-            button.Text = ChatFolders.TabText(folder, _regular, _archived.Count);
-            var selected = string.Equals(folder, _session.ChatFolder, StringComparison.Ordinal);
+            var custom = ChatFolders.Find(_folders, folder);
+            button.Text = custom is not null
+                ? ChatFolders.FolderTabText(custom, _regular)
+                : ChatFolders.TabText(folder, _regular, _archived.Count);
+            var selected = string.Equals(folder, active, StringComparison.Ordinal);
             button.BackgroundColor = selected ? Res("Accent") : Res("SurfaceAlt");
             button.TextColor = selected ? Res("AccentText") : Res("TextMuted");
         }

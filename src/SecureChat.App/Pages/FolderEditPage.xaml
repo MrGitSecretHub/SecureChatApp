@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:SecureChat.App.Views"
+             x:Class="SecureChat.App.Pages.FolderEditPage"
+             Title="Папка чатов">
+    <Grid Padding="16"
+          RowDefinitions="Auto,Auto,Auto,*,Auto"
+          RowSpacing="10"
+          BackgroundColor="{DynamicResource PageBackground}">
+
+        <VerticalStackLayout Spacing="2">
+            <Label Text="Название папки" Style="{DynamicResource Caption}" />
+            <Entry x:Name="NameEntry"
+                   Placeholder="Например: Работа"
+                   MaxLength="32"
+                   Completed="OnSaveClicked" />
+        </VerticalStackLayout>
+
+        <Label Grid.Row="1"
+               Text="Чаты в папке"
+               Style="{DynamicResource Caption}" />
+
+        <Label Grid.Row="2"
+               x:Name="ErrorLabel"
+               TextColor="{DynamicResource Danger}"
+               FontSize="12"
+               IsVisible="False"
+               LineBreakMode="WordWrap" />
+
+        <CollectionView Grid.Row="3"
+                        x:Name="ChatsView"
+                        SelectionMode="None">
+            <CollectionView.EmptyView>
+                <Label Text="Нет чатов — добавьте контакт, затем вернитесь сюда."
+                       Style="{DynamicResource Caption}"
+                       Margin="0,24"
+                       HorizontalOptions="Center" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="views:FolderChatItem">
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="10"
+                          Padding="4,6">
+                        <CheckBox IsChecked="{Binding IsChecked}"
+                                  VerticalOptions="Center" />
+                        <Label Grid.Column="1"
+                               Text="{Binding Username}"
+                               FontSize="14"
+                               TextColor="{DynamicResource TextPrimary}"
+                               VerticalOptions="Center"
+                               LineBreakMode="TailTruncation" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <HorizontalStackLayout Grid.Row="4" Spacing="8">
+            <Button x:Name="SaveButton"
+                    Text="Сохранить"
+                    Style="{DynamicResource SecondaryButton}"
+                    Clicked="OnSaveClicked" />
+            <Button x:Name="DeleteButton"
+                    Text="Удалить папку"
+                    Style="{DynamicResource GhostButton}"
+                    TextColor="{DynamicResource Danger}"
+                    IsVisible="False"
+                    Clicked="OnDeleteClicked" />
+        </HorizontalStackLayout>
+    </Grid>
+</ContentPage>

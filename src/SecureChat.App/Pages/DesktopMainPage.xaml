@@ -150,7 +150,8 @@
                      вкладки были бы недоступны. -->
                 <ScrollView Grid.Row="2"
                             Orientation="Horizontal"
-                            HeightRequest="36">
+                            HeightRequest="36"
+                            Margin="0,2,0,0">
                     <HorizontalStackLayout Spacing="6">
                         <Button x:Name="FolderAllButton"
                                 Text="Все"
@@ -184,6 +185,16 @@
                                 HeightRequest="30"
                                 Padding="8,2"
                                 CornerRadius="14" />
+                        <!-- Пользовательские папки: чипы создаются кодом -->
+                        <HorizontalStackLayout x:Name="UserFolderChips" Spacing="6" />
+                        <Button x:Name="FolderManageButton"
+                                Text="⋯"
+                                Clicked="OnFoldersManageClicked"
+                                FontSize="12"
+                                HeightRequest="30"
+                                Padding="8,2"
+                                CornerRadius="14"
+                                ToolTipProperties.Text="Папки чатов: создать и настроить" />
                     </HorizontalStackLayout>
                 </ScrollView>
             </Grid>

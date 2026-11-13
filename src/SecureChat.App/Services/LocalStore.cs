@@ -80,9 +80,19 @@ public sealed class StoredMessageSearchResult
     public bool IsMine { get; init; }
 }
 
+/// <summary>Пользовательская папка чатов: имя и список логинов внутри неё.</summary>
+public sealed class StoredChatFolder
+{
+    public required string Name { get; set; }
+    public List<string> Usernames { get; set; } = new();
+}
+
 public sealed class LocalState
 {
     public List<StoredConversation> Conversations { get; set; } = new();
+
+    /// <summary>Пользовательские папки чатов; порядок = порядок вкладок.</summary>
+    public List<StoredChatFolder> ChatFolders { get; set; } = new();
 
     /// <summary>Обои пространств: spaceId -> путь к файлу.</summary>
     public Dictionary<string, string> SpaceWallpaperPaths { get; set; } = new(StringComparer.OrdinalIgnoreCase);
@@ -262,6 +272,96 @@ public sealed class LocalStore
             }
 
             conversation.IsMuted = muted;
+            await SaveAsync();
+            return true;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Пользовательские папки в порядке панели вкладок.</summary>
+    public async Task<IReadOnlyList<StoredChatFolder>> GetChatFoldersAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            return _state!.ChatFolders
+                .Select(folder => new StoredChatFolder
+                {
+                    Name = folder.Name,
+                    Usernames = new List<string>(folder.Usernames),
+                })
+                .ToList();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Создаёт папку (originalName = null) либо переименовывает её и задаёт состав.
+    /// false — если исходная папка не найдена или имя уже занято другой папкой.
+    /// </summary>
+    public async Task<bool> SaveChatFolderAsync(string? originalName, string name, List<string> usernames)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var folders = _state!.ChatFolders;
+            StoredChatFolder? target = null;
+            if (originalName is not null)
+            {
+                target = folders.FirstOrDefault(f =>
+                    string.Equals(f.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                if (target is null)
+                {
+                    return false;
+                }
+            }
+
+            var clash = folders.FirstOrDefault(f =>
+                string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (clash is not null && !ReferenceEquals(clash, target))
+            {
+                return false;
+            }
+
+            if (target is null)
+            {
+                target = new StoredChatFolder { Name = name };
+                folders.Add(target);
+            }
+
+            target.Name = name;
+            target.Usernames = usernames;
+            await SaveAsync();
+            return true;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    public async Task<bool> DeleteChatFolderAsync(string name)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var folder = _state!.ChatFolders.FirstOrDefault(f =>
+                string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (folder is null)
+            {
+                return false;
+            }
+
+            _state!.ChatFolders.Remove(folder);
             await SaveAsync();
             return true;
         }

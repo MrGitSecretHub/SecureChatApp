@@ -35,4 +35,29 @@ public static class ChatFolders
 
     private static string WithBadge(string folder, int count) =>
         count > 0 ? $"{folder} · {count}" : folder;
+
+    /// <summary>Фиксированные вкладки — их имена нельзя отдавать пользовательским папкам.</summary>
+    public static bool IsFixed(string folder) =>
+        folder is All or Unread or Muted or Archive;
+
+    /// <summary>Имя зарезервировано; сравнение регистронезависимое.</summary>
+    public static bool IsReserved(string name) =>
+        FixedNames.Any(item => string.Equals(item, name, StringComparison.OrdinalIgnoreCase));
+
+    public static readonly string[] FixedNames = [All, Unread, Muted, Archive];
+
+    public static StoredChatFolder? Find(IReadOnlyList<StoredChatFolder> folders, string name) =>
+        folders.FirstOrDefault(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Входит ли чат в пользовательскую папку.</summary>
+    public static bool Contains(StoredChatFolder folder, StoredConversation conversation) =>
+        folder.Usernames.Contains(conversation.Username, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Счётчик непрочитанных для подписки папки на панели вкладок.</summary>
+    public static string FolderTabText(
+        StoredChatFolder folder,
+        IReadOnlyList<StoredConversation> regular) =>
+        WithBadge(
+            folder.Name,
+            regular.Count(c => Contains(folder, c) && c.UnreadCount > 0));
 }

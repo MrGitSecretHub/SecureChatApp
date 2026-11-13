@@ -477,6 +477,21 @@ public sealed class ChatManager
         return _localStore.SetConversationArchivedAsync(username, archived);
     }
 
+    // ================================================================
+    // ПАПКИ ЧАТОВ (вкладки в списке) — только локальные данные
+    // ================================================================
+
+    /// <summary>Пользовательские папки в порядке панели вкладок.</summary>
+    public Task<IReadOnlyList<StoredChatFolder>> GetChatFoldersAsync() =>
+        _localStore.GetChatFoldersAsync();
+
+    /// <summary>Создать (originalName = null) или обновить папку; false — имя занято или папка не найдена.</summary>
+    public Task<bool> SaveChatFolderAsync(string? originalName, string name, List<string> usernames) =>
+        _localStore.SaveChatFolderAsync(originalName, name, usernames);
+
+    public Task<bool> DeleteChatFolderAsync(string name) =>
+        _localStore.DeleteChatFolderAsync(name);
+
     /// <summary>Уведомления и звук для чата отключены.</summary>
     public bool IsConversationMuted(string username) =>
         _mutedChats.ContainsKey(username);
