@@ -637,9 +637,34 @@ public sealed class MessageVm : INotifyPropertyChanged
         : SenderDisplay;
 
     /// <summary>Подпись автора в цитате: «↩ anna» или «↩ Вы»; без автора — «↩ Ответ».</summary>
-    public string ReplyQuoteAuthorText => string.IsNullOrWhiteSpace(_replyAuthorDisplay)
-        ? "↩ Ответ"
-        : $"↩ {_replyAuthorDisplay}";
+    public string ReplyQuoteAuthorText
+    {
+        get
+        {
+            var name = string.IsNullOrWhiteSpace(_replyAuthorDisplay) ? _replyAuthorFallback : _replyAuthorDisplay;
+            return string.IsNullOrWhiteSpace(name) ? "↩ Ответ" : $"↩ {name}";
+        }
+    }
+
+    private string _replyAuthorFallback = string.Empty;
+
+    /// <summary>
+    /// Автор цитаты для старых ответов, сохранённых без имени: берётся у цитируемого
+    /// сообщения, если оно есть в загруженной переписке.
+    /// </summary>
+    public void SetReplyAuthorFallback(string author, string ownName)
+    {
+        var display = string.IsNullOrWhiteSpace(author)
+            ? string.Empty
+            : string.Equals(author, ownName, StringComparison.OrdinalIgnoreCase) ? "Вы" : author;
+        if (string.Equals(display, _replyAuthorFallback, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _replyAuthorFallback = display;
+        Notify(nameof(ReplyQuoteAuthorText));
+    }
 
     /// <summary>Идентификатор сообщения, на которое отвечают.</summary>
     public string? ReplyToMessageId { get; private set; }

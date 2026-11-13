@@ -579,6 +579,22 @@ public partial class ChatView : ContentView
                 current.DisplayText.Contains(_messageQuery, StringComparison.OrdinalIgnoreCase);
         }
 
+        // Старые ответы сохранены без автора: берём его у цитируемого сообщения по идентификатору,
+        // если оно есть в загруженной переписке.
+        var byId = new Dictionary<string, MessageVm>(StringComparer.Ordinal);
+        foreach (var item in _messages)
+        {
+            byId[item.Id] = item;
+        }
+
+        foreach (var reply in _messages.Where(item => item.HasReplyQuote && item.ReplyToMessageId is not null))
+        {
+            if (byId.TryGetValue(reply.ReplyToMessageId!, out var original))
+            {
+                reply.SetReplyAuthorFallback(original.ReplyAuthorName, _session.Username);
+            }
+        }
+
         UpdateAlbumPreviews();
         RefreshSidePanels();
     }
