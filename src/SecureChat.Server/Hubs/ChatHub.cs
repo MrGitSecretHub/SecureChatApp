@@ -347,7 +347,13 @@ public sealed class ChatHub : Hub
             return result;
         }
 
-        var added = await _spaces.AddMemberAsync(spaceId, invited.Id, SpaceRoles.Member, canPost: true);
+        // Как при создании: писать могут только в группах; в канал/форум/сообщество
+        // приглашённый приходит читателем, право даёт админ.
+        var added = await _spaces.AddMemberAsync(
+            spaceId,
+            invited.Id,
+            SpaceRoles.Member,
+            canPost: string.Equals(space.Type, SpaceTypes.Group, StringComparison.OrdinalIgnoreCase));
         if (!added)
         {
             result.Error = "error";
@@ -745,12 +751,23 @@ public sealed class ChatHub : Hub
 
     public async Task<List<SpaceMessageDto>> GetSpaceMessages(string spaceId, string? topicId)
     {
-        if (string.IsNullOrWhiteSpace(spaceId))
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrWhiteSpace(spaceId) || string.IsNullOrEmpty(userId))
         {
             return new List<SpaceMessageDto>();
         }
 
-        return await _spaces.ListEncryptedMessagesAsync(spaceId, topicId, 200);
+        // Шифротексты чужих пространств недоступны: сервер их не читает,
+        // но логин отправителя и метаданные видны — пускаем только участников.
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null || string.IsNullOrEmpty(space.MyRole))
+        {
+            return new List<SpaceMessageDto>();
+        }
+
+        // Корень форума — только сообщения вне тем: иначе лента перемешана с топиками.
+        var withoutTopicOnly = topicId is null && space.Type == SpaceTypes.Forum;
+        return await _spaces.ListEncryptedMessagesAsync(spaceId, topicId, 200, withoutTopicOnly);
     }
 
     public async Task<List<TopicDto>> GetTopics(string spaceId)
@@ -844,6 +861,20 @@ public sealed class ChatHub : Hub
         var members = await _spaces.GetMembersAsync(spaceId);
         var member = members.FirstOrDefault(item => item.UserId == userId);
         if (member is null)
+        {
+            return false;
+        }
+
+        // Владелец неприкосновенен: сменить его роль может только он сам (передача владения),
+        // понизить себя — значит запереть администрирование.
+        if (member.Role == SpaceRoles.Owner ||
+            string.Equals(userId, requesterId, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (role is not null &&
+            role is not (SpaceRoles.Admin or SpaceRoles.Member or SpaceRoles.Guest))
         {
             return false;
         }

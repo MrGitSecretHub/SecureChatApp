@@ -58,6 +58,9 @@ public sealed class SpaceMemberDto
     public required string Role { get; set; }
     public bool CanPost { get; set; } = true;
     public string OnlineStatus { get; set; } = "Онлайн";
+
+    /// <summary>До какого времени участнику запрещено писать (Unix мс); 0 — не замучен.</summary>
+    public long MutedUntilUnixMs { get; set; }
 }
 
 /// <summary>Результат приглашения участника в пространство.</summary>

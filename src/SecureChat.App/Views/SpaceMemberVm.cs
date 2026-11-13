@@ -20,6 +20,10 @@ public sealed class SpaceMemberVm
     public string Role { get; init; } = SpaceRoles.Member;
     public bool CanPost { get; init; } = true;
     public string OnlineStatus { get; init; } = "Онлайн";
+    public long MutedUntilUnixMs { get; init; }
+
+    /// <summary>Запрет записи активен прямо сейчас.</summary>
+    public bool IsMuted => MutedUntilUnixMs > DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     public string Initial => string.IsNullOrEmpty(Username) ? "?" : Username[..1].ToUpperInvariant();
 
@@ -50,8 +54,13 @@ public sealed class SpaceMemberVm
         _ => "Участник"
     };
 
-    public string CanPostText => CanPost ? "Может писать" : "Только чтение";
-    public string StatusText => $"{OnlineStatus} · {RoleText}";
+    public string CanPostText => IsMuted
+        ? "🔇 Запрет записи"
+        : CanPost ? "Может писать" : "Только чтение";
+
+    public string StatusText => IsMuted
+        ? $"{OnlineStatus} · {RoleText} · 🔇"
+        : $"{OnlineStatus} · {RoleText}";
 
     public static SpaceMemberVm From(SpaceMemberDto source) => new()
     {
@@ -59,6 +68,7 @@ public sealed class SpaceMemberVm
         Username = source.Username,
         Role = source.Role,
         CanPost = source.CanPost,
-        OnlineStatus = source.OnlineStatus
+        OnlineStatus = source.OnlineStatus,
+        MutedUntilUnixMs = source.MutedUntilUnixMs,
     };
 }

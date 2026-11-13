@@ -207,6 +207,12 @@ public partial class SpaceChatPage : ContentPage
             _members = members;
             MessageEntry.SetMembers(members.Select(member => member.Username));
 
+            // Права модератора (закрепление, удаление чужого, удаление тем) —
+            // раньше поле никогда не заполнялось и всегда было false.
+            _canModerate = members.Any(member =>
+                string.Equals(member.UserId, _myUserId, StringComparison.Ordinal) &&
+                (member.Role == SpaceRoles.Owner || member.Role == SpaceRoles.Admin));
+
             // Для подсветки @упоминаний в сообщениях, отправленных до появления
             // этой функции (payload старых версий не несёт список упомянутых).
             SpaceMessageVm.SetFallbackMembers(
@@ -1670,6 +1676,10 @@ public partial class SpaceChatPage : ContentPage
 
         var options = new List<string> { "＋ Новая тема" };
         options.AddRange(topics.Select(topic => topic.Title));
+        if (_canModerate)
+        {
+            options.Add("🗑 Удалить тему…");
+        }
 
         var selected = await DisplayActionSheet(
             "Темы форума",
@@ -1678,6 +1688,39 @@ public partial class SpaceChatPage : ContentPage
             options.ToArray());
         if (string.IsNullOrWhiteSpace(selected) || selected == "Отмена")
         {
+            return;
+        }
+
+        if (selected == "🗑 Удалить тему…")
+        {
+            var target = await DisplayActionSheet(
+                "Какую тему удалить? Все её сообщения будут стёрты.",
+                "Отмена",
+                null,
+                topics.Select(topic => topic.Title).ToArray());
+            var doomed = topics.FirstOrDefault(item => item.Title == target);
+            if (doomed is null)
+            {
+                return;
+            }
+
+            var confirmed = await DisplayAlert(
+                "Удалить тему",
+                $"Тема «{doomed.Title}» и все её сообщения исчезнут для всех участников.",
+                "Удалить", "Отмена");
+            if (!confirmed)
+            {
+                return;
+            }
+
+            if (await _spaces.DeleteTopicAsync(_spaceId, doomed.Id) &&
+                string.Equals(_topicId, doomed.Id, StringComparison.Ordinal))
+            {
+                _topicId = null;
+                _topicTitle = null;
+            }
+
+            await LoadAsync();
             return;
         }
 

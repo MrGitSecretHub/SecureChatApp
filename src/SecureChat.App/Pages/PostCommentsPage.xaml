@@ -70,26 +70,75 @@
                                    LineBreakMode="WordWrap"
                                    IsVisible="{Binding HasText}" />
 
-                            <Button Text="🗑️"
-                                    Style="{DynamicResource SpaceActionButton}"
-                                    TextColor="{DynamicResource Danger}"
-                                    IsVisible="{Binding CanDelete}"
-                                    HorizontalOptions="Start"
-                                    CommandParameter="{Binding .}"
-                                    Clicked="OnCommentDeleteClicked"
-                                    ToolTipProperties.Text="Удалить комментарий">
-                                <Button.Style>
-                                    <Style TargetType="Button">
-                                        <Setter Property="BackgroundColor" Value="Transparent" />
-                                        <Setter Property="Padding" Value="6,2" />
-                                        <Setter Property="MinimumWidthRequest" Value="0" />
-                                        <Setter Property="MinimumHeightRequest" Value="0" />
-                                        <Setter Property="WidthRequest" Value="32" />
-                                        <Setter Property="HeightRequest" Value="28" />
-                                        <Setter Property="CornerRadius" Value="8" />
-                                    </Style>
-                                </Button.Style>
-                            </Button>
+                            <!-- Реакции комментария -->
+                            <CollectionView IsVisible="{Binding HasReactions}"
+                                            ItemsSource="{Binding ReactionChips}"
+                                            HeightRequest="26"
+                                            SelectionMode="None"
+                                            HorizontalOptions="Start">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="4" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="views:ReactionChipVm">
+                                        <Border Padding="4,2"
+                                                BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                StrokeThickness="0">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="8" />
+                                            </Border.StrokeShape>
+                                            <HorizontalStackLayout Spacing="4"
+                                                                   VerticalOptions="Center">
+                                                <Label Text="{Binding Emoji}"
+                                                       FontSize="12"
+                                                       VerticalOptions="Center" />
+                                                <Label Text="{Binding Count}"
+                                                       FontSize="10"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{DynamicResource Accent}"
+                                                       VerticalOptions="Center" />
+                                            </HorizontalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                            <HorizontalStackLayout Spacing="0">
+                                <Button Text="😊"
+                                        CommandParameter="{Binding .}"
+                                        Clicked="OnCommentReactClicked"
+                                        ToolTipProperties.Text="Реакция">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="BackgroundColor" Value="Transparent" />
+                                            <Setter Property="Padding" Value="6,2" />
+                                            <Setter Property="MinimumWidthRequest" Value="0" />
+                                            <Setter Property="MinimumHeightRequest" Value="0" />
+                                            <Setter Property="WidthRequest" Value="32" />
+                                            <Setter Property="HeightRequest" Value="28" />
+                                            <Setter Property="CornerRadius" Value="8" />
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Text="🗑️"
+                                        TextColor="{DynamicResource Danger}"
+                                        IsVisible="{Binding CanDelete}"
+                                        CommandParameter="{Binding .}"
+                                        Clicked="OnCommentDeleteClicked"
+                                        ToolTipProperties.Text="Удалить комментарий">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="BackgroundColor" Value="Transparent" />
+                                            <Setter Property="Padding" Value="6,2" />
+                                            <Setter Property="MinimumWidthRequest" Value="0" />
+                                            <Setter Property="MinimumHeightRequest" Value="0" />
+                                            <Setter Property="WidthRequest" Value="32" />
+                                            <Setter Property="HeightRequest" Value="28" />
+                                            <Setter Property="CornerRadius" Value="8" />
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </HorizontalStackLayout>
                         </VerticalStackLayout>
                     </Grid>
                 </DataTemplate>

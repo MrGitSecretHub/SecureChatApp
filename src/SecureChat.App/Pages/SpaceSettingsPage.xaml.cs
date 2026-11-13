@@ -197,12 +197,33 @@ public partial class SpaceSettingsPage : ContentPage
 
         MembersView.SelectedItem = null;
 
-        var choice = await DisplayActionSheet(
-            member.Username,
-            "Отмена",
-            null,
+        // Владелец меняет участников; остальные видят только сведения.
+        var isAdmin = _space?.MyRole is SpaceRoles.Owner or SpaceRoles.Admin;
+        if (!isAdmin)
+        {
+            await DisplayAlert(
+                member.Username,
+                $"{member.RoleText} · {member.CanPostText}\nИзменять состав могут владелец и администраторы.",
+                "OK");
+            return;
+        }
+
+        if (member.Role == SpaceRoles.Owner)
+        {
+            await DisplayAlert(member.Username, "Это владелец пространства — его роль не меняют.", "OK");
+            return;
+        }
+
+        var actions = new List<string>
+        {
             "Изменить роль",
-            "Удалить из пространства");
+            member.CanPost ? "🔇 Запретить писать" : "✏️ Разрешить писать",
+            member.IsMuted ? "🔊 Снять запрет записи" : "⏱ Запрет записи на время…",
+            "Удалить из пространства",
+        };
+
+        var choice = await DisplayActionSheet(
+            member.Username, "Отмена", null, actions.ToArray());
 
         if (string.IsNullOrWhiteSpace(choice) || choice == "Отмена")
         {
@@ -215,7 +236,7 @@ public partial class SpaceSettingsPage : ContentPage
             {
                 await _spaces.RemoveMemberAsync(_spaceId, member.UserId);
             }
-            else
+            else if (choice == "Изменить роль")
             {
                 var role = await DisplayActionSheet(
                     $"Роль: {member.Username}",
@@ -237,11 +258,43 @@ public partial class SpaceSettingsPage : ContentPage
                     _ => SpaceRoles.Member
                 };
 
+                // Смена роли, как и раньше, задаёт право по умолчанию;
+                // тонкая настройка — отдельным пунктом «Разрешить/Запретить писать».
                 await _spaces.UpdateMemberAsync(
-                    _spaceId,
-                    member.UserId,
-                    newRole,
-                    newRole != SpaceRoles.Guest);
+                    _spaceId, member.UserId, newRole, newRole != SpaceRoles.Guest);
+            }
+            else if (choice.StartsWith("🔇 Запретить") || choice.StartsWith("✏️ Разрешить"))
+            {
+                // Право писать отдельно от роли: роль не трогаем.
+                await _spaces.UpdateMemberAsync(
+                    _spaceId, member.UserId, canPost: !member.CanPost);
+            }
+            else if (choice == "🔊 Снять запрет записи")
+            {
+                await _spaces.UnmuteMemberAsync(_spaceId, member.UserId);
+            }
+            else if (choice == "⏱ Запрет записи на время…")
+            {
+                var duration = await DisplayActionSheet(
+                    $"Запрет писать для {member.Username}:",
+                    "Отмена",
+                    null,
+                    "1 час",
+                    "1 день",
+                    "1 неделя");
+
+                var hours = duration switch
+                {
+                    "1 час" => 1,
+                    "1 день" => 24,
+                    "1 неделя" => 24 * 7,
+                    _ => 0,
+                };
+                if (hours > 0)
+                {
+                    await _spaces.MuteMemberAsync(
+                        _spaceId, member.UserId, DateTimeOffset.UtcNow.AddHours(hours));
+                }
             }
 
             await LoadAsync();

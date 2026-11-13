@@ -253,6 +253,35 @@ public partial class PostCommentsPage : ContentPage
         }
     }
 
+    /// <summary>Реакция на комментарий: та же панель эмодзи, что и в ленте.</summary>
+    private async void OnCommentReactClicked(object sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: SpaceMessageVm comment })
+        {
+            return;
+        }
+
+        var emoji = await DisplayActionSheet(
+            "Реакция:",
+            "Отмена",
+            null,
+            "👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🙏");
+        if (string.IsNullOrWhiteSpace(emoji) || emoji == "Отмена")
+        {
+            return;
+        }
+
+        try
+        {
+            await _spaces.SetReactionAsync(_spaceId, comment.Id, emoji, true);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
+
     /// <summary>Нажали @упоминание в комментарии: показываем профиль.</summary>
     private async void OnMentionTapped(SpaceMessageVm comment, string username)
     {

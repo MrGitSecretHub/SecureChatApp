@@ -312,7 +312,8 @@ public sealed class SpaceRepository
             SELECT s.Id, s.Name, s.Type, s.Description, s.IsPublic, s.OwnerId,
                    COALESCE(m.Role, ''), COALESCE(m.CanPost, 0),
                    (SELECT COUNT(*) FROM SpaceMembers sm WHERE sm.SpaceId = s.Id),
-                   (SELECT COUNT(*) FROM Topics t WHERE t.SpaceId = s.Id)
+                   (SELECT COUNT(*) FROM Topics t WHERE t.SpaceId = s.Id),
+                   (SELECT Username FROM Users WHERE Users.Id = s.OwnerId)
             FROM Spaces s
             LEFT JOIN SpaceMembers m ON m.SpaceId = s.Id AND m.UserId = $viewerId
             WHERE s.Id = $spaceId
@@ -328,7 +329,7 @@ public sealed class SpaceRepository
         }
 
         var ownerId = reader.GetString(5);
-        var ownerUsername = ownerId;
+        var ownerUsername = reader.IsDBNull(10) ? ownerId : reader.GetString(10);
 
         return new SpaceDto
         {
@@ -361,7 +362,8 @@ public sealed class SpaceRepository
                    (SELECT COUNT(*) FROM Topics t WHERE t.SpaceId = s.Id),
                    (SELECT COALESCE(MAX(SentAtUnixMs), 0) FROM SpaceMessages sm WHERE sm.SpaceId = s.Id),
                    (SELECT COALESCE(Text, '') FROM SpaceMessages sm
-                       WHERE sm.SpaceId = s.Id ORDER BY SentAtUnixMs DESC LIMIT 1)
+                       WHERE sm.SpaceId = s.Id ORDER BY SentAtUnixMs DESC LIMIT 1),
+                   (SELECT Username FROM Users WHERE Users.Id = s.OwnerId)
             FROM Spaces s
             LEFT JOIN SpaceMembers m ON m.SpaceId = s.Id AND m.UserId = $userId
             WHERE m.UserId IS NOT NULL OR s.IsPublic = 1
@@ -381,13 +383,13 @@ public sealed class SpaceRepository
                 Description = reader.GetString(3),
                 IsPublic = reader.GetInt64(4) == 1,
                 OwnerId = reader.GetString(5),
-                OwnerUsername = reader.GetString(5),
                 MyRole = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
                 CanPost = !reader.IsDBNull(7) && reader.GetInt64(7) == 1,
                 MemberCount = reader.GetInt32(8),
                 TopicCount = reader.GetInt32(9),
                 LastMessageAtUnixMs = reader.GetInt64(10),
-                LastMessageText = reader.IsDBNull(11) ? string.Empty : reader.GetString(11)
+                LastMessageText = reader.IsDBNull(11) ? string.Empty : reader.GetString(11),
+                OwnerUsername = reader.IsDBNull(12) ? reader.GetString(5) : reader.GetString(12)
             });
         }
 
@@ -403,7 +405,7 @@ public sealed class SpaceRepository
 
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT u.Id, u.Username, m.Role, m.CanPost
+            SELECT u.Id, u.Username, m.Role, m.CanPost, m.MutedUntilUnixMs
             FROM SpaceMembers m
             JOIN Users u ON u.Id = m.UserId
             WHERE m.SpaceId = $spaceId
@@ -421,7 +423,8 @@ public sealed class SpaceRepository
                 Username = reader.GetString(1),
                 Role = reader.GetString(2),
                 CanPost = reader.GetInt64(3) == 1,
-                OnlineStatus = "Онлайн"
+                OnlineStatus = "Онлайн",
+                MutedUntilUnixMs = reader.GetInt64(4),
             });
         }
 
@@ -741,11 +744,13 @@ public sealed class SpaceRepository
         }
     }
 
-    /// <summary>Возвращает зашифрованные сообщения пространства.</summary>
+    /// <summary>Возвращает зашифрованные сообщения пространства. withoutTopicOnly —
+    /// только сообщения вне тем (корень форума), иначе лента перемешивается с топиками.</summary>
     public async Task<List<SpaceMessageDto>> ListEncryptedMessagesAsync(
         string spaceId,
         string? topicId,
         int limit,
+        bool withoutTopicOnly = false,
         CancellationToken cancellationToken = default)
     {
         await using var connection = new SqliteConnection(_connectionString);
@@ -753,15 +758,25 @@ public sealed class SpaceRepository
 
         await using var command = connection.CreateCommand();
         command.CommandText = topicId is null
-            ? """
-              SELECT Id, SpaceId, TopicId, SenderId, SenderUsername,
-                     Nonce, Tag, Ciphertext, Signature, SentAtUnixMs,
-                     EditedAtUnixMs, IsPinned
-              FROM SpaceMessages
-              WHERE SpaceId = $spaceId AND Ciphertext <> ''
-              ORDER BY SentAtUnixMs DESC
-              LIMIT $limit;
-              """
+            ? withoutTopicOnly
+                ? """
+                  SELECT Id, SpaceId, TopicId, SenderId, SenderUsername,
+                         Nonce, Tag, Ciphertext, Signature, SentAtUnixMs,
+                         EditedAtUnixMs, IsPinned
+                  FROM SpaceMessages
+                  WHERE SpaceId = $spaceId AND TopicId IS NULL AND Ciphertext <> ''
+                  ORDER BY SentAtUnixMs DESC
+                  LIMIT $limit;
+                  """
+                : """
+                  SELECT Id, SpaceId, TopicId, SenderId, SenderUsername,
+                         Nonce, Tag, Ciphertext, Signature, SentAtUnixMs,
+                         EditedAtUnixMs, IsPinned
+                  FROM SpaceMessages
+                  WHERE SpaceId = $spaceId AND Ciphertext <> ''
+                  ORDER BY SentAtUnixMs DESC
+                  LIMIT $limit;
+                  """
             : """
               SELECT Id, SpaceId, TopicId, SenderId, SenderUsername,
                      Nonce, Tag, Ciphertext, Signature, SentAtUnixMs,

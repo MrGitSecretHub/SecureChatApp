@@ -588,12 +588,12 @@ public sealed class SpaceService
         return await connection.InvokeAsync<SpaceDto?>("UpdateSpace", request, cancellationToken);
     }
 
-    /// <summary>Меняет роль участника или право писать.</summary>
+    /// <summary>Меняет роль участника и/или право писать (null — оставить как есть).</summary>
     public async Task<bool> UpdateMemberAsync(
         string spaceId,
         string userId,
-        string role,
-        bool canPost,
+        string? role = null,
+        bool? canPost = null,
         CancellationToken cancellationToken = default)
     {
         var connection = await GetConnectionAsync();
@@ -604,6 +604,39 @@ public sealed class SpaceService
 
         return await connection.InvokeAsync<bool>(
             "UpdateSpaceMember", spaceId, userId, role, canPost, cancellationToken);
+    }
+
+    /// <summary>Запрещает участнику писать до указанного момента.</summary>
+    public async Task<bool> MuteMemberAsync(
+        string spaceId,
+        string userId,
+        DateTimeOffset until,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = await GetConnectionAsync();
+        if (connection is null)
+        {
+            return false;
+        }
+
+        return await connection.InvokeAsync<bool>(
+            "MuteSpaceMember", spaceId, userId, until.ToUnixTimeMilliseconds(), cancellationToken);
+    }
+
+    /// <summary>Снимает запрет записи с участника.</summary>
+    public async Task<bool> UnmuteMemberAsync(
+        string spaceId,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = await GetConnectionAsync();
+        if (connection is null)
+        {
+            return false;
+        }
+
+        return await connection.InvokeAsync<bool>(
+            "UnmuteSpaceMember", spaceId, userId, cancellationToken);
     }
 
     /// <summary>Удаляет участника из пространства.</summary>
