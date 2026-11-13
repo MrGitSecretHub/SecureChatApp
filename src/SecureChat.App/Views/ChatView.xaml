@@ -42,19 +42,6 @@
                 </Grid>
             </DataTemplate>
 
-            <DataTemplate x:Key="UrlItemTemplate">
-                <Label Text="{Binding Display}"
-                       TextColor="{DynamicResource Accent}"
-                       FontSize="12"
-                       LineBreakMode="TailTruncation"
-                       MaxLines="1"
-                       HorizontalOptions="Start">
-                    <Label.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnUrlClicked" />
-                    </Label.GestureRecognizers>
-                </Label>
-            </DataTemplate>
-
             <Style x:Key="BubbleActionButton" TargetType="Button">
                 <Setter Property="BackgroundColor" Value="Transparent" />
                 <Setter Property="TextColor" Value="{DynamicResource TextMuted}" />
@@ -415,60 +402,162 @@
                                                HorizontalOptions="Center"
                                                HorizontalTextAlignment="Center" />
 
-                                        <!-- Скрытые цели markdown-ссылок [текст](url) -->
-                                        <StackLayout IsVisible="{Binding ShowUrlChips}"
-                                                     BindableLayout.ItemsSource="{Binding VisibleLinkChips}"
-                                                     BindableLayout.ItemTemplate="{StaticResource UrlItemTemplate}"
-                                                     Spacing="4"
-                                                     Margin="0,6,0,0"
-                                                     HorizontalOptions="Start" />
+                                        <!-- Скрытые цели markdown-ссылок: три фиксированных чипа -->
+                                        <VerticalStackLayout IsVisible="{Binding HasHiddenChips}"
+                                                             Spacing="4"
+                                                             Margin="0,6,0,0"
+                                                             HorizontalOptions="Start">
+                                            <Label Text="{Binding Chip0Text}"
+                                                   IsVisible="{Binding ShowChip0}"
+                                                   TextColor="{DynamicResource Accent}"
+                                                   FontSize="12"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1"
+                                                   HorizontalOptions="Start">
+                                                <Label.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnChip0Tapped" />
+                                                </Label.GestureRecognizers>
+                                            </Label>
+                                            <Label Text="{Binding Chip1Text}"
+                                                   IsVisible="{Binding ShowChip1}"
+                                                   TextColor="{DynamicResource Accent}"
+                                                   FontSize="12"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1"
+                                                   HorizontalOptions="Start">
+                                                <Label.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnChip1Tapped" />
+                                                </Label.GestureRecognizers>
+                                            </Label>
+                                            <Label Text="{Binding Chip2Text}"
+                                                   IsVisible="{Binding ShowChip2}"
+                                                   TextColor="{DynamicResource Accent}"
+                                                   FontSize="12"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1"
+                                                   HorizontalOptions="Start">
+                                                <Label.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnChip2Tapped" />
+                                                </Label.GestureRecognizers>
+                                            </Label>
+                                        </VerticalStackLayout>
 
-                                        <!-- Превью ссылок (Open Graph): карточка на каждую загруженную -->
-                                        <StackLayout IsVisible="{Binding HasLinkPreviews}"
-                                                     BindableLayout.ItemsSource="{Binding Previews}"
-                                                     Spacing="6"
-                                                     Margin="0,6,0,0"
-                                                     HorizontalOptions="Start">
-                                            <BindableLayout.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Border BackgroundColor="{DynamicResource SurfaceAlt}"
-                                                            StrokeThickness="0"
-                                                            Padding="8"
-                                                            HorizontalOptions="Start"
-                                                            MaximumWidthRequest="260">
-                                                        <Border.StrokeShape>
-                                                            <RoundRectangle CornerRadius="10" />
-                                                        </Border.StrokeShape>
-                                                        <Border.GestureRecognizers>
-                                                            <TapGestureRecognizer Tapped="OnLinkPreviewTapped" />
-                                                        </Border.GestureRecognizers>
-                                                        <VerticalStackLayout Spacing="4">
-                                                            <Image Source="{Binding ImageSource}"
-                                                                   IsVisible="{Binding HasImage}"
-                                                                   Aspect="AspectFill"
-                                                                   WidthRequest="244"
-                                                                   HeightRequest="110"
-                                                                   HorizontalOptions="Fill" />
-                                                            <Label Text="{Binding Title}"
-                                                                   FontSize="13"
-                                                                   FontAttributes="Bold"
-                                                                   TextColor="{DynamicResource TextPrimary}"
-                                                                   LineBreakMode="WordWrap"
-                                                                   MaxLines="2" />
-                                                            <Label Text="{Binding Description}"
-                                                                   FontSize="11"
-                                                                   TextColor="{DynamicResource TextMuted}"
-                                                                   LineBreakMode="TailTruncation"
-                                                                   MaxLines="2" />
-                                                            <Label Text="{Binding Domain}"
-                                                                   FontSize="11"
-                                                                   TextColor="{DynamicResource TextMuted}"
-                                                                   LineBreakMode="TailTruncation" />
-                                                        </VerticalStackLayout>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </BindableLayout.ItemTemplate>
-                                        </StackLayout>
+                                        <!-- Превью ссылок (Open Graph): три фиксированные карточки.
+                             Фиксированные слоты, а не BindableLayout: шаблон внутри пузыря
+                             в этой версии MAUI не получал контекст элемента. -->
+                                        <VerticalStackLayout IsVisible="{Binding HasLinkPreviews}"
+                                                             Spacing="6"
+                                                             Margin="0,6,0,0"
+                                                             HorizontalOptions="Start">
+                                            <Border IsVisible="{Binding ShowPreview0}"
+                                                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                    StrokeThickness="0"
+                                                    Padding="8"
+                                                    MaximumWidthRequest="260"
+                                                    HorizontalOptions="Start">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="10" />
+                                                </Border.StrokeShape>
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnPreview0Tapped" />
+                                                </Border.GestureRecognizers>
+                                                <VerticalStackLayout Spacing="4">
+                                                    <Image Source="{Binding Preview0Image}"
+                                                           IsVisible="{Binding Preview0HasImage}"
+                                                           Aspect="AspectFill"
+                                                           WidthRequest="244"
+                                                           HeightRequest="110"
+                                                           HorizontalOptions="Fill" />
+                                                    <Label Text="{Binding Preview0Title}"
+                                                           FontSize="13"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{DynamicResource TextPrimary}"
+                                                           LineBreakMode="WordWrap"
+                                                           MaxLines="2" />
+                                                    <Label Text="{Binding Preview0Description}"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           LineBreakMode="TailTruncation"
+                                                           MaxLines="2" />
+                                                    <Label Text="{Binding Preview0Domain}"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           LineBreakMode="TailTruncation" />
+                                                </VerticalStackLayout>
+                                            </Border>
+                                            <Border IsVisible="{Binding ShowPreview1}"
+                                                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                    StrokeThickness="0"
+                                                    Padding="8"
+                                                    MaximumWidthRequest="260"
+                                                    HorizontalOptions="Start">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="10" />
+                                                </Border.StrokeShape>
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnPreview1Tapped" />
+                                                </Border.GestureRecognizers>
+                                                <VerticalStackLayout Spacing="4">
+                                                    <Image Source="{Binding Preview1Image}"
+                                                           IsVisible="{Binding Preview1HasImage}"
+                                                           Aspect="AspectFill"
+                                                           WidthRequest="244"
+                                                           HeightRequest="110"
+                                                           HorizontalOptions="Fill" />
+                                                    <Label Text="{Binding Preview1Title}"
+                                                           FontSize="13"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{DynamicResource TextPrimary}"
+                                                           LineBreakMode="WordWrap"
+                                                           MaxLines="2" />
+                                                    <Label Text="{Binding Preview1Description}"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           LineBreakMode="TailTruncation"
+                                                           MaxLines="2" />
+                                                    <Label Text="{Binding Preview1Domain}"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           LineBreakMode="TailTruncation" />
+                                                </VerticalStackLayout>
+                                            </Border>
+                                            <Border IsVisible="{Binding ShowPreview2}"
+                                                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                    StrokeThickness="0"
+                                                    Padding="8"
+                                                    MaximumWidthRequest="260"
+                                                    HorizontalOptions="Start">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="10" />
+                                                </Border.StrokeShape>
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnPreview2Tapped" />
+                                                </Border.GestureRecognizers>
+                                                <VerticalStackLayout Spacing="4">
+                                                    <Image Source="{Binding Preview2Image}"
+                                                           IsVisible="{Binding Preview2HasImage}"
+                                                           Aspect="AspectFill"
+                                                           WidthRequest="244"
+                                                           HeightRequest="110"
+                                                           HorizontalOptions="Fill" />
+                                                    <Label Text="{Binding Preview2Title}"
+                                                           FontSize="13"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{DynamicResource TextPrimary}"
+                                                           LineBreakMode="WordWrap"
+                                                           MaxLines="2" />
+                                                    <Label Text="{Binding Preview2Description}"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           LineBreakMode="TailTruncation"
+                                                           MaxLines="2" />
+                                                    <Label Text="{Binding Preview2Domain}"
+                                                           FontSize="11"
+                                                           TextColor="{DynamicResource TextMuted}"
+                                                           LineBreakMode="TailTruncation" />
+                                                </VerticalStackLayout>
+                                            </Border>
+                                        </VerticalStackLayout>
 
                                         <!-- Альбом: несколько фото сеткой 2×2, как в Telegram -->
                                         <Grid IsVisible="{Binding IsAlbumHead}"

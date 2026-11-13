@@ -405,8 +405,7 @@ public sealed class MessageVm : INotifyPropertyChanged
 
         Notify(nameof(Urls));
         Notify(nameof(HasUrls));
-        Notify(nameof(VisibleLinkChips));
-        Notify(nameof(ShowUrlChips));
+        NotifyChipSlots();
     }
 
     public string DisplayText => _text;
@@ -416,10 +415,10 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     public bool HasUrls => _urls.Count > 0;
 
-    private readonly ObservableCollection<LinkPreview> _previews = new();
+    private readonly List<LinkPreview> _previews = new();
 
-    /// <summary>Загруженные превью ссылок сообщения (появляются по мере загрузки).</summary>
-    public IReadOnlyList<LinkPreview> Previews => _previews;
+    /// <summary>Сколько карточек превью помещается в пузырь (лимит и у загрузки).</summary>
+    public const int MaxPreviews = 3;
 
     public bool HasLinkPreviews => _previews.Count > 0;
 
@@ -428,15 +427,14 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     public void AddPreview(LinkPreview preview)
     {
-        if (HasPreviewFor(preview.Url))
+        if (HasPreviewFor(preview.Url) || _previews.Count >= MaxPreviews)
         {
             return;
         }
 
         _previews.Add(preview);
-        Notify(nameof(HasLinkPreviews));
-        Notify(nameof(VisibleLinkChips));
-        Notify(nameof(ShowUrlChips));
+        NotifyPreviewSlots();
+        NotifyChipSlots();
     }
 
     public void ClearPreviews()
@@ -447,17 +445,81 @@ public sealed class MessageVm : INotifyPropertyChanged
         }
 
         _previews.Clear();
-        Notify(nameof(HasLinkPreviews));
-        Notify(nameof(VisibleLinkChips));
-        Notify(nameof(ShowUrlChips));
+        NotifyPreviewSlots();
+        NotifyChipSlots();
     }
 
-    /// <summary>Чипы markdown-ссылок, чей адрес ещё не раскрыт превью-карточкой.</summary>
-    public IReadOnlyList<LinkChip> VisibleLinkChips =>
-        [.. _hiddenLinks.Where(c => !HasPreviewFor(c.Href))];
+    // Слоты превью и чипов: BindableLayout с DataTemplate внутри пузыря в этой версии
+    // MAUI ведёт себя ненадёжно (пустые карточки вместо текста), поэтому рисуются
+    // три фиксированных слота — как сетка альбома.
 
-    /// <summary>Показывать чипы скрытых целей (обычные ссылки видны прямо в тексте).</summary>
-    public bool ShowUrlChips => _hiddenLinks.Any(c => !HasPreviewFor(c.Href));
+    private LinkPreview? SlotPreview(int index) => index < _previews.Count ? _previews[index] : null;
+
+    public bool ShowPreview0 => SlotPreview(0) is not null;
+    public bool Preview0HasImage => SlotPreview(0)?.HasImage == true;
+    public ImageSource? Preview0Image => SlotPreview(0)?.ImageSource;
+    public string Preview0Title => SlotPreview(0)?.Title ?? string.Empty;
+    public string Preview0Description => SlotPreview(0)?.Description ?? string.Empty;
+    public string Preview0Domain => SlotPreview(0)?.Domain ?? string.Empty;
+
+    public bool ShowPreview1 => SlotPreview(1) is not null;
+    public bool Preview1HasImage => SlotPreview(1)?.HasImage == true;
+    public ImageSource? Preview1Image => SlotPreview(1)?.ImageSource;
+    public string Preview1Title => SlotPreview(1)?.Title ?? string.Empty;
+    public string Preview1Description => SlotPreview(1)?.Description ?? string.Empty;
+    public string Preview1Domain => SlotPreview(1)?.Domain ?? string.Empty;
+
+    public bool ShowPreview2 => SlotPreview(2) is not null;
+    public bool Preview2HasImage => SlotPreview(2)?.HasImage == true;
+    public ImageSource? Preview2Image => SlotPreview(2)?.ImageSource;
+    public string Preview2Title => SlotPreview(2)?.Title ?? string.Empty;
+    public string Preview2Description => SlotPreview(2)?.Description ?? string.Empty;
+    public string Preview2Domain => SlotPreview(2)?.Domain ?? string.Empty;
+
+    public string? HrefForPreview(int index) => SlotPreview(index)?.Url;
+
+    /// <summary>Скрытые markdown-цели, ещё не раскрытые превью-карточкой.</summary>
+    private LinkChip? SlotChip(int index)
+    {
+        var visible = VisibleChips();
+        return index < visible.Count ? visible[index] : null;
+    }
+
+    private List<LinkChip> VisibleChips() => [.. _hiddenLinks.Where(c => !HasPreviewFor(c.Href))];
+
+    public bool HasHiddenChips => _hiddenLinks.Any(c => !HasPreviewFor(c.Href));
+    public bool ShowChip0 => SlotChip(0) is not null;
+    public string Chip0Text => SlotChip(0)?.Display ?? string.Empty;
+    public bool ShowChip1 => SlotChip(1) is not null;
+    public string Chip1Text => SlotChip(1)?.Display ?? string.Empty;
+    public bool ShowChip2 => SlotChip(2) is not null;
+    public string Chip2Text => SlotChip(2)?.Display ?? string.Empty;
+
+    public string? HrefForChip(int index) => SlotChip(index)?.Href;
+
+    private void NotifyPreviewSlots()
+    {
+        Notify(nameof(HasLinkPreviews));
+        for (var i = 0; i < MaxPreviews; i++)
+        {
+            Notify($"ShowPreview{i}");
+            Notify($"Preview{i}HasImage");
+            Notify($"Preview{i}Image");
+            Notify($"Preview{i}Title");
+            Notify($"Preview{i}Description");
+            Notify($"Preview{i}Domain");
+        }
+    }
+
+    private void NotifyChipSlots()
+    {
+        Notify(nameof(HasHiddenChips));
+        for (var i = 0; i < MaxPreviews; i++)
+        {
+            Notify($"ShowChip{i}");
+            Notify($"Chip{i}Text");
+        }
+    }
 
     public string FileName
     {

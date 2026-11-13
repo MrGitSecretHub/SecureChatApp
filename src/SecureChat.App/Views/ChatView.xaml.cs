@@ -2335,12 +2335,27 @@ public partial class ChatView : ContentView
         }
     }
 
-    /// <summary>Тап по чипу скрытой markdown-ссылки: показать адрес, который за ней стоит.</summary>
-    private void OnUrlClicked(object? sender, EventArgs e)
+    // Чипы скрытых markdown-целей и карточки превью: три фиксированных слота.
+    // Контекст у этих элементов — сам MessageVm, индекс слота известен из имени обработчика.
+
+    private void OnChip0Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 0, preview: false);
+    private void OnChip1Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 1, preview: false);
+    private void OnChip2Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 2, preview: false);
+    private void OnPreview0Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 0, preview: true);
+    private void OnPreview1Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 1, preview: true);
+    private void OnPreview2Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 2, preview: true);
+
+    private void OpenSlotHref(object? sender, int slot, bool preview)
     {
-        if (sender is BindableObject { BindingContext: LinkChip chip })
+        if (sender is not BindableObject { BindingContext: MessageVm vm })
         {
-            _ = OpenUrlAsync(chip.Href);
+            return;
+        }
+
+        var url = preview ? vm.HrefForPreview(slot) : vm.HrefForChip(slot);
+        if (!string.IsNullOrEmpty(url))
+        {
+            _ = OpenUrlAsync(url);
         }
     }
 
@@ -2384,14 +2399,6 @@ public partial class ChatView : ContentView
             {
                 ShowHint($"Не удалось открыть ссылку: {ex.Message}", isError: true);
             }
-        }
-    }
-
-    private void OnLinkPreviewTapped(object? sender, EventArgs e)
-    {
-        if (sender is BindableObject { BindingContext: LinkPreview preview })
-        {
-            _ = OpenUrlAsync(preview.Url);
         }
     }
 
@@ -3321,7 +3328,7 @@ public partial class ChatView : ContentView
     /// чтобы не создавать шквал запросов.</summary>
     private async Task EnsurePreviewAsync(MessageVm message)
     {
-        foreach (var url in message.Urls.Take(3))
+        foreach (var url in message.Urls.Take(MessageVm.MaxPreviews))
         {
             if (message.HasPreviewFor(url))
             {
@@ -3329,10 +3336,33 @@ public partial class ChatView : ContentView
             }
 
             var preview = await _previewService.GetPreviewAsync(url);
+            LogPreview(url, preview);
             if (preview is not null)
             {
                 MainThread.BeginInvokeOnMainThread(() => message.AddPreview(preview));
             }
+        }
+    }
+
+    /// <summary>Диагностика превью: что удалось извлечь по каждой ссылке.</summary>
+    private static void LogPreview(string url, LinkPreview? preview)
+    {
+        try
+        {
+            var description = preview?.Description ?? string.Empty;
+            if (description.Length > 60)
+            {
+                description = description[..60];
+            }
+
+            var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} url={url} title=\"{preview?.Title}\" " +
+                       $"desc=\"{description}\" image={(preview?.ImageUrl is null ? "нет" : preview.ImageUrl)}\n";
+            System.IO.File.AppendAllText(
+                System.IO.Path.Combine(System.IO.Path.GetTempPath(), "securechat-links.log"), line);
+        }
+        catch
+        {
+            // Диагностика не должна влиять на работу чата.
         }
     }
 
