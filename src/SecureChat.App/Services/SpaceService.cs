@@ -81,16 +81,18 @@ public sealed class SpaceService
         }
 
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-        await _chatService.ConnectAsync(timeout.Token);
-
-        connection = Connection;
-        if (connection is null || connection.State != HubConnectionState.Connected)
+        // Пространства существуют только в SignalR-хабе: TCP не годится откатом.
+        var restored = await _chatService.ConnectSignalROnlyAsync(timeout.Token);
+        if (restored is null)
         {
             throw new InvalidOperationException(
-                "Нет подключения к серверу. Проверьте адрес сервера и попробуйте снова.");
+                "Нет подключения к серверу по WebSocket. Проверьте сеть и адрес сервера.");
         }
 
-        return connection;
+        // Новое подключение нужно заново подписать и ввести в группы пространств.
+        Subscribe();
+        await JoinGroupsForCurrentConnectionAsync();
+        return restored;
     }
 
     public event Action<SpaceMessageDto>? SpaceMessageReceived;
@@ -565,11 +567,12 @@ public sealed class SpaceService
         return await connection.InvokeAsync<bool>("DeleteSpace", spaceId, cancellationToken);
     }
 
-    /// <summary>Изменяет название и описание пространства.</summary>
+    /// <summary>Изменяет название, описание и публичность пространства.</summary>
     public async Task<SpaceDto?> UpdateAsync(
         string spaceId,
         string name,
         string description,
+        bool? isPublic = null,
         CancellationToken cancellationToken = default)
     {
         var connection = await GetConnectionAsync();
@@ -582,7 +585,8 @@ public sealed class SpaceService
         {
             SpaceId = spaceId,
             Name = name,
-            Description = description
+            Description = description,
+            IsPublic = isPublic
         };
 
         return await connection.InvokeAsync<SpaceDto?>("UpdateSpace", request, cancellationToken);

@@ -38,7 +38,7 @@ public partial class SpaceSettingsPage : ContentPage
             _ => "👥"
         };
 
-        MembersView.ItemsSource = _members;
+        MembersView.ItemsSource = _memberRows;
     }
 
     protected override async void OnAppearing()
@@ -71,6 +71,9 @@ public partial class SpaceSettingsPage : ContentPage
                 var isAdmin = _space.MyRole is SpaceRoles.Owner or SpaceRoles.Admin;
                 NameEntry.IsEnabled = isAdmin;
                 DescriptionEditor.IsEnabled = isAdmin;
+
+                PublicRow.IsVisible = isAdmin;
+                PublicSwitch.IsToggled = _space.IsPublic;
                 DeleteButton.IsVisible = _space.MyRole == SpaceRoles.Owner;
             }
 
@@ -86,7 +89,7 @@ public partial class SpaceSettingsPage : ContentPage
                 : "Пока нет участников.";
 
             // Секции по ролям, как в Telegram: владелец, администраторы, участники, гости.
-            MembersView.ItemsSource = BuildMemberGroups();
+            RebuildMemberRows();
         }
         catch (Exception ex)
         {
@@ -112,7 +115,12 @@ public partial class SpaceSettingsPage : ContentPage
 
         try
         {
-            var updated = await _spaces.UpdateAsync(_spaceId, name, DescriptionEditor.Text ?? string.Empty);
+            var canEdit = _space?.MyRole is SpaceRoles.Owner or SpaceRoles.Admin;
+            var updated = await _spaces.UpdateAsync(
+                _spaceId,
+                name,
+                DescriptionEditor.Text ?? string.Empty,
+                isPublic: canEdit ? PublicSwitch.IsToggled : null);
             if (updated is not null)
             {
                 await DisplayAlert("Готово", "Настройки пространства сохранены.", "OK");
@@ -189,52 +197,68 @@ public partial class SpaceSettingsPage : ContentPage
         }
     }
 
-    private sealed record MemberGroup(string Name, List<SpaceMemberVm> Items);
+    private readonly ObservableCollection<MemberRow> _memberRows = new();
 
-    /// <summary>Секции списка участников по ролям, как в Telegram.</summary>
-    private List<MemberGroup> BuildMemberGroups()
+    /// <summary>
+    /// Плоский список с заголовками секций: группировка CollectionView на Windows
+    /// отрабатывает нестабильно, поэтому секции — обычные строки.
+    /// </summary>
+    private void RebuildMemberRows()
     {
-        var groups = new List<MemberGroup>();
+        _memberRows.Clear();
 
-        void Add(string name, params string[] roles)
+        void AddSection(string name, params string[] roles)
         {
             var items = _members
                 .Where(m => roles.Any(role => string.Equals(m.Role, role, StringComparison.OrdinalIgnoreCase)))
                 .OrderBy(m => m.Username, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            if (items.Count > 0)
+            if (items.Count == 0)
             {
-                groups.Add(new MemberGroup(name, items));
+                return;
+            }
+
+            _memberRows.Add(MemberRow.HeaderRow(name));
+            foreach (var item in items)
+            {
+                _memberRows.Add(MemberRow.MemberRowOf(item));
             }
         }
 
-        Add("Владелец", SpaceRoles.Owner);
-        Add("Администраторы", SpaceRoles.Admin);
-        Add("Участники", SpaceRoles.Member);
-        Add("Гости (только чтение)", SpaceRoles.Guest);
+        AddSection("Владелец", SpaceRoles.Owner);
+        AddSection("Администраторы", SpaceRoles.Admin);
+        AddSection("Участники", SpaceRoles.Member);
+        AddSection("Гости (только чтение)", SpaceRoles.Guest);
 
         // Неизвестные серверные роли — в «Участники», чтобы люди не терялись.
-        var known = groups.SelectMany(g => g.Items).ToList();
         var rest = _members
-            .Except(known)
+            .Where(m => m.Role is not (SpaceRoles.Owner or SpaceRoles.Admin or SpaceRoles.Member or SpaceRoles.Guest))
             .OrderBy(m => m.Username, StringComparer.OrdinalIgnoreCase)
             .ToList();
         if (rest.Count > 0)
         {
-            groups.Add(new MemberGroup("Участники", rest));
+            _memberRows.Add(MemberRow.HeaderRow("Участники"));
+            foreach (var item in rest)
+            {
+                _memberRows.Add(MemberRow.MemberRowOf(item));
+            }
         }
-
-        return groups;
     }
 
     private async void OnMemberTapped(object sender, SelectionChangedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is not SpaceMemberVm member)
+        if (e.CurrentSelection.FirstOrDefault() is not MemberRow row)
         {
             return;
         }
 
         MembersView.SelectedItem = null;
+
+        // Заголовки секций не выбираются.
+        if (row.Member is not { } member)
+        {
+            return;
+        }
 
             var isAdmin = _space?.MyRole is SpaceRoles.Owner or SpaceRoles.Admin;
 

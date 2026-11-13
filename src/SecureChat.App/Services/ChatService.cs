@@ -111,6 +111,54 @@ public sealed class ChatService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Пространства живут только в SignalR-хабе: поднимает WebSocket без отката
+    /// на TCP. При успехе TCP закрывается — личные сообщения поедут по SignalR.
+    /// </summary>
+    public async Task<HubConnection?> ConnectSignalROnlyAsync(CancellationToken cancellationToken = default)
+    {
+        await _connectLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (_connection?.State == HubConnectionState.Connected)
+            {
+                return _connection;
+            }
+
+            if (_connection is not null)
+            {
+                await _connection.DisposeAsync();
+                _connection = null;
+            }
+
+            try
+            {
+                await ConnectSignalRAsync(cancellationToken);
+            }
+            catch (Exception)
+            {
+                // WebSocket не поднять — оставляем текущий транспорт (возможно, TCP).
+                return null;
+            }
+
+            _usingTcp = false;
+            try
+            {
+                await _tcp.DisconnectAsync();
+            }
+            catch
+            {
+                // TCP уже закрыт или недоступен — не важно, перешли на SignalR.
+            }
+
+            return _connection;
+        }
+        finally
+        {
+            _connectLock.Release();
+        }
+    }
+
     private async Task ConnectSignalRAsync(CancellationToken cancellationToken)
     {
         var builder = new HubConnectionBuilder()

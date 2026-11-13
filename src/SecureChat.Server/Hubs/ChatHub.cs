@@ -839,7 +839,8 @@ public sealed class ChatHub : Hub
         await _spaces.UpdateAsync(
             space.Id,
             request.Name.Trim(),
-            request.Description?.Trim() ?? string.Empty);
+            request.Description?.Trim() ?? string.Empty,
+            request.IsPublic);
 
         return await _spaces.GetAsync(space.Id, userId);
     }

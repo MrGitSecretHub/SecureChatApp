@@ -32,6 +32,9 @@ public sealed class UpdateSpaceRequest
     public string? SpaceId { get; set; }
     public string? Name { get; set; }
     public string? Description { get; set; }
+
+    /// <summary>Публичность: null — не менять, true/false — задать.</summary>
+    public bool? IsPublic { get; set; }
 }
 
 public sealed class SpaceDto

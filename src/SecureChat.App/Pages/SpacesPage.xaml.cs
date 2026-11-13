@@ -43,10 +43,13 @@ public partial class SpacesPage : ContentPage
         }
         catch (Exception ex)
         {
-            OfflineLabel.Text = $"Не удалось загрузить пространства: {ex.Message}";
+            OfflineLabel.Text = $"Не удалось загрузить пространства: {ex.Message}. Нажмите, чтобы повторить.";
             OfflineLabel.IsVisible = true;
         }
     }
+
+    /// <summary>Тап по строке ошибки — повторная попытка (подняла WebSocket после обрыва).</summary>
+    private void OnRetryTapped(object? sender, EventArgs e) => _ = LoadAsync();
 
     private void ApplyFilter()
     {

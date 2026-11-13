@@ -535,6 +535,7 @@ public sealed class SpaceRepository
         string spaceId,
         string name,
         string description,
+        bool? isPublic = null,
         CancellationToken cancellationToken = default)
     {
         await _writeLock.WaitAsync(cancellationToken);
@@ -547,11 +548,15 @@ public sealed class SpaceRepository
             command.CommandText = """
                 UPDATE Spaces
                 SET Name = $name,
-                    Description = $description
+                    Description = $description,
+                    IsPublic = COALESCE($isPublic, IsPublic)
                 WHERE Id = $spaceId;
                 """;
             command.Parameters.AddWithValue("$name", name);
             command.Parameters.AddWithValue("$description", description);
+            command.Parameters.AddWithValue(
+                "$isPublic",
+                isPublic.HasValue ? (isPublic.Value ? 1 : 0) : DBNull.Value);
             command.Parameters.AddWithValue("$spaceId", spaceId);
 
             return await command.ExecuteNonQueryAsync(cancellationToken) > 0;

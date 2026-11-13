@@ -57,7 +57,11 @@
                TextColor="{DynamicResource Warning}"
                LineBreakMode="WordWrap"
                IsVisible="False"
-               Text="⚡ Пространства недоступны в офлайн-режиме. Подключитесь к серверу, чтобы загрузить список." />
+               Text="⚡ Пространства недоступны в офлайн-режиме. Подключитесь к серверу, чтобы загрузить список. Нажмите, чтобы повторить.">
+            <Label.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnRetryTapped" />
+            </Label.GestureRecognizers>
+        </Label>
 
         <CollectionView Grid.Row="4"
                         x:Name="SpacesView"

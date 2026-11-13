@@ -50,6 +50,22 @@
                                 PlaceholderColor="{DynamicResource TextMuted}" />
                     </VerticalStackLayout>
 
+                    <!-- Публичность -->
+                    <Grid x:Name="PublicRow"
+                          ColumnDefinitions="*,Auto"
+                          ColumnSpacing="10"
+                          IsVisible="False">
+                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                            <Label Text="Публичное пространство" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="Виден всем в списке пространств; читать и писать могут только участники — по приглашению"
+                                   Style="{DynamicResource Caption}" />
+                        </VerticalStackLayout>
+                        <Switch x:Name="PublicSwitch"
+                                Grid.Column="1"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center" />
+                    </Grid>
+
                     <Button Text="Сохранить"
                             Style="{DynamicResource PrimaryButton}"
                             Clicked="OnSaveClicked" />
@@ -67,18 +83,17 @@
                                     SelectionMode="Single"
                                     SelectionChanged="OnMemberTapped"
                                     HeightRequest="300">
-                        <CollectionView.GroupHeaderTemplate>
-                            <DataTemplate>
-                                <Label Text="{Binding Name}"
-                                       FontSize="11"
-                                       FontAttributes="Bold"
-                                       TextColor="{DynamicResource TextDisabled}"
-                                       Padding="8,10,8,2" />
-                            </DataTemplate>
-                        </CollectionView.GroupHeaderTemplate>
                         <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="views:SpaceMemberVm">
-                                <Grid Padding="8,6" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                            <DataTemplate x:DataType="views:MemberRow">
+                                <VerticalStackLayout Spacing="0">
+                                    <Label Text="{Binding HeaderText}"
+                                           IsVisible="{Binding IsHeaderRow}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{DynamicResource TextDisabled}"
+                                           Padding="8,10,8,2" />
+                                    <Grid Padding="8,6" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10"
+                                          IsVisible="{Binding IsMemberRow}">
                                     <Border WidthRequest="34"
                                             HeightRequest="34"
                                             BackgroundColor="{Binding AvatarColor}">
@@ -109,7 +124,8 @@
                                                FontSize="10"
                                                TextColor="{DynamicResource TextDisabled}" />
                                     </VerticalStackLayout>
-                                </Grid>
+                                    </Grid>
+                                </VerticalStackLayout>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
