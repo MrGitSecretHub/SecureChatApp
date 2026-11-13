@@ -376,6 +376,16 @@ public partial class ChatView : ContentView
         // Перетаскивание работает только с открытым чатом: подключаем
         // обработчики окна и помечаем этот чат активным получателем файлов.
         EnsureWindowHooks();
+
+        // Приложение от имени администратора Windows не получает перетаскивание из Проводника.
+        // Сообщаем об этом один раз за сеанс, а не молча.
+        if (!_elevatedWarningShown && IsRunningElevated())
+        {
+            _elevatedWarningShown = true;
+            ShowHint(
+                "Запущено от администратора: Windows не передаёт перетаскивание файлов из Проводника. Запустите приложение без прав администратора.",
+                isError: true);
+        }
 #endif
 
         var stored = await _chatManager.GetConversationAsync(username)
@@ -1582,6 +1592,7 @@ public partial class ChatView : ContentView
     private static Microsoft.UI.Xaml.UIElement? _hookedContent;
     private static System.Threading.Timer? _dropSweepTimer;
     private static int _dragOverSeen;
+    private static bool _elevatedWarningShown;
 
     /// <summary>Диагностический лог перетаскивания (временный файл в %TEMP%).</summary>
     private static readonly string DropLogPath = Path.Combine(
