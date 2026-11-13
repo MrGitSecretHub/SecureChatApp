@@ -4,7 +4,7 @@
              xmlns:views="clr-namespace:SecureChat.App.Views"
              x:Class="SecureChat.App.Pages.SpacesPage"
              Title="Группы и сообщества">
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
 
         <!-- Шапка -->
         <VerticalStackLayout Grid.Row="0"
@@ -15,30 +15,43 @@
                    Style="{DynamicResource Caption}" />
         </VerticalStackLayout>
 
+        <SearchBar Grid.Row="1"
+                   x:Name="SearchEntry"
+                   Placeholder="Поиск по названию"
+                   Margin="16,0,16,0"
+                   TextChanged="OnSearchTextChanged" />
+
         <!-- Фильтр по типу -->
-        <HorizontalStackLayout Grid.Row="1"
-                               Padding="16,8"
-                               Spacing="8">
-            <Button x:Name="AllFilterButton"
-                    Text="Все"
-                    Clicked="OnFilterClicked"
-                    Style="{DynamicResource GhostButton}" />
-            <Button x:Name="GroupsFilterButton"
-                    Text="Группы"
-                    Clicked="OnFilterClicked"
-                    Style="{DynamicResource GhostButton}" />
-            <Button x:Name="ChannelsFilterButton"
-                    Text="Каналы"
-                    Clicked="OnFilterClicked"
-                    Style="{DynamicResource GhostButton}" />
-            <Button x:Name="ForumsFilterButton"
-                    Text="Форумы"
-                    Clicked="OnFilterClicked"
-                    Style="{DynamicResource GhostButton}" />
-        </HorizontalStackLayout>
+        <ScrollView Grid.Row="2"
+                    Orientation="Horizontal"
+                    HeightRequest="44">
+            <HorizontalStackLayout Padding="16,8"
+                                   Spacing="8">
+                <Button x:Name="AllFilterButton"
+                        Text="Все"
+                        Clicked="OnFilterClicked"
+                        Style="{DynamicResource GhostButton}" />
+                <Button x:Name="GroupsFilterButton"
+                        Text="Группы"
+                        Clicked="OnFilterClicked"
+                        Style="{DynamicResource GhostButton}" />
+                <Button x:Name="ChannelsFilterButton"
+                        Text="Каналы"
+                        Clicked="OnFilterClicked"
+                        Style="{DynamicResource GhostButton}" />
+                <Button x:Name="ForumsFilterButton"
+                        Text="Форумы"
+                        Clicked="OnFilterClicked"
+                        Style="{DynamicResource GhostButton}" />
+                <Button x:Name="CommunitiesFilterButton"
+                        Text="Сообщества"
+                        Clicked="OnFilterClicked"
+                        Style="{DynamicResource GhostButton}" />
+            </HorizontalStackLayout>
+        </ScrollView>
 
         <Label x:Name="OfflineLabel"
-               Grid.Row="2"
+               Grid.Row="3"
                Margin="16,0,16,8"
                FontSize="12"
                TextColor="{DynamicResource Warning}"
@@ -46,7 +59,7 @@
                IsVisible="False"
                Text="⚡ Пространства недоступны в офлайн-режиме. Подключитесь к серверу, чтобы загрузить список." />
 
-        <CollectionView Grid.Row="3"
+        <CollectionView Grid.Row="4"
                         x:Name="SpacesView"
                         SelectionMode="Single"
                         SelectionChanged="OnSpaceSelected"
@@ -86,11 +99,11 @@
                                        FontAttributes="Bold"
                                        TextColor="{DynamicResource TextPrimary}"
                                        LineBreakMode="TailTruncation" />
-                                <Label Text="{Binding Description}"
+                                <Label Text="{Binding PreviewLine}"
                                        FontSize="12"
                                        TextColor="{DynamicResource TextMuted}"
                                        LineBreakMode="TailTruncation"
-                                       MaxLines="2" />
+                                       MaxLines="1" />
                                 <Label Text="{Binding MembersText}"
                                        FontSize="11"
                                        TextColor="{DynamicResource TextDisabled}" />
@@ -100,6 +113,11 @@
                                        FontSize="10"
                                        FontAttributes="Bold"
                                        TextColor="{DynamicResource Accent}" />
+                                <Label Text="🌐 публичное"
+                                       FontSize="10"
+                                       TextColor="{DynamicResource TextDisabled}"
+                                       HorizontalOptions="End"
+                                       IsVisible="{Binding IsJoinable}" />
                                 <Label Text="{Binding TimeText}"
                                        FontSize="10"
                                        TextColor="{DynamicResource TextDisabled}" />
@@ -110,7 +128,7 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <Button Grid.Row="4"
+        <Button Grid.Row="5"
                 Text="Создать группу, канал или сообщество"
                 Style="{DynamicResource PrimaryButton}"
                 Margin="16"

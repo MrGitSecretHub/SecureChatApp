@@ -20,6 +20,7 @@ namespace SecureChat.App.Pages;
 public partial class SpaceChatPage : ContentPage
 {
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
+    private readonly LinkPreviewService _previewService = AppServices.Get<LinkPreviewService>();
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<SpaceMessageVm> _messages = new();
     private readonly string _spaceId;
@@ -253,6 +254,12 @@ public partial class SpaceChatPage : ContentPage
                 _messages.Add(item);
             }
 
+            RefreshDateLabels();
+            if (AppServices.Get<AppSession>().LinkPreviewEnabled)
+            {
+                _ = EnsureSpacePreviewsAsync(_messages.ToList());
+            }
+
             if (_spaceType == SpaceTypes.Channel)
             {
                 foreach (var item in _messages)
@@ -379,13 +386,19 @@ public partial class SpaceChatPage : ContentPage
                 return;
             }
 
-            _messages.Add(CreateVm(
+            var vm = CreateVm(
                 message,
                 payload ?? new SpaceMessagePayload
                 {
                     Kind = "text",
                     Text = "🔒 Сообщение не удалось расшифровать"
-                }));
+                });
+            _messages.Add(vm);
+            RefreshDateLabels();
+            if (AppServices.Get<AppSession>().LinkPreviewEnabled && vm.HasUrls)
+            {
+                _ = EnsurePreviewAsync(vm);
+            }
         });
     }
 
@@ -489,6 +502,92 @@ public partial class SpaceChatPage : ContentPage
             {
                 await DisplayAlert("SecureChat", $"Не удалось открыть ссылку: {ex.Message}", "OK");
             }
+        }
+    }
+
+    // ================================================================
+    // Даты и превью ссылок в ленте пространства
+    // ================================================================
+
+    /// <summary>Пересчитывает пилюли дат: у первого сообщения ленты и при смене дня.</summary>
+    private void RefreshDateLabels()
+    {
+        var today = DateTime.Now.Date;
+        DateTime? previous = null;
+        foreach (var item in _messages)
+        {
+            var local = item.LocalDate;
+            item.HasDateLabel = previous is null || previous.Value != local;
+            if (item.HasDateLabel)
+            {
+                item.DateLabel = FormatDateLabel(local, today);
+            }
+
+            previous = local;
+        }
+    }
+
+    private static string FormatDateLabel(DateTime date, DateTime today)
+    {
+        if (date == today)
+        {
+            return "Сегодня";
+        }
+
+        if (date == today.AddDays(-1))
+        {
+            return "Вчера";
+        }
+
+        return date.ToString("d MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"));
+    }
+
+    /// <summary>Превью последних загруженных сообщений ленты — по порядку, чтобы не плодить запросы.</summary>
+    private async Task EnsureSpacePreviewsAsync(IReadOnlyList<SpaceMessageVm> messages)
+    {
+        foreach (var vm in messages.Where(m => m.HasUrls).Reverse().Take(30).ToList())
+        {
+            await EnsurePreviewAsync(vm);
+        }
+    }
+
+    private async Task EnsurePreviewAsync(SpaceMessageVm vm)
+    {
+        foreach (var url in vm.Urls.Take(SpaceMessageVm.MaxPreviews))
+        {
+            if (vm.HasPreviewFor(url))
+            {
+                continue;
+            }
+
+            var preview = await _previewService.GetPreviewAsync(url);
+            if (preview is not null)
+            {
+                MainThread.BeginInvokeOnMainThread(() => vm.AddPreview(preview));
+            }
+        }
+    }
+
+    // Чипы скрытых markdown-целей и карточки превью: три фиксированных слота.
+
+    private void OnSpaceChip0Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 0, chip: true);
+    private void OnSpaceChip1Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 1, chip: true);
+    private void OnSpaceChip2Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 2, chip: true);
+    private void OnSpacePreview0Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 0, chip: false);
+    private void OnSpacePreview1Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 1, chip: false);
+    private void OnSpacePreview2Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 2, chip: false);
+
+    private void OpenSlotSpaceLink(object? sender, int slot, bool chip)
+    {
+        if (sender is not BindableObject { BindingContext: SpaceMessageVm vm })
+        {
+            return;
+        }
+
+        var url = chip ? vm.HrefForChip(slot) : vm.HrefForPreview(slot);
+        if (!string.IsNullOrEmpty(url))
+        {
+            _ = OpenSpaceLinkAsync(url);
         }
     }
 

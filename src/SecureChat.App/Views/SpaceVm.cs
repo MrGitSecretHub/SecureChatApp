@@ -13,6 +13,18 @@ public sealed class SpaceVm
     public string TypeBadge { get; init; } = "Группа";
     public string MembersText { get; init; } = string.Empty;
     public string TimeText { get; init; } = string.Empty;
+
+    /// <summary>Последнее сообщение (расшифровать нельзя — сервер хранит только текст заголовков).</summary>
+    public string LastMessage { get; init; } = string.Empty;
+
+    public bool IsPublic { get; init; }
+
+    /// <summary>Вторая строка карточки: последнее сообщение, а если его нет — описание.</summary>
+    public string PreviewLine => string.IsNullOrWhiteSpace(LastMessage) ? Description : LastMessage;
+
+    /// <summary>Публичное пространство, участником которого я не состою.</summary>
+    public bool IsJoinable => IsPublic && string.IsNullOrEmpty(MyRole);
+
     public int TopicCount { get; init; }
     public bool CanPost { get; init; } = true;
 
@@ -65,8 +77,11 @@ public sealed class SpaceVm
             TypeBadge = typeBadge,
             MembersText = members,
             TimeText = time,
+            LastMessage = source.LastMessageText,
+            IsPublic = source.IsPublic,
             TopicCount = source.TopicCount,
-            CanPost = source.CanPost
+            CanPost = source.CanPost,
+            MyRole = source.MyRole,
         };
     }
 }

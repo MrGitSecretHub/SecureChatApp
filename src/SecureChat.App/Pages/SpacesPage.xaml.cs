@@ -51,9 +51,17 @@ public partial class SpacesPage : ContentPage
     private void ApplyFilter()
     {
         _items.Clear();
+        var query = SearchEntry.Text?.Trim();
         foreach (var space in _all)
         {
             if (_filter != "all" && space.Type != _filter)
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(query) &&
+                !space.Name.Contains(query, StringComparison.OrdinalIgnoreCase) &&
+                !space.Description.Contains(query, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -62,6 +70,8 @@ public partial class SpacesPage : ContentPage
         }
     }
 
+    private void OnSearchTextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
+
     private void OnFilterClicked(object sender, EventArgs e)
     {
         _filter = sender switch
@@ -69,6 +79,7 @@ public partial class SpacesPage : ContentPage
             Button { Text: "Группы" } => SpaceTypes.Group,
             Button { Text: "Каналы" } => SpaceTypes.Channel,
             Button { Text: "Форумы" } => SpaceTypes.Forum,
+            Button { Text: "Сообщества" } => SpaceTypes.Community,
             _ => "all"
         };
 
@@ -83,6 +94,17 @@ public partial class SpacesPage : ContentPage
         }
 
         SpacesView.SelectedItem = null;
+
+        // Публичные пространства видны всем, но шифротексты читает только участник.
+        if (item.IsJoinable)
+        {
+            await DisplayAlert(
+                item.Name,
+                "Это публичное пространство, но вы ещё не его участник. Читать переписку могут только участники: попросите владельца или администратора добавить вас по логину.",
+                "Понятно");
+            return;
+        }
+
         await Navigation.PushAsync(new SpaceChatPage(item.Id, item.Name, item.Type, item.CanPost));
     }
 

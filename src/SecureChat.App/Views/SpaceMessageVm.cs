@@ -2,7 +2,9 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using SecureChat.App.Services;
 using SecureChat.Core.Contracts;
+using SecureChat.Core.Text;
 
 namespace SecureChat.App.Views;
 
@@ -25,6 +27,11 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     private byte[]? _gifBytes;
     private readonly bool _isChannel;
     private int _commentsCount;
+    private bool _hasDateLabel;
+    private string _dateLabel = string.Empty;
+    private readonly List<string> _urls = new();
+    private readonly List<LinkChip> _hiddenLinks = new();
+    private readonly List<LinkPreview> _previews = new();
 
     /// <summary>
     /// Кэш логинов участников по пространствам (spaceId → логины). Нужен для
@@ -70,6 +77,23 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     public bool IsComment => CommentToMessageId is not null;
     public bool IsForwarded { get; init; }
     public string TimeText { get; init; } = string.Empty;
+
+    /// <summary>Метка времени сервера — нужна для разделителей дат в ленте.</summary>
+    public long SentAtUnixMs { get; init; }
+
+    public DateTime LocalDate => DateTimeOffset.FromUnixTimeMilliseconds(SentAtUnixMs).ToLocalTime().Date;
+
+    public bool HasDateLabel
+    {
+        get => _hasDateLabel;
+        set => Set(ref _hasDateLabel, value);
+    }
+
+    public string DateLabel
+    {
+        get => _dateLabel;
+        set => Set(ref _dateLabel, value);
+    }
     public Style? BubbleStyle { get; init; }
     public Style? TextStyle { get; init; }
     public Color MetaColor { get; init; } = Colors.Gray;
@@ -108,6 +132,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasText));
             RebuildTextFormatted();
+            RebuildLinks();
         }
     }
 
@@ -133,6 +158,138 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         // нечего (ни ссылок, ни упоминаний), возвращаемся к одному обычному спану.
         _textFormatted = formatted ?? new FormattedString { Spans = { new Span { Text = _text } } };
         OnPropertyChanged(nameof(TextFormatted));
+    }
+
+    // ================================================================
+    // ССЫЛКИ: веб-адреса, скрытые markdown-цели (чипы), превью-карточки.
+    // Слоты фиксированные (три), как в личных чатах: BindableLayout внутри
+    // пузыря не получает контекст элемента.
+    // ================================================================
+
+    public const int MaxPreviews = 3;
+
+    private void RebuildLinks()
+    {
+        _urls.Clear();
+        _hiddenLinks.Clear();
+        foreach (var segment in TextLinks.Segment(_text))
+        {
+            if (segment.Href is not { } href || segment.Kind != LinkKind.Web)
+            {
+                continue;
+            }
+
+            if (!_urls.Contains(href, StringComparer.OrdinalIgnoreCase))
+            {
+                _urls.Add(href);
+            }
+
+            if (segment.IsHiddenTarget && !_hiddenLinks.Any(c => c.Href == href))
+            {
+                _hiddenLinks.Add(new LinkChip(TextLinks.ShortenHref(href), href));
+            }
+        }
+
+        NotifyChips();
+    }
+
+    /// <summary>Веб-адреса сообщения в порядке текста.</summary>
+    public IReadOnlyList<string> Urls => _urls;
+
+    public bool HasUrls => _urls.Count > 0;
+
+    private LinkChip? SlotChip(int index)
+    {
+        var visible = _hiddenLinks.Where(c => !HasPreviewFor(c.Href)).ToList();
+        return index < visible.Count ? visible[index] : null;
+    }
+
+    public bool HasHiddenChips => _hiddenLinks.Any(c => !HasPreviewFor(c.Href));
+    public bool ShowChip0 => SlotChip(0) is not null;
+    public string Chip0Text => SlotChip(0)?.Display ?? string.Empty;
+    public bool ShowChip1 => SlotChip(1) is not null;
+    public string Chip1Text => SlotChip(1)?.Display ?? string.Empty;
+    public bool ShowChip2 => SlotChip(2) is not null;
+    public string Chip2Text => SlotChip(2)?.Display ?? string.Empty;
+
+    public string? HrefForChip(int index) => SlotChip(index)?.Href;
+
+    private LinkPreview? SlotPreview(int index) => index < _previews.Count ? _previews[index] : null;
+
+    public bool HasLinkPreviews => _previews.Count > 0;
+
+    public bool HasPreviewFor(string url) =>
+        _previews.Any(p => string.Equals(p.Url, url, StringComparison.OrdinalIgnoreCase));
+
+    public void AddPreview(LinkPreview preview)
+    {
+        if (HasPreviewFor(preview.Url) || _previews.Count >= MaxPreviews)
+        {
+            return;
+        }
+
+        _previews.Add(preview);
+        NotifyPreviewSlots();
+        NotifyChips();
+    }
+
+    public void ClearPreviews()
+    {
+        if (_previews.Count == 0)
+        {
+            return;
+        }
+
+        _previews.Clear();
+        NotifyPreviewSlots();
+        NotifyChips();
+    }
+
+    public string? HrefForPreview(int index) => SlotPreview(index)?.Url;
+
+    public bool ShowPreview0 => SlotPreview(0) is not null;
+    public bool Preview0HasImage => SlotPreview(0)?.HasImage == true;
+    public ImageSource? Preview0Image => SlotPreview(0)?.ImageSource;
+    public string Preview0Title => SlotPreview(0)?.Title ?? string.Empty;
+    public string Preview0Description => SlotPreview(0)?.Description ?? string.Empty;
+    public string Preview0Domain => SlotPreview(0)?.Domain ?? string.Empty;
+
+    public bool ShowPreview1 => SlotPreview(1) is not null;
+    public bool Preview1HasImage => SlotPreview(1)?.HasImage == true;
+    public ImageSource? Preview1Image => SlotPreview(1)?.ImageSource;
+    public string Preview1Title => SlotPreview(1)?.Title ?? string.Empty;
+    public string Preview1Description => SlotPreview(1)?.Description ?? string.Empty;
+    public string Preview1Domain => SlotPreview(1)?.Domain ?? string.Empty;
+
+    public bool ShowPreview2 => SlotPreview(2) is not null;
+    public bool Preview2HasImage => SlotPreview(2)?.HasImage == true;
+    public ImageSource? Preview2Image => SlotPreview(2)?.ImageSource;
+    public string Preview2Title => SlotPreview(2)?.Title ?? string.Empty;
+    public string Preview2Description => SlotPreview(2)?.Description ?? string.Empty;
+    public string Preview2Domain => SlotPreview(2)?.Domain ?? string.Empty;
+
+    private void NotifyPreviewSlots()
+    {
+        OnPropertyChanged(nameof(HasLinkPreviews));
+        for (var i = 0; i < MaxPreviews; i++)
+        {
+            OnPropertyChanged($"ShowPreview{i}");
+            OnPropertyChanged($"Preview{i}HasImage");
+            OnPropertyChanged($"Preview{i}Image");
+            OnPropertyChanged($"Preview{i}Title");
+            OnPropertyChanged($"Preview{i}Description");
+            OnPropertyChanged($"Preview{i}Domain");
+        }
+    }
+
+    private void NotifyChips()
+    {
+        OnPropertyChanged(nameof(HasHiddenChips));
+        for (var i = 0; i < MaxPreviews; i++)
+        {
+            OnPropertyChanged($"ShowChip{i}");
+            OnPropertyChanged($"Chip{i}Text");
+        }
     }
 
     /// <summary>Имена для подсветки: из payload или (для старых сообщений) по текущим участникам.</summary>
@@ -433,6 +590,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             Mentions = payload.Mentions,
             CommentToMessageId = payload.CommentToMessageId,
             IsForwarded = payload.IsForwarded,
+            SentAtUnixMs = source.SentAtUnixMs,
             TimeText = DateTimeOffset.FromUnixTimeMilliseconds(source.SentAtUnixMs)
                 .ToLocalTime()
                 .ToString("HH:mm"),
@@ -449,6 +607,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         vm.IsAnimatedGif = IsGifMedia(payload.Media);
         vm.GifSurfaceHex = ResolveBubbleHex(mine);
         vm.RebuildTextFormatted();
+        vm.RebuildLinks();
         vm.SetReactions(source.Reactions, myUserId);
         return vm;
     }
