@@ -240,8 +240,8 @@ public partial class ChatView : ContentView
                 user,
                 glyph,
                 replyToMessageId: replyTarget?.Id,
-                replyToText: replyTarget?.ReplyQuoteText,
-                replyToFileName: replyTarget?.ReplyToFileName,
+                replyToText: replyTarget?.Text,
+                replyToFileName: replyTarget?.FileName,
                 kind: MessageKinds.Sticker);
 
             ScrollToBottom();
@@ -1008,8 +1008,8 @@ public partial class ChatView : ContentView
                     user,
                     text,
                     replyToMessageId: replyTarget?.Id,
-                    replyToText: replyTarget?.ReplyQuoteText,
-                    replyToFileName: replyTarget?.ReplyToFileName);
+                    replyToText: replyTarget?.Text,
+                    replyToFileName: replyTarget?.FileName);
                 _replyingTo = null;
                 ReplyBar.IsVisible = false;
             }
@@ -1523,6 +1523,71 @@ public partial class ChatView : ContentView
 #if WINDOWS
     private static ChatView? _activeDropTarget;
     private static Microsoft.UI.Xaml.UIElement? _hookedContent;
+    private static System.Threading.Timer? _dropSweepTimer;
+    private static int _dragOverSeen;
+
+    /// <summary>Диагностический лог перетаскивания (временный файл в %TEMP%).</summary>
+    private static readonly string DropLogPath = Path.Combine(
+        Path.GetTempPath(),
+        "securechat-drop.log");
+
+    private static void LogDrop(string message)
+    {
+        try
+        {
+            File.AppendAllText(
+                DropLogPath,
+                $"{DateTime.Now:HH:mm:ss.fff} {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Лог — не критично.
+        }
+    }
+
+    /// <summary>
+    /// Включает приём перетаскивания на всех элементах окна: WinUI проверяет
+    /// AllowDrop у элемента под курсором, а не только у корня.
+    /// </summary>
+    private static int EnableDropInTree(Microsoft.UI.Xaml.DependencyObject? root)
+    {
+        if (root is null)
+        {
+            return 0;
+        }
+
+        var count = 0;
+        try
+        {
+            var children = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(root);
+            for (var i = 0; i < children; i++)
+            {
+                Microsoft.UI.Xaml.DependencyObject child;
+                try
+                {
+                    child = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(root, i);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (child is Microsoft.UI.Xaml.UIElement element)
+                {
+                    element.AllowDrop = true;
+                    count++;
+                }
+
+                count += EnableDropInTree(child);
+            }
+        }
+        catch
+        {
+            // Дерево меняется на лету — частичный обход не страшен.
+        }
+
+        return count;
+    }
     private bool _pasteHooked;
 
     /// <summary>
@@ -1561,9 +1626,40 @@ public partial class ChatView : ContentView
                     new Microsoft.UI.Xaml.DragEventHandler(OnWindowDrop),
                     true);
             }
+
+            LogDrop($"hooks: content={content.GetType().Name}");
         }
 
+        EnableDropInTree(Handler?.PlatformView as Microsoft.UI.Xaml.DependencyObject);
+        StartDropSweep();
         HookPasteAccelerator();
+    }
+
+    /// <summary>
+    /// Периодически включает AllowDrop на свежих элементах окна: список
+    /// сообщений и меню создают новые элементы уже после подключения.
+    /// </summary>
+    private static void StartDropSweep()
+    {
+        if (_dropSweepTimer is not null)
+        {
+            return;
+        }
+
+        _dropSweepTimer = new System.Threading.Timer(_ =>
+        {
+            try
+            {
+                if (TryGetPlatformWindow()?.Content is Microsoft.UI.Xaml.DependencyObject root)
+                {
+                    MainThread.BeginInvokeOnMainThread(() => EnableDropInTree(root));
+                }
+            }
+            catch
+            {
+                // Фоновый обход — ошибки не важны.
+            }
+        }, null, 1000, 1500);
     }
 
     /// <summary>Окно WinUI, в котором живёт чат.</summary>
@@ -1590,6 +1686,11 @@ public partial class ChatView : ContentView
                 target is not null &&
                 !string.IsNullOrWhiteSpace(target._username);
 
+            if (_dragOverSeen++ < 5)
+            {
+                LogDrop($"dragover: sender={sender?.GetType().Name} files={hasFiles}");
+            }
+
             e.AcceptedOperation = hasFiles
                 ? Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy
                 : Windows.ApplicationModel.DataTransfer.DataPackageOperation.None;
@@ -1598,9 +1699,12 @@ public partial class ChatView : ContentView
             {
                 e.DragUIOverride.Caption = "Отправить как вложение";
             }
+
+            e.Handled = true;
         }
-        catch
+        catch (Exception ex)
         {
+            LogDrop($"dragover error: {ex.Message}");
             e.AcceptedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.None;
         }
     }
@@ -1617,17 +1721,23 @@ public partial class ChatView : ContentView
         // WinUI 3 на рабочем столе часто отдаёт приватный формат FileDrop.
         try
         {
-            return view.Contains("FileDrop");
+            if (view.Contains("FileDrop"))
+            {
+                return true;
+            }
         }
         catch
         {
-            return false;
+            // Форматы недоступны — считаем, что файлов нет.
         }
+
+        return false;
     }
 
     private static async void OnWindowDrop(object sender, Microsoft.UI.Xaml.DragEventArgs e)
     {
         var target = _activeDropTarget;
+        LogDrop($"drop: sender={sender?.GetType().Name} target={target is not null} loaded={target?.IsLoaded}");
         if (target is null || !target.IsLoaded)
         {
             return;
@@ -1654,6 +1764,8 @@ public partial class ChatView : ContentView
         {
             target.ShowHint($"Не удалось принять файлы: {ex.Message}", isError: true);
         }
+
+        e.Handled = true;
     }
 
     /// <summary>Файлы из drag & drop или буфера уходят как вложения чата.</summary>
@@ -2233,9 +2345,10 @@ public partial class ChatView : ContentView
         _editingMessageId = null;
         EditBar.IsVisible = false;
 
-        var preview = string.IsNullOrWhiteSpace(message.ReplyQuoteText)
+        // Цитата ответа — это текст отвечаемого сообщения, а не его собственная цитата.
+        var preview = string.IsNullOrWhiteSpace(message.Text)
             ? message.FileName
-            : message.ReplyQuoteText;
+            : message.Text;
         ReplyPreviewLabel.Text = $"↩ Ответ на «{Shorten(preview, 70)}»";
         ReplyBar.IsVisible = true;
         MessageEntry.FocusInput();
