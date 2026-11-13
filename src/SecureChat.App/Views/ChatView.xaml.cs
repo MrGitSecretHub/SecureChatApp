@@ -524,14 +524,22 @@ public partial class ChatView : ContentView
 
         RefreshDerived();
         _ = LoadImagesAsync(_messages.ToList(), _username);
+        if (_session.LinkPreviewEnabled)
+        {
+            _ = EnsurePreviewsForLoadedAsync();
+        }
     }
 
     private MessageVm CreateMessageVm(StoredMessage stored, string peer)
     {
         var vm = new MessageVm(stored, _session.Username, peer);
         vm.MentionTapped += OnMessageMentionTapped;
+        vm.LinkTapped += OnMessageLinkTapped;
         return vm;
     }
+
+    /// <summary>Тап по ссылке в тексте сообщения ЛС.</summary>
+    private void OnMessageLinkTapped(MessageVm message, string url) => _ = OpenUrlAsync(url);
 
     /// <summary>Тап по @упоминанию в сообщении ЛС — открыть профиль участника, как в Telegram.</summary>
     private async void OnMessageMentionTapped(MessageVm message, string username)
@@ -796,7 +804,7 @@ public partial class ChatView : ContentView
             var existing = FindMessage(message.Id);
             if (existing is not null)
             {
-                existing.LinkPreview = null;
+                existing.ClearPreviews();
                 existing.Update(message, _session.Username, peer);
                 RefreshDerived();
                 if (_session.LinkPreviewEnabled && existing.HasUrls)
@@ -2327,27 +2335,34 @@ public partial class ChatView : ContentView
         }
     }
 
+    /// <summary>Тап по чипу скрытой markdown-ссылки: показать адрес, который за ней стоит.</summary>
     private void OnUrlClicked(object? sender, EventArgs e)
     {
-        string? url = null;
-        if (sender is Button b)
+        if (sender is BindableObject { BindingContext: LinkChip chip })
         {
-            url = b.Text;
-        }
-        else if (sender is Label l)
-        {
-            url = l.Text;
-        }
-
-        if (!string.IsNullOrWhiteSpace(url))
-        {
-            _ = OpenUrlAsync(url);
+            _ = OpenUrlAsync(chip.Href);
         }
     }
 
-    /// <summary>Открывает ссылку: сначала во встроенном браузере, при неудаче — в системном.</summary>
+    /// <summary>Открывает ссылку: почту и телефон — в системных приложениях,
+    /// веб — во встроенном браузере, при неудаче — в системном.</summary>
     private async Task OpenUrlAsync(string url)
     {
+        if (url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) ||
+            url.StartsWith("tel:", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                await Launcher.Default.OpenAsync(url);
+            }
+            catch (Exception ex)
+            {
+                ShowHint($"Не удалось открыть ссылку: {ex.Message}", isError: true);
+            }
+
+            return;
+        }
+
         var page = HostPage;
         if (page is null)
         {
@@ -2374,8 +2389,7 @@ public partial class ChatView : ContentView
 
     private void OnLinkPreviewTapped(object? sender, EventArgs e)
     {
-        if (sender is Border { BindingContext: MessageVm message } &&
-            message.LinkPreview is { } preview)
+        if (sender is BindableObject { BindingContext: LinkPreview preview })
         {
             _ = OpenUrlAsync(preview.Url);
         }
@@ -3303,17 +3317,31 @@ public partial class ChatView : ContentView
     private void ScrollToMessage(MessageVm message) =>
         MessagesView.ScrollTo(message, position: ScrollToPosition.Center, animate: true);
 
+    /// <summary>Превью для первых ссылок сообщения: загрузки идут последовательно,
+    /// чтобы не создавать шквал запросов.</summary>
     private async Task EnsurePreviewAsync(MessageVm message)
     {
-        if (message.LinkPreview is not null || message.Urls.Count == 0)
+        foreach (var url in message.Urls.Take(3))
         {
-            return;
-        }
+            if (message.HasPreviewFor(url))
+            {
+                continue;
+            }
 
-        var preview = await _previewService.GetPreviewAsync(message.Urls[0]);
-        if (preview is not null)
+            var preview = await _previewService.GetPreviewAsync(url);
+            if (preview is not null)
+            {
+                MainThread.BeginInvokeOnMainThread(() => message.AddPreview(preview));
+            }
+        }
+    }
+
+    /// <summary>Превью ссылок в уже открытой истории: начиная с последних сообщений.</summary>
+    private async Task EnsurePreviewsForLoadedAsync()
+    {
+        foreach (var vm in _messages.Where(m => m.ShowText && m.HasUrls).Reverse().Take(30).ToList())
         {
-            MainThread.BeginInvokeOnMainThread(() => message.LinkPreview = preview);
+            await EnsurePreviewAsync(vm);
         }
     }
 

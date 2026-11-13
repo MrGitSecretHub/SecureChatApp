@@ -148,9 +148,9 @@ public sealed class AppSession
     /// <summary>Принимать сообщения только от контактов.</summary>
     public bool AcceptOnlyFromContacts { get; set; } = false;
 
-    /// <summary>Генерировать превью ссылок (Open Graph). Внимание: владелец сайта
-    /// увидит IP устройства, которое открыло чат.</summary>
-    public bool LinkPreviewEnabled { get; set; } = false;
+    /// <summary>Генерировать превью ссылок (Open Graph). Включено по умолчанию:
+    /// внимание, владелец сайта увидит IP устройства, которое открыло чат.</summary>
+    public bool LinkPreviewEnabled { get; set; } = true;
 
     /// <summary>Заблокированные пользователи (имена пользователей).</summary>
     public List<string> BlockedUsernames { get; set; } = new();

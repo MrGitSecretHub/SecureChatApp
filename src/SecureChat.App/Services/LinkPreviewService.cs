@@ -7,7 +7,7 @@ namespace SecureChat.App.Services;
 /// <summary>
 /// Генерирует превью ссылки (Open Graph) на стороне клиента.
 /// Сервер SecureChat не участвует — владелец сайта увидит IP устройства,
-/// которое открыло чат. По умолчанию функция выключена.
+/// которое открыло чат. По умолчанию функция включена, тумблер — в настройках.
 /// </summary>
 public sealed class LinkPreviewService
 {
@@ -21,6 +21,10 @@ public sealed class LinkPreviewService
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(8) };
     private readonly Dictionary<string, LinkPreview?> _cache = new(StringComparer.OrdinalIgnoreCase);
 
+    // Запросы сериализуются: словарь-кэш не потокобезопасен, и одновременных
+    // обращений к сайтам лучше не создавать.
+    private readonly SemaphoreSlim _gate = new(1, 1);
+
     public LinkPreviewService()
     {
         _http.DefaultRequestHeaders.UserAgent.ParseAdd(
@@ -28,14 +32,22 @@ public sealed class LinkPreviewService
     }
 
     /// <summary>Возвращает кэшированное превью или загружает его с сайта.</summary>
-    public Task<LinkPreview?> GetPreviewAsync(string url, CancellationToken ct = default)
+    public async Task<LinkPreview?> GetPreviewAsync(string url, CancellationToken ct = default)
     {
-        if (_cache.TryGetValue(url, out var cached))
+        await _gate.WaitAsync(ct);
+        try
         {
-            return Task.FromResult(cached);
-        }
+            if (_cache.TryGetValue(url, out var cached))
+            {
+                return cached;
+            }
 
-        return FetchPreviewAsync(url, ct);
+            return _cache[url] = await FetchPreviewAsync(url, ct);
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     private async Task<LinkPreview?> FetchPreviewAsync(string url, CancellationToken ct)
@@ -99,7 +111,6 @@ public sealed class LinkPreviewService
             // Сайт недоступен или некорректен — превью просто не будет.
         }
 
-        _cache[url] = result;
         return result;
     }
 

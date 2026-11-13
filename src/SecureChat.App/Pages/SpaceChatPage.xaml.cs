@@ -284,8 +284,12 @@ public partial class SpaceChatPage : ContentPage
             _canModerate,
             isChannel: _spaceType == SpaceTypes.Channel);
         vm.MentionTapped += OnMessageMentionTapped;
+        vm.LinkTapped += OnMessageLinkTapped;
         return vm;
     }
+
+    /// <summary>Тап по ссылке в тексте сообщения пространства.</summary>
+    private void OnMessageLinkTapped(SpaceMessageVm message, string url) => _ = OpenSpaceLinkAsync(url);
 
     private void UpdatePinnedBanner()
     {
@@ -442,6 +446,43 @@ public partial class SpaceChatPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
+
+    /// <summary>Тап по ссылке в тексте: почту и телефон — в системных приложениях,
+    /// веб — во встроенном браузере, при неудаче — в системном.</summary>
+    private async Task OpenSpaceLinkAsync(string url)
+    {
+        if (url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) ||
+            url.StartsWith("tel:", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                await Launcher.Default.OpenAsync(url);
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("SecureChat", $"Не удалось открыть ссылку: {ex.Message}", "OK");
+            }
+
+            return;
+        }
+
+        try
+        {
+            await Navigation.PushAsync(new BrowserPage(url));
+        }
+        catch
+        {
+            // Встроенная навигация недоступна — открываем в системном браузере.
+            try
+            {
+                await Browser.Default.OpenAsync(url, BrowserLaunchMode.SystemPreferred);
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("SecureChat", $"Не удалось открыть ссылку: {ex.Message}", "OK");
+            }
         }
     }
 

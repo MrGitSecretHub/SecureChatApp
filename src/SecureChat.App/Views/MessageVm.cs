@@ -2,9 +2,9 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using SecureChat.App.Services;
 using SecureChat.Core.Contracts;
+using SecureChat.Core.Text;
 
 namespace SecureChat.App.Views;
 
@@ -46,6 +46,7 @@ public sealed class MessageVm : INotifyPropertyChanged
     private string? _username;
     private bool _isArchived;
     private readonly List<string> _urls = new();
+    private readonly List<LinkChip> _hiddenLinks = new();
 
     public MessageVm(StoredMessage message, string ownName, string peerName)
     {
@@ -60,6 +61,9 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     /// <summary>Нажали на @упоминание в тексте: второй аргумент — логин упомянутого.</summary>
     public event Action<MessageVm, string>? MentionTapped;
+
+    /// <summary>Нажали на ссылку в тексте: второй аргумент — адрес для открытия.</summary>
+    public event Action<MessageVm, string>? LinkTapped;
 
     public string Id { get; }
     public string Kind { get; }
@@ -337,65 +341,38 @@ public sealed class MessageVm : INotifyPropertyChanged
             if (Set(ref _text, value))
             {
                 Notify(nameof(DisplayText));
-                RebuildMentions();
                 RebuildUrls(value);
+                RebuildRichText();
             }
         }
     }
 
-    /// <summary>Текст с выделенными @упоминаниями (null — показываем обычный DisplayText).</summary>
+    /// <summary>Текст с кликабельными ссылками и подсвеченными @упоминаниями
+    /// (null — показываем обычный DisplayText).</summary>
     public FormattedString? TextFormatted => _textFormatted;
 
-    /// <summary>Показывать простой текст — когда упоминаний не нашлось.</summary>
+    /// <summary>Показывать простой текст — когда стилизовать нечего.</summary>
     public bool ShowPlainText => ShowText && _textFormatted is null;
 
-    /// <summary>Показывать текст с подсветкой упоминаний.</summary>
+    /// <summary>Показывать текст с подсветкой ссылок и упоминаний.</summary>
     public bool ShowRichText => ShowText && _textFormatted is not null;
 
     /// <summary>
-    /// Подсветка @упоминаний в тексте личного чата (как в Telegram: цвет темы
-    /// и подчёркивание в чужих сообщениях, светлый текст в своих — пузырь
-    /// акцентного цвета). Тап открывает профиль. Списка участников в ЛС нет,
+    /// Кликабельный текст личного чата: ссылки (URL, домены без схемы, e-mail,
+    /// телефон, markdown [текст](url)) и подсветка @упоминаний. Тап по упоминанию
+    /// открывает профиль, тап по ссылке — адрес. Списка участников в ЛС нет,
     /// поэтому подсвечиваем любой логин после «@».
     /// </summary>
-    private void RebuildMentions()
+    private void RebuildRichText()
     {
-        var mentions = SpaceMentions.AllTokens(_text);
-
-        if (mentions.Count == 0)
-        {
-            if (_textFormatted is not null)
-            {
-                _textFormatted = null;
-                Notify(nameof(TextFormatted));
-                Notify(nameof(ShowPlainText));
-                Notify(nameof(ShowRichText));
-            }
-            return;
-        }
-
-        var formatted = new FormattedString();
-        foreach (var (chunk, mention) in SpaceMentions.Split(_text, mentions))
-        {
-            var span = new Span { Text = chunk };
-
-            if (mention is not null)
-            {
-                // Как в Telegram: полужирное упоминание с подчёркиванием.
-                // В своём пузыре фон акцентный — текст упоминания там светлый.
-                span.TextColor = IsMine ? Res("AccentText") : Res("Accent");
-                span.TextDecorations = TextDecorations.Underline;
-                span.FontAttributes = FontAttributes.Bold;
-
-                span.GestureRecognizers.Add(new TapGestureRecognizer
-                {
-                    Command = new Command<string>(name => MentionTapped?.Invoke(this, name)),
-                    CommandParameter = mention
-                });
-            }
-
-            formatted.Spans.Add(span);
-        }
+        var color = IsMine ? Res("AccentText") : Res("Accent");
+        var formatted = InlineTextBuilder.Build(
+            _text,
+            SpaceMentions.AllTokens(_text),
+            color,
+            color,
+            href => LinkTapped?.Invoke(this, href),
+            name => MentionTapped?.Invoke(this, name));
 
         _textFormatted = formatted;
         Notify(nameof(TextFormatted));
@@ -406,50 +383,81 @@ public sealed class MessageVm : INotifyPropertyChanged
     private void RebuildUrls(string? text)
     {
         _urls.Clear();
-        if (!string.IsNullOrWhiteSpace(text))
+        _hiddenLinks.Clear();
+        foreach (var segment in TextLinks.Segment(text))
         {
-            foreach (Match m in UrlRegex.Matches(text))
+            if (segment.Href is not { } href || segment.Kind != LinkKind.Web)
             {
-                var url = m.Value.TrimEnd('.', ',', ';', ':', '!', '?', ')', ']', '}', '"', '\'');
-                if (url.Length > 0 && !_urls.Contains(url))
-                {
-                    _urls.Add(url);
-                }
+                continue;
+            }
+
+            if (!_urls.Contains(href, StringComparer.OrdinalIgnoreCase))
+            {
+                _urls.Add(href);
+            }
+
+            // Цель спрятана за markdown-меткой: показываем её отдельным чипом.
+            if (segment.IsHiddenTarget && !_hiddenLinks.Any(c => c.Href == href))
+            {
+                _hiddenLinks.Add(new LinkChip(TextLinks.ShortenHref(href), href));
             }
         }
 
         Notify(nameof(Urls));
         Notify(nameof(HasUrls));
+        Notify(nameof(VisibleLinkChips));
+        Notify(nameof(ShowUrlChips));
     }
 
     public string DisplayText => _text;
 
-    private static readonly Regex UrlRegex = new(@"https?://\S+|www\.\S+", RegexOptions.Compiled);
-
-    /// <summary>Ссылки, найденные в тексте сообщения.</summary>
+    /// <summary>Веб-адреса сообщения (https://…, включая цели markdown-ссылок) в порядке текста.</summary>
     public IReadOnlyList<string> Urls => _urls;
 
     public bool HasUrls => _urls.Count > 0;
 
-    private LinkPreview? _linkPreview;
+    private readonly ObservableCollection<LinkPreview> _previews = new();
 
-    /// <summary>Превью первой ссылки (если включено в настройках и загружено).</summary>
-    public LinkPreview? LinkPreview
+    /// <summary>Загруженные превью ссылок сообщения (появляются по мере загрузки).</summary>
+    public IReadOnlyList<LinkPreview> Previews => _previews;
+
+    public bool HasLinkPreviews => _previews.Count > 0;
+
+    public bool HasPreviewFor(string url) =>
+        _previews.Any(p => string.Equals(p.Url, url, StringComparison.OrdinalIgnoreCase));
+
+    public void AddPreview(LinkPreview preview)
     {
-        get => _linkPreview;
-        set
+        if (HasPreviewFor(preview.Url))
         {
-            if (Set(ref _linkPreview, value))
-            {
-                Notify(nameof(ShowUrlChips));
-            }
+            return;
         }
+
+        _previews.Add(preview);
+        Notify(nameof(HasLinkPreviews));
+        Notify(nameof(VisibleLinkChips));
+        Notify(nameof(ShowUrlChips));
     }
 
-    public bool HasLinkPreview => _linkPreview is not null;
+    public void ClearPreviews()
+    {
+        if (_previews.Count == 0)
+        {
+            return;
+        }
 
-    /// <summary>Показывать сырые ссылки-чипы (скрыты, когда есть превью).</summary>
-    public bool ShowUrlChips => HasUrls && _linkPreview is null;
+        _previews.Clear();
+        Notify(nameof(HasLinkPreviews));
+        Notify(nameof(VisibleLinkChips));
+        Notify(nameof(ShowUrlChips));
+    }
+
+    /// <summary>Чипы markdown-ссылок, чей адрес ещё не раскрыт превью-карточкой.</summary>
+    public IReadOnlyList<LinkChip> VisibleLinkChips =>
+        [.. _hiddenLinks.Where(c => !HasPreviewFor(c.Href))];
+
+    /// <summary>Показывать чипы скрытых целей (обычные ссылки видны прямо в тексте).</summary>
+    public bool ShowUrlChips => _hiddenLinks.Any(c => !HasPreviewFor(c.Href));
 
     public string FileName
     {

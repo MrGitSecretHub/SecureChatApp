@@ -125,6 +125,7 @@ public partial class PostCommentsPage : ContentPage
     {
         var vm = SpaceMessageVm.From(message, payload, _myUserId, _canModerate);
         vm.MentionTapped += OnMentionTapped;
+        vm.LinkTapped += OnLinkTapped;
         return vm;
     }
 
@@ -268,6 +269,42 @@ public partial class PostCommentsPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
+
+    /// <summary>Нажали ссылку в комментарии: открываем во встроенном браузере,
+    /// при недоступности — в системном.</summary>
+    private async void OnLinkTapped(SpaceMessageVm comment, string url)
+    {
+        if (url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) ||
+            url.StartsWith("tel:", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                await Launcher.Default.OpenAsync(url);
+            }
+            catch
+            {
+                // Без почтового клиента/телефонии ссылка просто не откроется.
+            }
+
+            return;
+        }
+
+        try
+        {
+            await Navigation.PushAsync(new BrowserPage(url));
+        }
+        catch
+        {
+            try
+            {
+                await Browser.Default.OpenAsync(url, BrowserLaunchMode.SystemPreferred);
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("SecureChat", $"Не удалось открыть ссылку: {ex.Message}", "OK");
+            }
         }
     }
 

@@ -121,31 +121,18 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             return;
         }
 
-        var formatted = new FormattedString();
-        foreach (var (chunk, mention) in SpaceMentions.Split(_text, RenderMentions()))
-        {
-            var span = new Span { Text = chunk };
+        var formatted = InlineTextBuilder.Build(
+            _text,
+            RenderMentions(),
+            IsMine ? ResolveAccentText() : ResolveAccent(),
+            ResolveMentionColor(),
+            href => LinkTapped?.Invoke(this, href),
+            name => MentionTapped?.Invoke(this, name));
 
-            if (mention is not null)
-            {
-                // Как в Telegram: полужирное упоминание с подчёркиванием.
-                // В своём пузыре фон акцентный — текст упоминания там светлый,
-                // иначе сливается с фоном пузыря.
-                span.TextColor = ResolveMentionColor();
-                span.TextDecorations = TextDecorations.Underline;
-                span.FontAttributes = FontAttributes.Bold;
-
-                var target = this;
-                var recognizer = new TapGestureRecognizer { CommandParameter = mention };
-                recognizer.Tapped += (_, _) => target.MentionTapped?.Invoke(target, mention);
-                span.GestureRecognizers.Add(recognizer);
-            }
-
-            formatted.Spans.Add(span);
-        }
-
-        _textFormatted = formatted;
-        HandleTextFormatted(formatted);
+        // Текст пространства всегда рисуется через FormattedText: если стилизовать
+        // нечего (ни ссылок, ни упоминаний), возвращаемся к одному обычному спану.
+        _textFormatted = formatted ?? new FormattedString { Spans = { new Span { Text = _text } } };
+        OnPropertyChanged(nameof(TextFormatted));
     }
 
     /// <summary>Имена для подсветки: из payload или (для старых сообщений) по текущим участникам.</summary>
@@ -170,14 +157,11 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         return SpaceMentions.Parse(_text, members);
     }
 
-    private void HandleTextFormatted(FormattedString formatted)
-    {
-        _textFormatted = formatted;
-        OnPropertyChanged(nameof(TextFormatted));
-    }
-
     private static Color ResolveAccent() =>
         (Application.Current?.Resources["Accent"] as Color) ?? Color.FromArgb("#0088CC");
+
+    private static Color ResolveAccentText() =>
+        (Application.Current?.Resources["AccentText"] as Color) ?? Colors.White;
 
     /// <summary>Цвет упоминания: в своём пузыре (акцентный фон) — светлый, в чужом — акцент.</summary>
     private Color ResolveMentionColor()
@@ -315,6 +299,10 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
     /// <summary>Нажали на упоминание в тексте: (сообщение, логин упомянутого).</summary>
     public event Action<SpaceMessageVm, string>? MentionTapped;
+
+    /// <summary>Нажали на ссылку в тексте: (сообщение, адрес для открытия).</summary>
+    public event Action<SpaceMessageVm, string>? LinkTapped;
+
     public bool HasReply => !string.IsNullOrEmpty(ReplyToText);
     public bool HasReactions => ReactionChips.Count > 0;
     public bool ShowAvatar => !IsMine;
