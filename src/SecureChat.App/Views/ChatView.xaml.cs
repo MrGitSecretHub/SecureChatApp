@@ -145,7 +145,8 @@ public partial class ChatView : ContentView
         _session.AppearanceChanged -= OnAppearanceChanged;
 #if WINDOWS
         // Чат закрыт — файлы, брошенные в окно, больше не должны уходить сюда.
-        if (ReferenceEquals(_activeDropTarget, this))
+        // Если чат ещё открыт, приём остаётся включённым.
+        if (ReferenceEquals(_activeDropTarget, this) && string.IsNullOrWhiteSpace(_username))
         {
             _activeDropTarget = null;
         }
@@ -350,6 +351,12 @@ public partial class ChatView : ContentView
     public async Task OpenAsync(string username, string? scrollToMessageId = null)
     {
         ResetChat();
+
+#if WINDOWS
+        // Перетаскивание работает только с открытым чатом: подключаем
+        // обработчики окна и помечаем этот чат активным получателем файлов.
+        EnsureWindowHooks();
+#endif
 
         var stored = await _chatManager.GetConversationAsync(username)
             ?? throw new InvalidOperationException("Контакт не найден.");
@@ -1515,7 +1522,7 @@ public partial class ChatView : ContentView
 
 #if WINDOWS
     private static ChatView? _activeDropTarget;
-    private static bool _windowHooksInstalled;
+    private static Microsoft.UI.Xaml.UIElement? _hookedContent;
     private bool _pasteHooked;
 
     /// <summary>
@@ -1526,41 +1533,67 @@ public partial class ChatView : ContentView
     {
         _activeDropTarget = this;
 
-        if (_windowHooksInstalled)
+        // WinUI отдаёт события перетаскивания только элементам с AllowDrop=true.
+        // Включаем и на корневом элементе окна, и на самом чате: иначе
+        // перетаскивание в область переписки не срабатывает.
+        if (Handler?.PlatformView is Microsoft.UI.Xaml.UIElement ownView)
         {
-            HookPasteAccelerator();
-            return;
+            ownView.AllowDrop = true;
         }
 
-        if (HostPage?.Window?.Handler?.PlatformView is not Microsoft.UI.Xaml.Window platformWindow ||
-            platformWindow.Content is not { } content)
+        if (TryGetPlatformWindow() is { } platformWindow &&
+            platformWindow.Content is Microsoft.UI.Xaml.UIElement content)
         {
-            return;
+            content.AllowDrop = true;
+
+            // Обработчики вешаем на текущее содержимое окна: при навигации
+            // корневой элемент может смениться.
+            if (!ReferenceEquals(_hookedContent, content))
+            {
+                _hookedContent = content;
+
+                content.AddHandler(
+                    Microsoft.UI.Xaml.UIElement.DragOverEvent,
+                    new Microsoft.UI.Xaml.DragEventHandler(OnWindowDragOver),
+                    true);
+                content.AddHandler(
+                    Microsoft.UI.Xaml.UIElement.DropEvent,
+                    new Microsoft.UI.Xaml.DragEventHandler(OnWindowDrop),
+                    true);
+            }
         }
-
-        _windowHooksInstalled = true;
-
-        content.AddHandler(
-            Microsoft.UI.Xaml.UIElement.DragOverEvent,
-            new Microsoft.UI.Xaml.DragEventHandler(OnWindowDragOver),
-            true);
-        content.AddHandler(
-            Microsoft.UI.Xaml.UIElement.DropEvent,
-            new Microsoft.UI.Xaml.DragEventHandler(OnWindowDrop),
-            true);
 
         HookPasteAccelerator();
     }
+
+    /// <summary>Окно WinUI, в котором живёт чат.</summary>
+    private static Microsoft.UI.Xaml.Window? TryGetPlatformWindow()
+    {
+        var window = Application.Current?.Windows.FirstOrDefault();
+        if (window?.Handler?.PlatformView is Microsoft.UI.Xaml.Window platformWindow)
+        {
+            return platformWindow;
+        }
+
+        return HostPageForWindow()?.Window?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
+    }
+
+    private static Page? HostPageForWindow() =>
+        Application.Current?.Windows.FirstOrDefault()?.Page;
 
     private static void OnWindowDragOver(object sender, Microsoft.UI.Xaml.DragEventArgs e)
     {
         try
         {
-            var hasFiles = e.DataView.Contains(
-                Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems);
+            var target = _activeDropTarget;
+            var hasFiles = HasFiles(e) &&
+                target is not null &&
+                !string.IsNullOrWhiteSpace(target._username);
+
             e.AcceptedOperation = hasFiles
                 ? Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy
                 : Windows.ApplicationModel.DataTransfer.DataPackageOperation.None;
+
             if (hasFiles)
             {
                 e.DragUIOverride.Caption = "Отправить как вложение";
@@ -1572,12 +1605,30 @@ public partial class ChatView : ContentView
         }
     }
 
+    /// <summary>В перетаскивании есть файлы (формат оболочки Windows).</summary>
+    private static bool HasFiles(Microsoft.UI.Xaml.DragEventArgs e)
+    {
+        var view = e.DataView;
+        if (view.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems))
+        {
+            return true;
+        }
+
+        // WinUI 3 на рабочем столе часто отдаёт приватный формат FileDrop.
+        try
+        {
+            return view.Contains("FileDrop");
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static async void OnWindowDrop(object sender, Microsoft.UI.Xaml.DragEventArgs e)
     {
         var target = _activeDropTarget;
-        if (target is null ||
-            !target.IsLoaded ||
-            !e.DataView.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems))
+        if (target is null || !target.IsLoaded)
         {
             return;
         }
@@ -1599,9 +1650,9 @@ public partial class ChatView : ContentView
                 await target.SendDroppedFilesAsync(files);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ошибки чтения конкретных файлов показываются подсказкой.
+            target.ShowHint($"Не удалось принять файлы: {ex.Message}", isError: true);
         }
     }
 
@@ -1611,6 +1662,8 @@ public partial class ChatView : ContentView
         var user = _username;
         if (user is null || _sendingAttachment || !IsCurrent(user))
         {
+            // Чат не открыт — подсказываем, куда бросить файлы.
+            ShowHint("Откройте чат, чтобы отправить вложения.", isError: true);
             return;
         }
 
