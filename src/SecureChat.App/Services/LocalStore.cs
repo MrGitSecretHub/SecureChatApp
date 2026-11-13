@@ -28,6 +28,7 @@ public sealed class StoredMessage
     public string? ReplyToMessageId { get; set; }
     public string? ReplyToText { get; set; }
     public string? ReplyToFileName { get; set; }
+    public string? ReplyToSender { get; set; }
     public bool IsEdited { get; set; }
     public string? EditedText { get; set; }
     public string DeliveryStatus { get; set; } = "Отправка";
@@ -1724,6 +1725,7 @@ public sealed class LocalStore
         ReplyToMessageId = source.ReplyToMessageId,
         ReplyToText = source.ReplyToText,
         ReplyToFileName = source.ReplyToFileName,
+        ReplyToSender = source.ReplyToSender,
         IsEdited = source.IsEdited,
         EditedText = source.EditedText,
         DeliveryStatus = source.DeliveryStatus,

@@ -378,7 +378,7 @@
                                                 <RoundRectangle CornerRadius="8" />
                                             </Border.StrokeShape>
                                             <VerticalStackLayout Spacing="1">
-                                                <Label Text="↩ Ответ"
+                                                <Label Text="{Binding ReplyQuoteAuthorText}"
                                                        FontSize="12"
                                                        FontAttributes="Bold"
                                                        TextColor="{DynamicResource Accent}" />

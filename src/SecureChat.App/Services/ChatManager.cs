@@ -427,7 +427,11 @@ public sealed class ChatManager
             Reactions = LocalStore.ReadReactions(message.ReactionsJson),
             AlbumId = message.AlbumId,
             AlbumIndex = message.AlbumIndex,
-            AlbumCount = message.AlbumCount
+            AlbumCount = message.AlbumCount,
+            ReplyToMessageId = message.ReplyToMessageId,
+            ReplyToText = message.ReplyToText,
+            ReplyToFileName = message.ReplyToFileName,
+            ReplyToSender = message.ReplyToSender
         };
 
         if (message.Kind != MessageKinds.Text && message.Kind != MessageKinds.Sticker)
@@ -573,7 +577,11 @@ public sealed class ChatManager
         string text,
         string kind = MessageKinds.Text,
         bool isForwarded = false,
-        string? forwardedFrom = null)
+        string? forwardedFrom = null,
+        string? replyToMessageId = null,
+        string? replyToText = null,
+        string? replyToFileName = null,
+        string? replyToSender = null)
     {
         var self = await GetOrCreateSelfConversationAsync();
         var message = new StoredMessage
@@ -587,7 +595,11 @@ public sealed class ChatManager
             Kind = kind,
             SenderUsername = self.Username,
             IsForwarded = isForwarded,
-            ForwardedFrom = isForwarded ? forwardedFrom : null
+            ForwardedFrom = isForwarded ? forwardedFrom : null,
+            ReplyToMessageId = replyToMessageId,
+            ReplyToText = replyToText,
+            ReplyToFileName = replyToFileName,
+            ReplyToSender = string.IsNullOrWhiteSpace(replyToMessageId) ? null : replyToSender
         };
 
         if (await _localStore.AddMessageAsync(self.Username, message, incrementUnread: false))
@@ -603,7 +615,11 @@ public sealed class ChatManager
         string kind,
         byte[] data,
         bool isForwarded = false,
-        string? forwardedFrom = null)
+        string? forwardedFrom = null,
+        string? replyToMessageId = null,
+        string? replyToText = null,
+        string? replyToFileName = null,
+        string? replyToSender = null)
     {
         var self = await GetOrCreateSelfConversationAsync();
         var messageId = Guid.NewGuid().ToString("N");
@@ -625,7 +641,11 @@ public sealed class ChatManager
             MediaDownloaded = true,
             SenderUsername = self.Username,
             IsForwarded = isForwarded,
-            ForwardedFrom = isForwarded ? forwardedFrom : null
+            ForwardedFrom = isForwarded ? forwardedFrom : null,
+            ReplyToMessageId = replyToMessageId,
+            ReplyToText = replyToText,
+            ReplyToFileName = replyToFileName,
+            ReplyToSender = string.IsNullOrWhiteSpace(replyToMessageId) ? null : replyToSender
         };
 
         if (await _localStore.AddMessageAsync(self.Username, message, incrementUnread: false))
@@ -698,7 +718,8 @@ public sealed class ChatManager
         string? replyToMessageId = null,
         string? replyToText = null,
         string? replyToFileName = null,
-        string kind = MessageKinds.Text)
+        string kind = MessageKinds.Text,
+        string? replyToSender = null)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -720,7 +741,8 @@ public sealed class ChatManager
             replyToMessageId: replyToMessageId,
             replyToText: replyToText,
             replyToFileName: replyToFileName,
-            kind: kind);
+            kind: kind,
+            replyToSender: replyToSender);
     }
 
     /// <summary>
@@ -805,7 +827,8 @@ public sealed class ChatManager
         string? replyToText = null,
         string? replyToFileName = null,
         string kind = MessageKinds.Text,
-        string? forwardedFrom = null)
+        string? forwardedFrom = null,
+        string? replyToSender = null)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -814,7 +837,15 @@ public sealed class ChatManager
 
         if (IsSelfUser(recipientUserId))
         {
-            await SaveSelfMessageAsync(text, kind, isForwarded, forwardedFrom);
+            await SaveSelfMessageAsync(
+                text,
+                kind,
+                isForwarded,
+                forwardedFrom,
+                replyToMessageId,
+                replyToText,
+                replyToFileName,
+                replyToSender);
             return;
         }
 
@@ -835,7 +866,8 @@ public sealed class ChatManager
             ForwardedFrom = isForwarded ? forwardedFrom : null,
             ReplyToMessageId = replyToMessageId,
             ReplyToText = replyToText,
-            ReplyToFileName = replyToFileName
+            ReplyToFileName = replyToFileName,
+            ReplyToSender = string.IsNullOrWhiteSpace(replyToMessageId) ? null : replyToSender
         };
         var envelope = MessageCrypto.EncryptPayload(
             messageId,
@@ -872,7 +904,8 @@ public sealed class ChatManager
             SenderUsername = user.Username,
             ReplyToMessageId = replyToMessageId,
             ReplyToText = replyToText,
-            ReplyToFileName = replyToFileName
+            ReplyToFileName = replyToFileName,
+            ReplyToSender = string.IsNullOrWhiteSpace(replyToMessageId) ? null : replyToSender
         };
 
         if (await _localStore.AddMessageAsync(conversation.Username, localMessage, incrementUnread: false))
@@ -1191,6 +1224,10 @@ public sealed class ChatManager
                 IsPinned = pinned ?? message.IsPinned,
                 IsForwarded = message.IsForwarded,
                 ForwardedFrom = message.ForwardedFrom,
+                ReplyToMessageId = message.ReplyToMessageId,
+                ReplyToText = message.ReplyToText,
+                ReplyToFileName = message.ReplyToFileName,
+                ReplyToSender = message.ReplyToSender,
                 Reactions = reactions?.ToList()
                     ?? LocalStore.ReadReactions(message.ReactionsJson)
             };
@@ -1253,7 +1290,11 @@ public sealed class ChatManager
         string? albumId = null,
         int albumIndex = 0,
         int albumCount = 0,
-        string? forwardedFrom = null)
+        string? forwardedFrom = null,
+        string? replyToMessageId = null,
+        string? replyToText = null,
+        string? replyToFileName = null,
+        string? replyToSender = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
         ArgumentNullException.ThrowIfNull(data);
@@ -1291,7 +1332,17 @@ public sealed class ChatManager
 
         if (IsSelfUser(conversation.UserId))
         {
-            await SaveSelfMediaAsync(safeName, normalizedContentType, kind, data, isForwarded, forwardedFrom);
+            await SaveSelfMediaAsync(
+                safeName,
+                normalizedContentType,
+                kind,
+                data,
+                isForwarded,
+                forwardedFrom,
+                replyToMessageId,
+                replyToText,
+                replyToFileName,
+                replyToSender);
             return;
         }
 
@@ -1324,6 +1375,10 @@ public sealed class ChatManager
             MediaDownloaded = true,
             IsForwarded = isForwarded,
             ForwardedFrom = isForwarded ? forwardedFrom : null,
+            ReplyToMessageId = replyToMessageId,
+            ReplyToText = replyToText,
+            ReplyToFileName = replyToFileName,
+            ReplyToSender = string.IsNullOrWhiteSpace(replyToMessageId) ? null : replyToSender,
             SenderUsername = user.Username,
             AlbumId = albumCount > 1 ? albumId : null,
             AlbumIndex = albumCount > 1 ? albumIndex : 0,
@@ -1747,6 +1802,7 @@ public sealed class ChatManager
                 ReplyToMessageId = payload.ReplyToMessageId,
                 ReplyToText = payload.ReplyToText,
                 ReplyToFileName = payload.ReplyToFileName,
+                ReplyToSender = string.IsNullOrWhiteSpace(payload.ReplyToMessageId) ? null : payload.ReplyToSender,
                 AlbumId = string.IsNullOrWhiteSpace(payload.AlbumId) ? null : payload.AlbumId,
                 AlbumIndex = payload.AlbumIndex,
                 AlbumCount = payload.AlbumCount,

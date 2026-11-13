@@ -626,6 +626,21 @@ public sealed class MessageVm : INotifyPropertyChanged
     public bool HasReplyQuote => !string.IsNullOrEmpty(_replyToText);
     public string ReplyQuoteText => _replyToText ?? string.Empty;
 
+    private string _replyAuthorDisplay = string.Empty;
+
+    /// <summary>
+    /// Автор, на которого ссылается цитата ответа: для пересланного — исходный
+    /// автор, иначе отправитель. Так цитата указывает на того, чьё сообщение.
+    /// </summary>
+    public string ReplyAuthorName => IsForwarded && !string.IsNullOrWhiteSpace(_forwardedFrom)
+        ? _forwardedFrom!
+        : SenderDisplay;
+
+    /// <summary>Подпись автора в цитате: «↩ anna» или «↩ Вы»; без автора — «↩ Ответ».</summary>
+    public string ReplyQuoteAuthorText => string.IsNullOrWhiteSpace(_replyAuthorDisplay)
+        ? "↩ Ответ"
+        : $"↩ {_replyAuthorDisplay}";
+
     /// <summary>Идентификатор сообщения, на которое отвечают.</summary>
     public string? ReplyToMessageId { get; private set; }
 
@@ -823,6 +838,13 @@ public sealed class MessageVm : INotifyPropertyChanged
         EditedText = message.EditedText;
         IsForwarded = message.IsForwarded;
         ForwardedFrom = message.ForwardedFrom;
+        var replyAuthor = message.ReplyToSender ?? string.Empty;
+        _replyAuthorDisplay = replyAuthor.Length == 0
+            ? string.Empty
+            : string.Equals(replyAuthor, ownName, StringComparison.OrdinalIgnoreCase)
+                ? "Вы"
+                : replyAuthor;
+        Notify(nameof(ReplyQuoteAuthorText));
         IsDraft = message.IsDraft;
         ReplyToText = message.ReplyToText;
         ReplyToMessageId = message.ReplyToMessageId;

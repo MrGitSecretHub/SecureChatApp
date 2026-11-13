@@ -82,6 +82,12 @@ public partial class ChatView : ContentView
         /// <summary>Всего фото в альбоме.</summary>
         public int AlbumCount { get; set; }
 
+        /// <summary>Ответ на сообщение, с которым ушло вложение (если отвечали).</summary>
+        public string? ReplyToMessageId { get; set; }
+        public string? ReplyToText { get; set; }
+        public string? ReplyToFileName { get; set; }
+        public string? ReplyToSender { get; set; }
+
         public CancellationTokenSource Cts { get; } = new();
 
         private int _progress;
@@ -242,7 +248,8 @@ public partial class ChatView : ContentView
                 replyToMessageId: replyTarget?.Id,
                 replyToText: replyTarget?.Text,
                 replyToFileName: replyTarget?.FileName,
-                kind: MessageKinds.Sticker);
+                kind: MessageKinds.Sticker,
+                replyToSender: replyTarget?.ReplyAuthorName);
 
             ScrollToBottom();
         }
@@ -270,7 +277,20 @@ public partial class ChatView : ContentView
         {
             MediaPanel.IsVisible = false;
 
-            await _chatManager.SendMediaAsync(user, item.FileName, item.ContentType, item.Bytes);
+            // Ответ на сообщение уходит вместе с GIF, панель ответа закрывается.
+            var reply = _replyingTo;
+            _replyingTo = null;
+            ReplyBar.IsVisible = false;
+
+            await _chatManager.SendMediaAsync(
+                user,
+                item.FileName,
+                item.ContentType,
+                item.Bytes,
+                replyToMessageId: reply?.Id,
+                replyToText: reply?.Text,
+                replyToFileName: reply?.FileName,
+                replyToSender: reply?.ReplyAuthorName);
             ScrollToBottom();
         }
         catch (Exception ex)
@@ -415,6 +435,13 @@ public partial class ChatView : ContentView
         _messages.Clear();
         _mediaItems.Clear();
         _pinnedItems.Clear();
+
+        // Ответ и редактирование относятся к конкретному чату: при смене чата они сбрасываются,
+        // иначе цитата из одного чата ушла бы в другой.
+        _replyingTo = null;
+        _editingMessageId = null;
+        ReplyBar.IsVisible = false;
+        EditBar.IsVisible = false;
 
         _suppressDraft = true;
         MessageEntry.Text = string.Empty;
@@ -1009,7 +1036,8 @@ public partial class ChatView : ContentView
                     text,
                     replyToMessageId: replyTarget?.Id,
                     replyToText: replyTarget?.Text,
-                    replyToFileName: replyTarget?.FileName);
+                    replyToFileName: replyTarget?.FileName,
+                    replyToSender: replyTarget?.ReplyAuthorName);
                 _replyingTo = null;
                 ReplyBar.IsVisible = false;
             }
@@ -1229,6 +1257,11 @@ public partial class ChatView : ContentView
             var albumId = items.Count > 1 ? Guid.NewGuid().ToString("N") : null;
             var albumIndex = 0;
 
+            // Ответ на сообщение уходит вместе с вложениями, после этого панель ответа закрывается.
+            var reply = _replyingTo;
+            _replyingTo = null;
+            ReplyBar.IsVisible = false;
+
             foreach (var (fileName, data, contentType, kind) in items)
             {
                 var prepared = kind is null
@@ -1243,7 +1276,11 @@ public partial class ChatView : ContentView
                     MessageKind = kind,
                     AlbumId = albumId,
                     AlbumIndex = albumIndex,
-                    AlbumCount = items.Count
+                    AlbumCount = items.Count,
+                    ReplyToMessageId = reply?.Id,
+                    ReplyToText = reply?.Text,
+                    ReplyToFileName = reply?.FileName,
+                    ReplyToSender = reply?.ReplyAuthorName
                 });
 
                 albumIndex++;
@@ -1306,7 +1343,11 @@ public partial class ChatView : ContentView
                         cancellationToken: item.Cts.Token,
                         albumId: item.AlbumId,
                         albumIndex: item.AlbumIndex,
-                        albumCount: item.AlbumCount);
+                        albumCount: item.AlbumCount,
+                        replyToMessageId: item.ReplyToMessageId,
+                        replyToText: item.ReplyToText,
+                        replyToFileName: item.ReplyToFileName,
+                        replyToSender: item.ReplyToSender);
 
                     item.Progress = 100;
                     item.Status = "Готово";
@@ -1483,7 +1524,7 @@ public partial class ChatView : ContentView
             };
 
             var quote = message.HasReplyQuote
-                ? $"<div class=\"quote\">{Escape(message.ReplyQuoteText)}</div>"
+                ? $"<div class=\"quote\"><b>{Escape(message.ReplyQuoteAuthorText)}</b><br>{Escape(message.ReplyQuoteText)}</div>"
                 : string.Empty;
 
             var flags = string.Empty;
@@ -2364,7 +2405,13 @@ public partial class ChatView : ContentView
         var preview = string.IsNullOrWhiteSpace(message.Text)
             ? message.FileName
             : message.Text;
-        ReplyPreviewLabel.Text = $"↩ Ответ на «{Shorten(preview, 70)}»";
+        var author = message.ReplyAuthorName;
+        var who = string.IsNullOrWhiteSpace(author)
+            ? string.Empty
+            : string.Equals(author, _session.Username, StringComparison.OrdinalIgnoreCase)
+                ? " на ваше сообщение"
+                : $" на сообщение {author}";
+        ReplyPreviewLabel.Text = $"↩ Ответ{who}: «{Shorten(preview, 70)}»";
         ReplyBar.IsVisible = true;
         MessageEntry.FocusInput();
     }

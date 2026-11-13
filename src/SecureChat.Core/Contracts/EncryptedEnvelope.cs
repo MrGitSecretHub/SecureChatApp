@@ -51,6 +51,9 @@ public sealed class MessagePayload
     /// <summary>Имя вложения исходного сообщения, если отвечают на медиа.</summary>
     public string? ReplyToFileName { get; set; }
 
+    /// <summary>Автор цитируемого сообщения (логин): кому адресован ответ, для подписи цитаты.</summary>
+    public string? ReplyToSender { get; set; }
+
     /// <summary>
     /// Идентификатор альбома: несколько фото, отправленных вместе, собираются
     /// в один блок, как в Telegram. Пусто — обычное одиночное вложение.
