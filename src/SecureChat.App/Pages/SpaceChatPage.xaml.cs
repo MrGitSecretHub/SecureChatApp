@@ -290,6 +290,7 @@ public partial class SpaceChatPage : ContentPage
 
             RefreshDateLabels();
             RefreshMentionJump();
+            ApplyChannelAuthorGrouping();
             if (AppServices.Get<AppSession>().LinkPreviewEnabled)
             {
                 _ = EnsureSpacePreviewsAsync(_messages.ToList());
@@ -561,6 +562,27 @@ public partial class SpaceChatPage : ContentPage
     // ================================================================
     // Даты и превью ссылок в ленте пространства
     // ================================================================
+
+    /// <summary>
+    /// В канале строка «Название канала через @админ» показывается один раз на
+    /// серию постов одного автора — как в Telegram. С подписями выключенными
+    /// подпись «Название канала» тоже только на первой серии.
+    /// </summary>
+    private void ApplyChannelAuthorGrouping()
+    {
+        if (_spaceType != SpaceTypes.Channel)
+        {
+            return;
+        }
+
+        string? previousAuthor = null;
+        foreach (var item in _messages)
+        {
+            var author = _signMessages ? item.Sender : _spaceName;
+            item.ShowAuthor = !string.Equals(previousAuthor, author, StringComparison.Ordinal);
+            previousAuthor = author;
+        }
+    }
 
     /// <summary>Пересчитывает пилюли дат: у первого сообщения ленты и при смене дня.</summary>
     private void RefreshDateLabels()

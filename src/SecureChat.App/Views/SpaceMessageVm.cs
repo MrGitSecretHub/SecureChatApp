@@ -489,8 +489,9 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     public bool ShowAvatar => !_isChannel && !IsMine;
 
     /// <summary>Показывать строку автора: в канале — всегда (это «Название канала
-    /// через @админ»), в группе — только у чужих сообщений.</summary>
-    public bool ShowAuthor => _isChannel || !IsMine;
+    /// через @админ»), в группе — только у чужих сообщений. В канале без подписей
+    /// страница сама оставляет подпись только у первого поста серии.</summary>
+    public bool ShowAuthor { get; set; }
 
     /// <summary>Это сообщение канала (а не группы): автор — сам канал.</summary>
     public bool IsChannelPost => _isChannel;
@@ -627,6 +628,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
                 .ToLocalTime()
                 .ToString("HH:mm"),
             AuthorText = source.SenderUsername,
+            ShowAuthor = !mine,
             BubbleStyle = (Style)Application.Current!.Resources[mine ? "MessageBubbleMe" : "MessageBubbleThem"],
             TextStyle = (Style)Application.Current!.Resources[mine ? "MessageTextMe" : "MessageTextThem"],
             MetaColor = mine ? Color.FromArgb("#BFDBFE") : Color.FromArgb("#94A3B8")
