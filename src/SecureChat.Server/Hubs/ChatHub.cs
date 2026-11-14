@@ -867,7 +867,8 @@ public sealed class ChatHub : Hub
             space.Id,
             request.Name.Trim(),
             request.Description?.Trim() ?? string.Empty,
-            request.IsPublic);
+            request.IsPublic,
+            request.SignMessages);
 
         return await _spaces.GetAsync(space.Id, userId);
     }

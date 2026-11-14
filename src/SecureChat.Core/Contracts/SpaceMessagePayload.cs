@@ -43,6 +43,9 @@ public sealed class SpaceMessagePayload
     /// а собираются в ветку обсуждения под постом.
     /// </summary>
     public string? CommentToMessageId { get; set; }
+
+    /// <summary>Тихий пост: без уведомлений и звука у подписчиков канала.</summary>
+    public bool Silent { get; set; }
 }
 
 /// <summary>Разбор упоминаний @username внутри текста сообщения пространства.</summary>

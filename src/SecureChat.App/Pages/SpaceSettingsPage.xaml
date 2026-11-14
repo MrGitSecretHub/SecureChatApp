@@ -66,6 +66,22 @@
                                 VerticalOptions="Center" />
                     </Grid>
 
+                    <!-- Подписи постов: только для каналов -->
+                    <Grid x:Name="SignRow"
+                          ColumnDefinitions="*,Auto"
+                          ColumnSpacing="10"
+                          IsVisible="False">
+                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                            <Label Text="Подписи постов" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="Показывать, кто из администраторов опубликовал пост («название канала через @логин»)"
+                                   Style="{DynamicResource Caption}" />
+                        </VerticalStackLayout>
+                        <Switch x:Name="SignSwitch"
+                                Grid.Column="1"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center" />
+                    </Grid>
+
                     <Button Text="Сохранить"
                             Style="{DynamicResource PrimaryButton}"
                             Clicked="OnSaveClicked" />

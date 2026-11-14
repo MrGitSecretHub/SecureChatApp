@@ -108,6 +108,7 @@ public sealed class SpaceMentionNotifier
             var body = $"{message.SenderUsername} {what}: {preview}";
 
             var viaSystem = false;
+            var silentPost = payload!.Silent;
             if (DeviceInfo.Platform == DevicePlatform.Android && !AppLifecycle.IsForeground)
             {
                 // Прямо в чат автора упоминания — это ближайшая точка ответа.
@@ -116,10 +117,11 @@ public sealed class SpaceMentionNotifier
                     body,
                     message.SenderUsername,
                     1,
-                    silent: !_session.SoundsEnabled);
+                    silent: !_session.SoundsEnabled || silentPost);
             }
 
-            if (!viaSystem && _session.SoundsEnabled)
+            // Тихий пост канала: уведомление можно показать, но без звука.
+            if (!viaSystem && _session.SoundsEnabled && !silentPost)
             {
                 _sounds.PlayNotification();
             }

@@ -49,7 +49,8 @@ public sealed class SpaceRepository
                 Description TEXT NOT NULL DEFAULT '',
                 IsPublic    INTEGER NOT NULL DEFAULT 0,
                 OwnerId     TEXT NOT NULL,
-                CreatedAt   TEXT NOT NULL
+                CreatedAt   TEXT NOT NULL,
+                SignMessages INTEGER NOT NULL DEFAULT 0
             );
 
             CREATE TABLE IF NOT EXISTS SpaceMembers (
@@ -110,6 +111,7 @@ public sealed class SpaceRepository
         await command.ExecuteNonQueryAsync(cancellationToken);
         await EnsureMessageColumnsAsync(connection, cancellationToken);
         await EnsureMemberColumnsAsync(connection, cancellationToken);
+        await EnsureSpaceColumnsAsync(connection, cancellationToken);
         _logger.LogInformation("Хранилище пространств готово");
     }
 
@@ -149,6 +151,28 @@ public sealed class SpaceRepository
             await using var alter = connection.CreateCommand();
             alter.CommandText =
                 $"ALTER TABLE SpaceMessages ADD COLUMN {column.Name} {column.Definition};";
+            await alter.ExecuteNonQueryAsync(cancellationToken);
+        }
+    }
+
+    /// <summary>Добавляет колонку подписей постов в уже созданную таблицу Spaces.</summary>
+    private static async Task EnsureSpaceColumnsAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using var info = connection.CreateCommand();
+        info.CommandText = "PRAGMA table_info(Spaces);";
+        await using var reader = await info.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            existing.Add(reader.GetString(1));
+        }
+
+        if (!existing.Contains("SignMessages"))
+        {
+            await using var alter = connection.CreateCommand();
+            alter.CommandText = "ALTER TABLE Spaces ADD COLUMN SignMessages INTEGER NOT NULL DEFAULT 0;";
             await alter.ExecuteNonQueryAsync(cancellationToken);
         }
     }
@@ -313,7 +337,8 @@ public sealed class SpaceRepository
                    COALESCE(m.Role, ''), COALESCE(m.CanPost, 0),
                    (SELECT COUNT(*) FROM SpaceMembers sm WHERE sm.SpaceId = s.Id),
                    (SELECT COUNT(*) FROM Topics t WHERE t.SpaceId = s.Id),
-                   (SELECT Username FROM Users WHERE Users.Id = s.OwnerId)
+                   (SELECT Username FROM Users WHERE Users.Id = s.OwnerId),
+                   s.SignMessages
             FROM Spaces s
             LEFT JOIN SpaceMembers m ON m.SpaceId = s.Id AND m.UserId = $viewerId
             WHERE s.Id = $spaceId
@@ -343,7 +368,8 @@ public sealed class SpaceRepository
             MyRole = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
             CanPost = !reader.IsDBNull(7) && reader.GetInt64(7) == 1,
             MemberCount = reader.GetInt32(8),
-            TopicCount = reader.GetInt32(9)
+            TopicCount = reader.GetInt32(9),
+            SignMessages = reader.GetInt64(11) == 1
         };
     }
 
@@ -363,7 +389,8 @@ public sealed class SpaceRepository
                    (SELECT COALESCE(MAX(SentAtUnixMs), 0) FROM SpaceMessages sm WHERE sm.SpaceId = s.Id),
                    (SELECT COALESCE(Text, '') FROM SpaceMessages sm
                        WHERE sm.SpaceId = s.Id ORDER BY SentAtUnixMs DESC LIMIT 1),
-                   (SELECT Username FROM Users WHERE Users.Id = s.OwnerId)
+                   (SELECT Username FROM Users WHERE Users.Id = s.OwnerId),
+                   s.SignMessages
             FROM Spaces s
             LEFT JOIN SpaceMembers m ON m.SpaceId = s.Id AND m.UserId = $userId
             WHERE m.UserId IS NOT NULL OR s.IsPublic = 1
@@ -389,7 +416,8 @@ public sealed class SpaceRepository
                 TopicCount = reader.GetInt32(9),
                 LastMessageAtUnixMs = reader.GetInt64(10),
                 LastMessageText = reader.IsDBNull(11) ? string.Empty : reader.GetString(11),
-                OwnerUsername = reader.IsDBNull(12) ? reader.GetString(5) : reader.GetString(12)
+                OwnerUsername = reader.IsDBNull(12) ? reader.GetString(5) : reader.GetString(12),
+                SignMessages = reader.GetInt64(13) == 1
             });
         }
 
@@ -536,6 +564,7 @@ public sealed class SpaceRepository
         string name,
         string description,
         bool? isPublic = null,
+        bool? signMessages = null,
         CancellationToken cancellationToken = default)
     {
         await _writeLock.WaitAsync(cancellationToken);
@@ -549,7 +578,8 @@ public sealed class SpaceRepository
                 UPDATE Spaces
                 SET Name = $name,
                     Description = $description,
-                    IsPublic = COALESCE($isPublic, IsPublic)
+                    IsPublic = COALESCE($isPublic, IsPublic),
+                    SignMessages = COALESCE($signMessages, SignMessages)
                 WHERE Id = $spaceId;
                 """;
             command.Parameters.AddWithValue("$name", name);
@@ -557,6 +587,9 @@ public sealed class SpaceRepository
             command.Parameters.AddWithValue(
                 "$isPublic",
                 isPublic.HasValue ? (isPublic.Value ? 1 : 0) : DBNull.Value);
+            command.Parameters.AddWithValue(
+                "$signMessages",
+                signMessages.HasValue ? (signMessages.Value ? 1 : 0) : DBNull.Value);
             command.Parameters.AddWithValue("$spaceId", spaceId);
 
             return await command.ExecuteNonQueryAsync(cancellationToken) > 0;

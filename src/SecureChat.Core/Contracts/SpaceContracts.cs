@@ -35,6 +35,9 @@ public sealed class UpdateSpaceRequest
 
     /// <summary>Публичность: null — не менять, true/false — задать.</summary>
     public bool? IsPublic { get; set; }
+
+    /// <summary>Подписывать посты канала именем автора («через @админ»): null — не менять.</summary>
+    public bool? SignMessages { get; set; }
 }
 
 public sealed class SpaceDto
@@ -50,6 +53,7 @@ public sealed class SpaceDto
     public bool CanPost { get; set; } = true;
     public int MemberCount { get; set; }
     public int TopicCount { get; set; }
+    public bool SignMessages { get; set; }
     public long LastMessageAtUnixMs { get; set; }
     public string LastMessageText { get; set; } = string.Empty;
 }

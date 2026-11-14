@@ -230,7 +230,7 @@
                                            TextColor="{DynamicResource TextPrimary}"
                                            LineBreakMode="TailTruncation"
                                            MaxLines="1" />
-                                    <Label Text="{Binding Sender}"
+                                    <Label Text="{Binding AuthorText}"
                                            FontSize="9"
                                            FontAttributes="Bold"
                                            TextColor="{Binding SenderNameColor}"
@@ -338,7 +338,7 @@
                                        Margin="0,0,0,2"
                                        HorizontalOptions="Start" />
 
-                                <Label Text="{Binding Sender}"
+                                <Label Text="{Binding AuthorText}"
                                        IsVisible="{Binding ShowAvatar}"
                                        FontSize="12"
                                        FontAttributes="Bold"
@@ -896,6 +896,14 @@
                                 VerticalOptions="End"
                                 Clicked="OnEmojiButtonClicked"
                                 ToolTipProperties.Text="Эмодзи" />
+                        <Button x:Name="SilentButton"
+                                Text="🔕"
+                                Style="{DynamicResource IconButton}"
+                                VerticalOptions="End"
+                                IsVisible="False"
+                                BackgroundColor="Transparent"
+                                Clicked="OnSilentClicked"
+                                ToolTipProperties.Text="Тихий пост — следующий пост придёт без уведомлений у подписчиков" />
                     </HorizontalStackLayout>
                     <views:MentionEntryView Grid.Column="1"
                                             x:Name="MessageEntry"

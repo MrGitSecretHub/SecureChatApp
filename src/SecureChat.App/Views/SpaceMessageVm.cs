@@ -60,7 +60,13 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     /// <summary>Тема форума, к которой относится сообщение (null — без темы).</summary>
     public string? TopicId { get; init; }
     public required string SenderId { get; init; }
-    public required string Sender { get; init; }
+    public required string Sender { get; set; }
+
+    /// <summary>
+    /// Автор как он показан в ленте: в канале — название канала, а с подписями —
+    /// «Канал через @админ». В группах совпадает с Sender.
+    /// </summary>
+    public string AuthorText { get; set; } = string.Empty;
     public bool IsMine { get; init; }
     public string Kind { get; init; } = "text";
     public SpaceMediaAttachment? Media { get; init; }
@@ -613,6 +619,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             TimeText = DateTimeOffset.FromUnixTimeMilliseconds(source.SentAtUnixMs)
                 .ToLocalTime()
                 .ToString("HH:mm"),
+            AuthorText = source.SenderUsername,
             BubbleStyle = (Style)Application.Current!.Resources[mine ? "MessageBubbleMe" : "MessageBubbleThem"],
             TextStyle = (Style)Application.Current!.Resources[mine ? "MessageTextMe" : "MessageTextThem"],
             MetaColor = mine ? Color.FromArgb("#BFDBFE") : Color.FromArgb("#94A3B8")

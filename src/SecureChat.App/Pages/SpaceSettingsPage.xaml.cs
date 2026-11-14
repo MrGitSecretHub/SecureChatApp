@@ -74,6 +74,8 @@ public partial class SpaceSettingsPage : ContentPage
 
                 PublicRow.IsVisible = isAdmin;
                 PublicSwitch.IsToggled = _space.IsPublic;
+                SignRow.IsVisible = isAdmin && _spaceType == SpaceTypes.Channel;
+                SignSwitch.IsToggled = _space.SignMessages;
                 DeleteButton.IsVisible = _space.MyRole == SpaceRoles.Owner;
             }
 
@@ -120,7 +122,10 @@ public partial class SpaceSettingsPage : ContentPage
                 _spaceId,
                 name,
                 DescriptionEditor.Text ?? string.Empty,
-                isPublic: canEdit ? PublicSwitch.IsToggled : null);
+                isPublic: canEdit ? PublicSwitch.IsToggled : null,
+                signMessages: canEdit && _spaceType == SpaceTypes.Channel
+                    ? SignSwitch.IsToggled
+                    : null);
             if (updated is not null)
             {
                 await DisplayAlert("Готово", "Настройки пространства сохранены.", "OK");

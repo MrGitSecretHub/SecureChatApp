@@ -25,7 +25,10 @@ public partial class SpaceChatPage : ContentPage
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<SpaceMessageVm> _messages = new();
     private readonly string _spaceId;
+    private readonly string _spaceName;
     private readonly string _spaceType;
+    private bool _signMessages;
+    private bool _silentPosting;
     private string? _topicId;
     private string? _topicTitle;
     private SpaceMessageVm? _pinnedMessage;
@@ -96,6 +99,7 @@ public partial class SpaceChatPage : ContentPage
     {
         InitializeComponent();
         _spaceId = spaceId;
+        _spaceName = name;
         _spaceType = type;
         _canPost = canPost;
 
@@ -233,6 +237,10 @@ public partial class SpaceChatPage : ContentPage
                 _spaceId,
                 members.Select(member => member.Username));
 
+            // Режимы канала (подписи «через @админ») берём из описания пространства.
+            _signMessages = (await _spaces.ListAsync())
+                .FirstOrDefault(s => s.Id == _spaceId)?.SignMessages == true;
+
             // Публичное пространство после вступления: ключа может ещё не быть —
             // тогда лента не читается, показываем баннер ожидания.
             if (await _spaces.GetSpaceKeyAsync(_spaceId) is null)
@@ -301,6 +309,7 @@ public partial class SpaceChatPage : ContentPage
             // Канал только для чтения — скрываем композер и показываем баннер.
             Composer.IsVisible = _canPost;
             ReadOnlyBanner.IsVisible = !_canPost;
+            SilentButton.IsVisible = _spaceType == SpaceTypes.Channel && _canPost;
 
             SpaceInfoLabel.Text = _topicTitle is null
                 ? $"{members.Count} участников"
@@ -324,6 +333,15 @@ public partial class SpaceChatPage : ContentPage
             _canModerate,
             isChannel: _spaceType == SpaceTypes.Channel,
             myUsername: AppServices.Get<AppSession>().User?.Username);
+
+        // Автор ленты канала — сам канал; с подписями — «канал через @админ».
+        if (_spaceType == SpaceTypes.Channel)
+        {
+            vm.AuthorText = _signMessages
+                ? $"{_spaceName} через @{vm.Sender}"
+                : _spaceName;
+        }
+
         vm.MentionTapped += OnMessageMentionTapped;
         vm.LinkTapped += OnMessageLinkTapped;
         return vm;
@@ -460,11 +478,15 @@ public partial class SpaceChatPage : ContentPage
                 ReplyToMessageId = replyTarget?.Id,
                 ReplyToText = replyTarget?.ReplyToText,
                 ReplyToSender = replyTarget?.Sender,
+                Silent = _silentPosting,
                 Mentions = SpaceMentions.ParseForSend(
                     text,
                     _members.Select(member => member.Username),
                     allowAll: _canModerate)
             };
+
+            _silentPosting = false;
+            ResetSilentButton();
 
             var sent = await _spaces.SendPayloadAsync(_spaceId, _topicId, payload);
 
@@ -643,6 +665,26 @@ public partial class SpaceChatPage : ContentPage
     // Чипы скрытых markdown-целей и карточки превью: три фиксированных слота.
 
     private void OnSpaceChip0Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 0, chip: true);
+
+    /// <summary>Режим тихой публикации для следующего поста канала.</summary>
+    private void OnSilentClicked(object? sender, EventArgs e)
+    {
+        _silentPosting = !_silentPosting;
+        ResetSilentButton();
+    }
+
+    private void ResetSilentButton()
+    {
+        SilentButton.BackgroundColor = _silentPosting
+            ? (Color)Application.Current!.Resources["Accent"]
+            : Colors.Transparent;
+        SilentButton.TextColor = _silentPosting
+            ? (Color)Application.Current!.Resources["AccentText"]
+            : (Color)Application.Current!.Resources["TextMuted"];
+        ToolTipProperties.SetText(SilentButton, _silentPosting
+            ? "Тихий пост включён — следующий пост придёт без уведомлений"
+            : "Тихий пост — следующий пост придёт без уведомлений у подписчиков");
+    }
     private void OnSpaceChip1Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 1, chip: true);
     private void OnSpaceChip2Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 2, chip: true);
     private void OnSpacePreview0Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 0, chip: false);
@@ -1270,8 +1312,12 @@ public partial class SpaceChatPage : ContentPage
                 ReplyToMessageId = _replyingTo?.Id,
                 ReplyToText = _replyingTo?.ReplyToText,
                 ReplyToSender = _replyingTo?.Sender,
+                Silent = _silentPosting,
                 Mentions = SpaceMentions.Parse(glyph, _members.Select(member => member.Username))
             };
+
+            _silentPosting = false;
+            ResetSilentButton();
 
             await _spaces.SendPayloadAsync(_spaceId, _topicId, payload);
         }

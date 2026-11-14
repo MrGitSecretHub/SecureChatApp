@@ -619,12 +619,13 @@ public sealed class SpaceService
         return await connection.InvokeAsync<bool>("DeleteSpace", spaceId, cancellationToken);
     }
 
-    /// <summary>Изменяет название, описание и публичность пространства.</summary>
+    /// <summary>Изменяет название, описание, публичность и режимы пространства.</summary>
     public async Task<SpaceDto?> UpdateAsync(
         string spaceId,
         string name,
         string description,
         bool? isPublic = null,
+        bool? signMessages = null,
         CancellationToken cancellationToken = default)
     {
         var connection = await GetConnectionAsync();
@@ -638,7 +639,8 @@ public sealed class SpaceService
             SpaceId = spaceId,
             Name = name,
             Description = description,
-            IsPublic = isPublic
+            IsPublic = isPublic,
+            SignMessages = signMessages
         };
 
         return await connection.InvokeAsync<SpaceDto?>("UpdateSpace", request, cancellationToken);
