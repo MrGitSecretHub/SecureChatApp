@@ -204,15 +204,121 @@ public partial class ChatView : ContentView
         EmojiTabContent.IsVisible = tab == "Emoji";
         StickerTabContent.IsVisible = tab == "Stickers";
         GifTabContent.IsVisible = tab == "Gifs";
+        PacksTabContent.IsVisible = tab == "Packs";
 
         StyleTabButton(EmojiTabButton, tab == "Emoji");
         StyleTabButton(StickerTabButton, tab == "Stickers");
         StyleTabButton(GifTabButton, tab == "Gifs");
+        StyleTabButton(PacksTabButton, tab == "Packs");
 
         if (tab == "Gifs")
         {
             // GIF собираются из уже загруженной истории — быстрее успеть показать.
             _ = RefreshGifPanelAsync();
+        }
+        else if (tab == "Packs")
+        {
+            _ = PacksTabContent.ReloadAsync();
+        }
+    }
+
+    /// <summary>Импорт своих GIF или картинок-стикеров в локальный пак.</summary>
+    private async void OnCustomPackImportRequested(string packKind)
+    {
+        try
+        {
+            var files = (await FilePicker.Default.PickMultipleAsync(
+                new PickOptions
+                {
+                    PickerTitle = packKind == CustomPackService.GifPackKind
+                        ? "Выберите свои GIF"
+                        : "Выберите свои стикеры (PNG, WebP, JPG)",
+                    FileTypes = FilePickerFileType.Images
+                })).ToList();
+
+            if (files.Count == 0)
+            {
+                return;
+            }
+
+            var service = AppServices.Get<CustomPackService>();
+            var imported = 0;
+            foreach (var file in files)
+            {
+                try
+                {
+                    await using var stream = await file.OpenReadAsync();
+                    using var buffer = new MemoryStream();
+                    await stream.CopyToAsync(buffer);
+                    var data = buffer.ToArray();
+                    if (data.Length == 0 || data.Length > CustomPackService.MaxItemBytes)
+                    {
+                        continue;
+                    }
+
+                    var contentType = string.IsNullOrWhiteSpace(file.ContentType)
+                        ? "application/octet-stream"
+                        : file.ContentType;
+                    await service.ImportAsync(
+                        packKind,
+                        CustomPackService.DefaultPackName(packKind),
+                        [(file.FileName ?? "file", contentType, data)]);
+                    imported++;
+                }
+                catch (Exception ex)
+                {
+                    ShowHint($"Не удалось импортировать {file.FileName}: {ex.Message}", isError: true);
+                }
+            }
+
+            if (imported > 0)
+            {
+                await PacksTabContent.ReloadAsync();
+                ShowHint($"Импортировано файлов: {imported}", isError: false);
+            }
+        }
+        catch
+        {
+            // Отмена выбора — не ошибка.
+        }
+    }
+
+    /// <summary>Файл из своего пака: отправляем как шифрованное вложение.</summary>
+    private async void OnCustomPackItemPicked(CustomPackPickerView.PackItem item)
+    {
+        var user = _username;
+        if (user is null || _sendingAttachment || item.Bytes is not { Length: > 0 })
+        {
+            return;
+        }
+
+        _sendingAttachment = true;
+        try
+        {
+            MediaPanel.IsVisible = false;
+
+            var reply = _replyingTo;
+            _replyingTo = null;
+            ReplyBar.IsVisible = false;
+
+            await _chatManager.SendMediaAsync(
+                user,
+                item.FileName,
+                item.ContentType,
+                item.Bytes,
+                replyToMessageId: reply?.Id,
+                replyToText: reply?.Text,
+                replyToFileName: reply?.FileName,
+                replyToSender: reply?.ReplyAuthorName);
+            ScrollToBottom();
+        }
+        catch (Exception ex)
+        {
+            ShowHint($"Не удалось отправить файл из пака: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _sendingAttachment = false;
         }
     }
 

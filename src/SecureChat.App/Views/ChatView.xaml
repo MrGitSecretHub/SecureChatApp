@@ -1205,7 +1205,7 @@
                             <RoundRectangle CornerRadius="12" />
                         </Border.StrokeShape>
                         <VerticalStackLayout Spacing="4">
-                            <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="2" HorizontalOptions="Start">
+                            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="2" HorizontalOptions="Start">
                                 <Button x:Name="EmojiTabButton"
                                         Grid.Column="0"
                                         Text="😊 Эмодзи"
@@ -1230,6 +1230,14 @@
                                         Style="{DynamicResource GhostButton}"
                                         FontSize="13"
                                         Padding="10,4" />
+                                <Button x:Name="PacksTabButton"
+                                        Grid.Column="3"
+                                        Text="🎨 Свои"
+                                        Clicked="OnPanelTabClicked"
+                                        CommandParameter="Packs"
+                                        Style="{DynamicResource GhostButton}"
+                                        FontSize="13"
+                                        Padding="10,4" />
                             </Grid>
                             <views:EmojiPickerView x:Name="EmojiTabContent"
                                                    EmojiPicked="OnEmojiPicked" />
@@ -1239,6 +1247,10 @@
                             <views:GifPickerView x:Name="GifTabContent"
                                                  IsVisible="False"
                                                  GifPicked="OnGifPicked" />
+                            <views:CustomPackPickerView x:Name="PacksTabContent"
+                                                       IsVisible="False"
+                                                       ImportRequested="OnCustomPackImportRequested"
+                                                       ItemPicked="OnCustomPackItemPicked" />
                         </VerticalStackLayout>
                     </Border>
 

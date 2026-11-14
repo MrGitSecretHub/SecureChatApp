@@ -806,6 +806,10 @@
                 <views:GifPickerView x:Name="GifPicker"
                                      IsVisible="False"
                                      GifPicked="OnGifPicked" />
+                <views:CustomPackPickerView x:Name="CustomPackPicker"
+                                             IsVisible="False"
+                                             ImportRequested="OnCustomPackImportRequested"
+                                             ItemPicked="OnCustomPackItemPicked" />
 
                 <!-- Очередь отправки вложений: прогресс и отмена -->
                 <Border x:Name="SendQueuePanel"
@@ -896,6 +900,12 @@
                                 VerticalOptions="End"
                                 Clicked="OnEmojiButtonClicked"
                                 ToolTipProperties.Text="Эмодзи" />
+                        <Button x:Name="CustomPackButton"
+                                Text="🎨"
+                                Style="{DynamicResource IconButton}"
+                                VerticalOptions="End"
+                                Clicked="OnCustomPackButtonClicked"
+                                ToolTipProperties.Text="Свои GIF и стикеры" />
                         <Button x:Name="SilentButton"
                                 Text="🔕"
                                 Style="{DynamicResource IconButton}"

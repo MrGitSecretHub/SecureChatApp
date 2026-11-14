@@ -1307,9 +1307,119 @@ public partial class SpaceChatPage : ContentPage
         }
     }
 
-    /// <summary>Эмодзи из панели — вставить в позицию курсора поля ввода.</summary>
-    private void OnEmojiPicked(string emoji)
+    /// <summary>Панель своих пакетов (импорт своих GIF и стикеров).</summary>
+    private async void OnCustomPackButtonClicked(object sender, EventArgs e)
     {
+        AttachMenuPanel.IsVisible = false;
+        EmojiPicker.IsVisible = false;
+        StickerPicker.IsVisible = false;
+        GifPicker.IsVisible = false;
+
+        CustomPackPicker.IsVisible = !CustomPackPicker.IsVisible;
+        if (CustomPackPicker.IsVisible)
+        {
+            await CustomPackPicker.ReloadAsync();
+            MessageEntry.FocusInput();
+        }
+    }
+
+    /// <summary>Импорт своих GIF или картинок-стикеров в локальный пак.</summary>
+    private async void OnCustomPackImportRequested(string packKind)
+    {
+        try
+        {
+            var files = (await FilePicker.Default.PickMultipleAsync(
+                new PickOptions
+                {
+                    PickerTitle = packKind == CustomPackService.GifPackKind
+                        ? "Выберите свои GIF"
+                        : "Выберите свои стикеры (PNG, WebP, JPG)",
+                    FileTypes = FilePickerFileType.Images
+                })).ToList();
+
+            if (files.Count == 0)
+            {
+                return;
+            }
+
+            var service = AppServices.Get<CustomPackService>();
+            var imported = 0;
+            foreach (var file in files)
+            {
+                try
+                {
+                    await using var stream = await file.OpenReadAsync();
+                    using var buffer = new MemoryStream();
+                    await stream.CopyToAsync(buffer);
+                    var data = buffer.ToArray();
+                    if (data.Length == 0 || data.Length > CustomPackService.MaxItemBytes)
+                    {
+                        continue;
+                    }
+
+                    var contentType = string.IsNullOrWhiteSpace(file.ContentType)
+                        ? "application/octet-stream"
+                        : file.ContentType;
+                    await service.ImportAsync(
+                        packKind,
+                        CustomPackService.DefaultPackName(packKind),
+                        [(file.FileName ?? "file", contentType, data)]);
+                    imported++;
+                }
+                catch (Exception ex)
+                {
+                    await DisplayAlert("Ошибка", $"Не удалось импортировать {file.FileName}: {ex.Message}", "OK");
+                }
+            }
+
+            if (imported > 0)
+            {
+                await CustomPackPicker.ReloadAsync();
+                await DisplayAlert("Готово", $"Импортировано файлов: {imported}", "OK");
+            }
+        }
+        catch
+        {
+            // Отмена выбора — не ошибка.
+        }
+    }
+
+    /// <summary>Файл из своего пака: отправляем как шифрованное вложение в пространство.</summary>
+    private async void OnCustomPackItemPicked(CustomPackPickerView.PackItem item)
+    {
+        if (item.Bytes is not { Length: > 0 } || _sendingAttachment)
+        {
+            return;
+        }
+
+        _sendingAttachment = true;
+        try
+        {
+            EmojiPicker.IsVisible = false;
+            StickerPicker.IsVisible = false;
+            GifPicker.IsVisible = false;
+            CustomPackPicker.IsVisible = false;
+
+            await _spaces.SendMediaAsync(
+                _spaceId,
+                _topicId,
+                item.FileName,
+                item.ContentType,
+                item.Bytes,
+                string.Empty);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", $"Не удалось отправить файл из пака: {ex.Message}", "OK");
+        }
+        finally
+        {
+            _sendingAttachment = false;
+        }
+    }
+
+    /// <summary>Эмодзи из панели — вставить в позицию курсора поля ввода.</summary>
+    private void OnEmojiPicked(string emoji)    {
         var text = MessageEntry.Text ?? string.Empty;
         var position = Math.Clamp(MessageEntry.CursorPosition, 0, text.Length);
         MessageEntry.Text = text.Insert(position, emoji);

@@ -102,6 +102,30 @@ public sealed class LocalState
 
     /// <summary>Пространства с отключённым звуком (локальная настройка устройства).</summary>
     public List<string> SpaceMutedIds { get; set; } = new();
+
+    /// <summary>Свои пакеты GIF и стикеров, импортированные на устройство.</summary>
+    public List<CustomPack> CustomPacks { get; set; } = new();
+}
+
+/// <summary>Пользовательский пак: набор файлов (GIF или стикеры) на устройстве.</summary>
+public sealed class CustomPack
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+
+    /// <summary>"gif" — анимированные GIF, "sticker" — картинки-стикеры.</summary>
+    public required string Kind { get; set; }
+
+    public List<CustomPackItem> Items { get; set; } = new();
+}
+
+/// <summary>Файл внутри пользовательского пака.</summary>
+public sealed class CustomPackItem
+{
+    public required string Id { get; set; }
+    public required string FileName { get; set; }
+    public required string ContentType { get; set; }
+    public long Size { get; set; }
 }
 
 /// <summary>Исходящее сообщение, ожидающее отправки после восстановления связи.</summary>
@@ -146,6 +170,13 @@ public sealed class LocalStore
 
     private string MediaPath(string messageId) =>
         Path.Combine(MediaDirectory, messageId + ".bin");
+
+    /// <summary>Каталог файлов пользовательских паков (GIF и стикеры).</summary>
+    private string PackDirectory =>
+        Path.Combine(FileSystem.AppDataDirectory, "securechat.packs", _owner);
+
+    private string PackPath(string itemId) =>
+        Path.Combine(PackDirectory, itemId + ".bin");
 
     /// <summary>Шифротекст вложения, ещё не загруженный на сервер.</summary>
     private string PendingUploadPath(string messageId) =>
@@ -1465,6 +1496,230 @@ public sealed class LocalStore
         var protectedBytes = await File.ReadAllBytesAsync(path);
         return DecryptMedia(messageId, protectedBytes);
     }
+
+    // ================================================================
+    // СВОИ ПАКИ (GIF и стикеры) — файлы на устройстве, шифруются ключом устройства
+    // ================================================================
+
+    /// <summary>Пакеты пользователя (метаданные) в порядке добавления.</summary>
+    public async Task<IReadOnlyList<CustomPack>> GetCustomPacksAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            return _state!.CustomPacks
+                .Select(pack => new CustomPack
+                {
+                    Id = pack.Id,
+                    Name = pack.Name,
+                    Kind = pack.Kind,
+                    Items = pack.Items
+                        .Select(item => new CustomPackItem
+                        {
+                            Id = item.Id,
+                            FileName = item.FileName,
+                            ContentType = item.ContentType,
+                            Size = item.Size
+                        })
+                        .ToList()
+                })
+                .ToList();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Создаёт или обновляет пак.</summary>
+    public async Task<CustomPack> SaveCustomPackAsync(CustomPack pack)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var packs = _state!.CustomPacks;
+            var index = packs.FindIndex(item =>
+                string.Equals(item.Id, pack.Id, StringComparison.Ordinal));
+            var stored = new CustomPack
+            {
+                Id = pack.Id,
+                Name = pack.Name,
+                Kind = pack.Kind,
+                Items = pack.Items
+                    .Select(item => new CustomPackItem
+                    {
+                        Id = item.Id,
+                        FileName = item.FileName,
+                        ContentType = item.ContentType,
+                        Size = item.Size
+                    })
+                    .ToList()
+            };
+
+            if (index >= 0)
+            {
+                packs[index] = stored;
+            }
+            else
+            {
+                packs.Add(stored);
+            }
+
+            await SaveAsync();
+            return stored;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Удаляет пак вместе с файлами.</summary>
+    public async Task<bool> DeleteCustomPackAsync(string packId)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var packs = _state!.CustomPacks;
+            var pack = packs.FirstOrDefault(item =>
+                string.Equals(item.Id, packId, StringComparison.Ordinal));
+            if (pack is null)
+            {
+                return false;
+            }
+
+            foreach (var item in pack.Items)
+            {
+                await DeletePackFileAsync(item.Id);
+            }
+
+            packs.Remove(pack);
+            await SaveAsync();
+            return true;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Сохраняет файл пака на устройстве (шифруется ключом устройства).</summary>
+    public async Task SavePackFileAsync(string itemId, byte[] plaintext)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+
+            var nonce = RandomNumberGenerator.GetBytes(12);
+            var tag = new byte[16];
+            var ciphertext = new byte[plaintext.Length];
+            var aad = PackAad(itemId);
+
+            using (var aes = new AesGcm(_deviceKey, 16))
+            {
+                aes.Encrypt(nonce, plaintext, ciphertext, tag, aad);
+            }
+
+            var result = new byte[MediaMagic.Length + 1 + nonce.Length + tag.Length + ciphertext.Length];
+            var offset = 0;
+            MediaMagic.CopyTo(result, offset);
+            offset += MediaMagic.Length;
+            result[offset++] = MediaVersion;
+            nonce.CopyTo(result, offset);
+            offset += nonce.Length;
+            tag.CopyTo(result, offset);
+            offset += tag.Length;
+            ciphertext.CopyTo(result, offset);
+
+            Directory.CreateDirectory(PackDirectory);
+            var path = PackPath(itemId);
+            var tempPath = path + ".tmp";
+            await File.WriteAllBytesAsync(tempPath, result);
+            File.Move(tempPath, path, overwrite: true);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Читает файл пака (расшифровывает).</summary>
+    public async Task<byte[]?> LoadPackFileAsync(string itemId)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+
+        var path = PackPath(itemId);
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var protectedBytes = await File.ReadAllBytesAsync(path);
+        return DecryptPackFile(itemId, protectedBytes);
+    }
+
+    /// <summary>Расшифровывает файл пака (AAD пака отличается от медиа).</summary>
+    private byte[] DecryptPackFile(string itemId, byte[] protectedBytes)
+    {
+        if (protectedBytes.Length < MediaMagic.Length + 1 + 12 + 16 ||
+            !protectedBytes.AsSpan(0, MediaMagic.Length).SequenceEqual(MediaMagic))
+        {
+            throw new CryptographicException("Повреждённый файл пака.");
+        }
+
+        var offset = MediaMagic.Length;
+        var version = protectedBytes[offset++];
+        if (version != MediaVersion)
+        {
+            throw new CryptographicException("Неподдерживаемая версия файла пака.");
+        }
+
+        var nonce = protectedBytes.AsSpan(offset, 12);
+        offset += 12;
+        var tag = protectedBytes.AsSpan(offset, 16);
+        offset += 16;
+        var ciphertext = protectedBytes.AsSpan(offset);
+
+        var plaintext = new byte[ciphertext.Length];
+        using (var aes = new AesGcm(_deviceKey, 16))
+        {
+            aes.Decrypt(nonce, ciphertext, tag, plaintext, PackAad(itemId));
+        }
+
+        return plaintext;
+    }
+
+    /// <summary>Удаляет файл пака с диска.</summary>
+    public async Task DeletePackFileAsync(string itemId)
+    {
+        try
+        {
+            var path = PackPath(itemId);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Файл уже удалён или занят — не критично.
+        }
+    }
+
+    private static byte[] PackAad(string itemId) =>
+        Encoding.UTF8.GetBytes($"SecureChat.LocalPack.v1|{itemId}");
 
     /// <summary>Сколько места занимает кэш вложений: байты и число файлов.</summary>
     public async Task<(long Bytes, int Files)> GetMediaCacheInfoAsync()
