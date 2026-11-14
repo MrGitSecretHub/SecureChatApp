@@ -101,6 +101,11 @@ public sealed class SpaceRepository
                 PRIMARY KEY (MessageId, UserId, Emoji)
             );
 
+            CREATE TABLE IF NOT EXISTS AppMigrations (
+                Name      TEXT PRIMARY KEY,
+                AppliedAt TEXT NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS IX_SpaceMessages_Space
                 ON SpaceMessages (SpaceId, SentAtUnixMs);
 
@@ -112,6 +117,7 @@ public sealed class SpaceRepository
         await EnsureMessageColumnsAsync(connection, cancellationToken);
         await EnsureMemberColumnsAsync(connection, cancellationToken);
         await EnsureSpaceColumnsAsync(connection, cancellationToken);
+        await EnsureMigrationsAsync(connection, cancellationToken);
         _logger.LogInformation("Хранилище пространств готово");
     }
 
@@ -155,6 +161,48 @@ public sealed class SpaceRepository
         }
     }
 
+    /// <summary>Одноразовые бэкфиллы: выполняются один раз и помечаются в AppMigrations,
+    /// чтобы не затирать пользовательский выбор при каждом запуске.</summary>
+    private static async Task EnsureMigrationsAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        async Task<bool> IsAppliedAsync(string name)
+        {
+            await using var query = connection.CreateCommand();
+            query.CommandText = "SELECT COUNT(*) FROM AppMigrations WHERE Name = $name;";
+            query.Parameters.AddWithValue("$name", name);
+            var result = await query.ExecuteScalarAsync(cancellationToken);
+            return Convert.ToInt64(result) > 0;
+        }
+
+        async Task ApplyAsync(string name, string sql)
+        {
+            await using var update = connection.CreateCommand();
+            update.CommandText = sql;
+            await update.ExecuteNonQueryAsync(cancellationToken);
+
+            await using var mark = connection.CreateCommand();
+            mark.CommandText = """
+                INSERT INTO AppMigrations (Name, AppliedAt)
+                VALUES ($name, $now)
+                ON CONFLICT(Name) DO NOTHING;
+                """;
+            mark.Parameters.AddWithValue("$name", name);
+            mark.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+            await mark.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        // Каналы, созданные до появления подписей постов: включаем их один раз,
+        // чтобы в ленте было видно, кто опубликовал пост.
+        if (!await IsAppliedAsync("channels-sign-messages-default"))
+        {
+            await ApplyAsync(
+                "channels-sign-messages-default",
+                "UPDATE Spaces SET SignMessages = 1 WHERE Type = 'channel' AND SignMessages = 0;");
+        }
+    }
+
     /// <summary>Добавляет колонку подписей постов в уже созданную таблицу Spaces.</summary>
     private static async Task EnsureSpaceColumnsAsync(
         SqliteConnection connection,
@@ -174,6 +222,12 @@ public sealed class SpaceRepository
             await using var alter = connection.CreateCommand();
             alter.CommandText = "ALTER TABLE Spaces ADD COLUMN SignMessages INTEGER NOT NULL DEFAULT 0;";
             await alter.ExecuteNonQueryAsync(cancellationToken);
+
+            // Каналам, созданным до появления подписей, включаем их сразу:
+            // иначе в ленте не видно, кто опубликовал пост.
+            await using var enable = connection.CreateCommand();
+            enable.CommandText = "UPDATE Spaces SET SignMessages = 1 WHERE Type = 'channel';";
+            await enable.ExecuteNonQueryAsync(cancellationToken);
         }
     }
 
@@ -289,8 +343,8 @@ public sealed class SpaceRepository
             await using (var insert = connection.CreateCommand())
             {
                 insert.CommandText = """
-                    INSERT INTO Spaces (Id, Name, Type, Description, IsPublic, OwnerId, CreatedAt)
-                    VALUES ($id, $name, $type, $description, $isPublic, $ownerId, $createdAt);
+                    INSERT INTO Spaces (Id, Name, Type, Description, IsPublic, OwnerId, CreatedAt, SignMessages)
+                    VALUES ($id, $name, $type, $description, $isPublic, $ownerId, $createdAt, $signMessages);
                     """;
                 insert.Parameters.AddWithValue("$id", id);
                 insert.Parameters.AddWithValue("$name", request.Name.Trim());
@@ -299,6 +353,10 @@ public sealed class SpaceRepository
                 insert.Parameters.AddWithValue("$isPublic", request.IsPublic ? 1 : 0);
                 insert.Parameters.AddWithValue("$ownerId", ownerId);
                 insert.Parameters.AddWithValue("$createdAt", now.ToString("O"));
+                // У каналов подписи постов включаем сразу: видно, кто опубликовал.
+                insert.Parameters.AddWithValue(
+                    "$signMessages",
+                    string.Equals(request.Type, SpaceTypes.Channel, StringComparison.OrdinalIgnoreCase) ? 1 : 0);
                 await insert.ExecuteNonQueryAsync(cancellationToken);
             }
 

@@ -486,7 +486,14 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
     public bool HasReply => !string.IsNullOrEmpty(ReplyToText);
     public bool HasReactions => ReactionChips.Count > 0;
-    public bool ShowAvatar => !IsMine;
+    public bool ShowAvatar => !_isChannel && !IsMine;
+
+    /// <summary>Показывать строку автора: в канале — всегда (это «Название канала
+    /// через @админ»), в группе — только у чужих сообщений.</summary>
+    public bool ShowAuthor => _isChannel || !IsMine;
+
+    /// <summary>Это сообщение канала (а не группы): автор — сам канал.</summary>
+    public bool IsChannelPost => _isChannel;
     public string SenderInitial => string.IsNullOrEmpty(Sender) ? "?" : Sender[..1].ToUpperInvariant();
     public string FileName => Media?.FileName ?? string.Empty;
     public string FileSizeText => Media is null ? string.Empty : FormatSize(Media.Size);

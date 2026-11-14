@@ -339,7 +339,7 @@
                                        HorizontalOptions="Start" />
 
                                 <Label Text="{Binding AuthorText}"
-                                       IsVisible="{Binding ShowAvatar}"
+                                       IsVisible="{Binding ShowAuthor}"
                                        FontSize="12"
                                        FontAttributes="Bold"
                                        TextColor="{Binding SenderNameColor}" />
