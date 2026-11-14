@@ -125,6 +125,7 @@ public partial class SettingsPage : ContentPage
                 : "Свой цвет";
         UpdateAccentSelection();
         UpdateThemePreview();
+        UpdateCustomThemeLabel();
 
         BuildNameColorRow();
         UpdateNameColorSelection();
@@ -153,6 +154,104 @@ public partial class SettingsPage : ContentPage
             "Занят" => 2,
             _ => 0
         };
+    }
+
+    /// <summary>Показывает активную свою тему (или подсказку, что своих тем нет).</summary>
+    private void UpdateCustomThemeLabel()
+    {
+        var active = _session.ActiveCustomTheme;
+        CustomThemeLabel.Text = active is null
+            ? "Своих тем пока нет — соберите палитру в конструкторе"
+            : $"Применена своя тема «{active.Name}» (основа: {active.BaseTheme})";
+
+        BuildCustomThemesRow();
+    }
+
+    /// <summary>Список своих тем в настройках: применить или отключить.</summary>
+    private void BuildCustomThemesRow()
+    {
+        CustomThemesLayout.Children.Clear();
+
+        foreach (var theme in _session.CustomThemes)
+        {
+            var isActive = string.Equals(theme.Id, _session.ActiveCustomThemeId, StringComparison.OrdinalIgnoreCase);
+
+            var dots = new HorizontalStackLayout { Spacing = 4 };
+            foreach (var key in new[] { "PageBackground", "Surface", "Accent", "MessageMe", "MessageThem" })
+            {
+                if (!theme.Colors.TryGetValue(key, out var hex) || !ThemeColor.TryParse(hex, out var color))
+                {
+                    continue;
+                }
+
+                dots.Children.Add(new Border
+                {
+                    BackgroundColor = color,
+                    WidthRequest = 16,
+                    HeightRequest = 16,
+                    StrokeThickness = 1,
+                    Stroke = (Color)Application.Current!.Resources["BorderColor"],
+                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 }
+                });
+            }
+
+            var button = new Button
+            {
+                Text = isActive ? $"{theme.Name} ✓" : theme.Name,
+                Style = (Style)Application.Current!.Resources["SecondaryButton"],
+                CommandParameter = theme.Id
+            };
+            button.Clicked += OnCustomThemeClicked;
+
+            CustomThemesLayout.Children.Add(new HorizontalStackLayout
+            {
+                Spacing = 8,
+                Children = { dots, button }
+            });
+        }
+    }
+
+    /// <summary>Применяет свою тему или снимает её (повторное нажатие).</summary>
+    private async void OnCustomThemeClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: string id })
+        {
+            return;
+        }
+
+        var theme = _session.CustomThemes.FirstOrDefault(item => item.Id == id);
+        if (theme is null)
+        {
+            return;
+        }
+
+        if (string.Equals(_session.ActiveCustomThemeId, id, StringComparison.OrdinalIgnoreCase))
+        {
+            // Повторное нажатие — вернуться к встроенной теме.
+            _session.ActiveCustomThemeId = string.Empty;
+        }
+        else
+        {
+            _session.ActiveCustomThemeId = id;
+            if (ThemeCatalog.Resolve(theme.BaseTheme).Name == theme.BaseTheme)
+            {
+                _session.Theme = theme.BaseTheme;
+            }
+        }
+
+        App.ApplyAppearance();
+        UpdateThemePreview();
+        UpdateCustomThemeLabel();
+        _session.NotifyAppearanceChanged();
+        await App.SaveAppearanceAsync();
+    }
+
+    /// <summary>Открывает конструктор оформления: свои цвета и свои темы.</summary>
+    private async void OnThemeEditorClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new ThemeEditorPage());
+        UpdateCustomThemeLabel();
+        UpdateThemePreview();
     }
 
     private async void OnFontScaleChanged(object sender, EventArgs e)
@@ -291,8 +390,16 @@ public partial class SettingsPage : ContentPage
         }
 
         _session.Theme = tile.Name;
+
+        // Встроенная тема снимает свою тему — иначе переключение не было бы видно.
+        if (_session.ActiveCustomThemeId.Length > 0)
+        {
+            _session.ActiveCustomThemeId = string.Empty;
+        }
+
         App.ApplyAppearance();
         UpdateThemeSelection();
+        UpdateCustomThemeLabel();
         _session.NotifyAppearanceChanged();
         await App.SaveAppearanceAsync();
     }
@@ -338,8 +445,11 @@ public partial class SettingsPage : ContentPage
             ? ThemeCatalog.Themes[ThemePicker.SelectedIndex].Name
             : ThemeCatalog.SystemTheme;
 
+        _session.ActiveCustomThemeId = string.Empty;
+
         App.ApplyAppearance();
         UpdateThemePreview();
+        UpdateCustomThemeLabel();
         _session.NotifyAppearanceChanged();
         await App.SaveAppearanceAsync();
     }

@@ -1,5 +1,6 @@
 using SecureChat.App.Pages;
 using SecureChat.App.Services;
+using SecureChat.Core.Serialization;
 #if WINDOWS
 using SecureChat.App.WinUI;
 #endif
@@ -17,6 +18,8 @@ public partial class App : Application
     private const string AutoNightKey = "ui.autoNight";
     private const string WallpaperKey = "ui.wallpaper";
     private const string WallpaperDimKey = "ui.wallpaperDim";
+    private const string CustomThemesKey = "ui.customThemes";
+    private const string ActiveCustomThemeKey = "ui.activeCustomTheme";
 
     /// <summary>Пресеты акцентного цвета в духе Telegram / Discord / Signal.</summary>
     public static readonly (string Name, string Color)[] AccentPresets =
@@ -125,7 +128,13 @@ public partial class App : Application
     /// <summary>Применяет оформление: тему, акцентный цвет и масштаб шрифта.
     /// Цвета и размеры подставляются через DynamicResource, поэтому интерфейс
     /// перекрашивается сразу, без перезапуска.</summary>
-    public static void ApplyAppearance()
+    /// <param name="extraOverrides">Дополнительные цвета поверх темы — черновик
+    /// конструктора оформления (живой предпросмотр).</param>
+    /// <param name="baseThemeOverride">Встроенная тема-основа вместо выбранной
+    /// пользователем (предпросмотр своей темы).</param>
+    public static void ApplyAppearance(
+        IReadOnlyDictionary<string, string>? extraOverrides = null,
+        string? baseThemeOverride = null)
     {
         var res = Application.Current?.Resources;
         if (res is null)
@@ -134,7 +143,7 @@ public partial class App : Application
         }
 
         var session = AppServices.Get<AppSession>();
-        var palette = ResolvePalette(EffectiveTheme(session));
+        var palette = ResolvePalette(EffectiveTheme(session, baseThemeOverride));
         session.IsDarkTheme = palette.IsDark;
 
         res["PageBackground"] = palette.PageBackgroundColor;
@@ -160,6 +169,8 @@ public partial class App : Application
         res["OfflineDot"] = palette.TextDisabledColor;
 
         ApplyAccent(res, session.Accent, palette);
+        ApplyCustomTheme(res, session);
+        ApplyColorOverrides(res, extraOverrides);
         ApplyFontScale(res, session.FontScale);
         ApplyDensity(res, session.Density);
         ApplyBubbleShape(res, session.BubbleShape);
@@ -168,10 +179,11 @@ public partial class App : Application
         res["ShowTimestamps"] = session.ShowTimestamps;
         res["SidebarPreviewVisible"] = !session.CompactSidebar;
 
-        // Цвет вашего имени: настройка или акцент темы. Виден в пространствах
-        // (имя автора) — как «Your name color» в Telegram.
+        // Цвет вашего имени: настройка или акцент темы (в том числе переопределённый
+        // в своей теме). Виден в пространствах (имя автора) — как «Your name color»
+        // в Telegram.
         res["SenderNameColor"] = string.IsNullOrWhiteSpace(session.NameColor)
-            ? palette.AccentColor
+            ? (Color)res["Accent"]
             : ParseColor(session.NameColor, palette.Accent);
 
         // Шрифт текста сообщений (стили MessageTextMe/Them читают через
@@ -195,16 +207,19 @@ public partial class App : Application
     /// <summary>Тема с учётом авто-ночного режима: ночью светлая тема
     /// подменяется ночной парой, днём ночная — светлой. «Системная» и
     /// изначально тёмная «Классическая» не трогаются.</summary>
-    private static string EffectiveTheme(AppSession session)
+    /// <param name="baseThemeOverride">Тема-основа вместо выбранной пользователем.</param>
+    private static string EffectiveTheme(AppSession session, string? baseThemeOverride = null)
     {
+        var theme = string.IsNullOrWhiteSpace(baseThemeOverride) ? session.Theme : baseThemeOverride;
+
         if (!session.AutoNightMode ||
-            string.Equals(session.Theme, ThemeCatalog.SystemTheme, StringComparison.OrdinalIgnoreCase))
+            string.Equals(theme, ThemeCatalog.SystemTheme, StringComparison.OrdinalIgnoreCase))
         {
-            return session.Theme;
+            return theme;
         }
 
         var isNight = DateTime.Now.Hour >= 20 || DateTime.Now.Hour < 7;
-        return (session.Theme, isNight) switch
+        return (theme, isNight) switch
         {
             ("Синяя", true) => "Ночная синяя",
             ("Зелёная", true) => "Ночная зелёная",
@@ -212,7 +227,7 @@ public partial class App : Application
             ("Ночная синяя", false) => "Синяя",
             ("Ночная зелёная", false) => "Зелёная",
             ("Ночная фиолетовая", false) => "Фиолетовая",
-            _ => session.Theme
+            _ => theme
         };
     }
 
@@ -355,6 +370,107 @@ public partial class App : Application
     /// <summary>Значение акцента, означающее «использовать акцент темы».</summary>
     public const string UseThemeAccent = "Как в теме";
 
+    /// <summary>Накладывает произвольные цвета (черновик конструктора) поверх
+    /// палитры, акцента и активной своей темы. Используется для живого
+    /// предпросмотра, пока пользователь подбирает цвета.</summary>
+    private static void ApplyColorOverrides(
+        ResourceDictionary res,
+        IReadOnlyDictionary<string, string>? overrides)
+    {
+        if (overrides is null || overrides.Count == 0)
+        {
+            return;
+        }
+
+        var applied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in overrides)
+        {
+            var key = ThemeColorRoles.NormalizeKey(pair.Key);
+            if (key is null || !ThemeColor.TryParse(pair.Value, out var color))
+            {
+                continue;
+            }
+
+            res[key] = color;
+            applied.Add(key);
+        }
+
+        if (applied.Contains("Accent"))
+        {
+            var accent = (Color)res["Accent"];
+            res["AccentSoft"] = accent.WithAlpha(0x22);
+            res["SelectionOverlay"] = accent.WithAlpha(0x33);
+
+            if (!applied.Contains("MessageMe"))
+            {
+                res["MessageMe"] = accent;
+            }
+        }
+
+        // Полупрозрачные варианты статусов следуют за своим цветом.
+        if (applied.Contains("Success"))
+        {
+            res["SuccessSoft"] = ((Color)res["Success"]).WithAlpha(0x22);
+        }
+
+        if (applied.Contains("Danger"))
+        {
+            res["DangerSoft"] = ((Color)res["Danger"]).WithAlpha(0x22);
+        }
+
+        // Цвета наведения — чуть светлее/темнее своей базы.
+        if (applied.Contains("Surface"))
+        {
+            res["SurfaceHover"] = Shift((Color)res["Surface"], 0.10);
+        }
+
+        if (applied.Contains("BorderColor"))
+        {
+            res["BorderHover"] = Shift((Color)res["BorderColor"], 0.14);
+        }
+    }
+
+    /// <summary>Сдвигает цвет к светлому или тёмному — для цвета наведения.</summary>
+    private static Color Shift(Color color, double amount)
+    {
+        var luminance = (color.Red * 0.299) + (color.Green * 0.587) + (color.Blue * 0.114);
+        var toWhite = luminance < 0.5;
+
+        static float Mix(float channel, float target, double amount) =>
+            (float)(channel + ((target - channel) * amount));
+
+        var red = Mix(color.Red, toWhite ? 1f : 0f, amount);
+        var green = Mix(color.Green, toWhite ? 1f : 0f, amount);
+        var blue = Mix(color.Blue, toWhite ? 1f : 0f, amount);
+
+        return Color.FromRgb(red, green, blue);
+    }
+
+    /// <summary>Накладывает цвета активной своей темы поверх палитры и акцента.
+    /// Неизвестные ключи игнорируются — так темы из старых версий не ломают
+    /// оформление.</summary>
+    private static void ApplyCustomTheme(ResourceDictionary res, AppSession session)
+    {
+        // В конструкторе темы показываем «чистую» тему, а сохранённую свою —
+        // только по явному выбору пользователя.
+        if (SuppressCustomTheme)
+        {
+            return;
+        }
+
+        var theme = session.ActiveCustomTheme;
+        if (theme is null)
+        {
+            return;
+        }
+
+        ApplyColorOverrides(res, theme.Colors);
+    }
+
+    /// <summary>Не применять сохранённую свою тему (используется конструктором
+    /// оформления для предпросмотра).</summary>
+    public static bool SuppressCustomTheme { get; set; }
+
     private static void ApplyFontScale(ResourceDictionary res, string scale)
     {
         (double body, double caption, double message, double title, double heading) = scale switch
@@ -417,6 +533,8 @@ public partial class App : Application
             var autoNight = await secrets.GetAsync(AutoNightKey);
             var wallpaper = await secrets.GetAsync(WallpaperKey);
             var wallpaperDim = await secrets.GetAsync(WallpaperDimKey);
+            var customThemes = await secrets.GetAsync(CustomThemesKey);
+            var activeCustomTheme = await secrets.GetAsync(ActiveCustomThemeKey);
 
             if (!string.IsNullOrWhiteSpace(theme))
             {
@@ -459,6 +577,24 @@ public partial class App : Application
                 session.WallpaperDim = wallpaperDim == "1";
             }
 
+            if (!string.IsNullOrWhiteSpace(customThemes))
+            {
+                try
+                {
+                    session.CustomThemes = ChatJson.Deserialize<List<CustomTheme>>(customThemes)
+                        ?? new List<CustomTheme>();
+                }
+                catch
+                {
+                    session.CustomThemes = new List<CustomTheme>();
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(activeCustomTheme))
+            {
+                session.ActiveCustomThemeId = activeCustomTheme;
+            }
+
             ApplyAppearance();
         }
         catch
@@ -484,6 +620,8 @@ public partial class App : Application
             await secrets.SetAsync(AutoNightKey, session.AutoNightMode ? "1" : "0");
             await secrets.SetAsync(WallpaperKey, session.WallpaperPath);
             await secrets.SetAsync(WallpaperDimKey, session.WallpaperDim ? "1" : "0");
+            await secrets.SetAsync(CustomThemesKey, ChatJson.Serialize(session.CustomThemes));
+            await secrets.SetAsync(ActiveCustomThemeKey, session.ActiveCustomThemeId);
         }
         catch
         {

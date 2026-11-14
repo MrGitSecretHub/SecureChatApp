@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Pages.ThemeEditorPage"
+             Title="Конструктор темы">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="14">
+
+            <!-- Превью -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Предпросмотр" Style="{DynamicResource H2}" />
+                    <Grid BackgroundColor="{DynamicResource PageBackground}"
+                          Padding="12"
+                          RowDefinitions="Auto,Auto,Auto"
+                          RowSpacing="8">
+                        <Border Grid.Row="0"
+                                BackgroundColor="{DynamicResource MessageThem}"
+                                Padding="10,6"
+                                HorizontalOptions="Start"
+                                StrokeThickness="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Label Text="Сообщение собеседника"
+                                   TextColor="{DynamicResource MessageThemText}"
+                                   FontSize="13" />
+                        </Border>
+                        <Border Grid.Row="1"
+                                BackgroundColor="{DynamicResource MessageMe}"
+                                Padding="10,6"
+                                HorizontalOptions="End"
+                                StrokeThickness="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Label Text="Ваше сообщение"
+                                   TextColor="{DynamicResource AccentText}"
+                                   FontSize="13" />
+                        </Border>
+                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Label Grid.Column="0"
+                                   Text="Текст на фоне"
+                                   TextColor="{DynamicResource TextPrimary}"
+                                   FontSize="13" />
+                            <Label Grid.Column="1"
+                                   Text="подпись"
+                                   TextColor="{DynamicResource TextMuted}"
+                                   FontSize="11" />
+                        </Grid>
+                    </Grid>
+                    <Label Text="Изменения видны сразу во всём приложении. Сохраните их как свою тему, чтобы вернуться к ним позже."
+                           Style="{DynamicResource Caption}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Цвета -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Цвета" Style="{DynamicResource H2}" />
+                    <VerticalStackLayout x:Name="RolesLayout" Spacing="8" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Действия -->
+            <VerticalStackLayout Spacing="8">
+                <Button x:Name="SaveThemeButton"
+                        Text="Сохранить как свою тему"
+                        Style="{DynamicResource PrimaryButton}"
+                        Clicked="OnSaveThemeClicked" />
+                <Button x:Name="ResetColorsButton"
+                        Text="Сбросить цвета к теме"
+                        Style="{DynamicResource GhostButton}"
+                        Clicked="OnResetColorsClicked" />
+            </VerticalStackLayout>
+
+            <!-- Мои темы -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Мои темы" Style="{DynamicResource H2}" />
+                    <VerticalStackLayout x:Name="MyThemesLayout" Spacing="8" />
+                    <Label x:Name="EmptyThemesLabel"
+                           Text="Сохранённых тем пока нет. Подберите цвета выше и нажмите «Сохранить как свою тему»."
+                           Style="{DynamicResource Caption}"
+                           IsVisible="False" />
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

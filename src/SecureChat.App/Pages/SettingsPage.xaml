@@ -414,6 +414,19 @@
                                 TextColor="{DynamicResource TextPrimary}" />
                     </VerticalStackLayout>
 
+                    <!-- Свои цвета и свои темы -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Своя палитра" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label x:Name="CustomThemeLabel"
+                               Style="{DynamicResource Caption}" />
+                        <VerticalStackLayout x:Name="CustomThemesLayout" Spacing="6" />
+                        <Button x:Name="ThemeEditorButton"
+                                Text="🎨 Конструктор темы"
+                                Style="{DynamicResource GhostButton}"
+                                HorizontalOptions="Start"
+                                Clicked="OnThemeEditorClicked" />
+                    </VerticalStackLayout>
+
                     <!-- Настройки темы -->
                     <Label Text="Настройки темы" Style="{DynamicResource SectionTitle}" Margin="0,10,0,0" />
 

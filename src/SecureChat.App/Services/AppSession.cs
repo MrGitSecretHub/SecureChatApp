@@ -37,6 +37,17 @@ public sealed class AppSession
     /// <summary>Акцентный цвет интерфейса (HEX). Пусто — используется акцент темы.</summary>
     public string Accent { get; set; } = string.Empty;
 
+    /// <summary>Сохранённые пользователем темы (конструктор оформления).</summary>
+    public List<CustomTheme> CustomThemes { get; set; } = new();
+
+    /// <summary>Идентификатор активной своей темы. Пусто — используется встроенная палитра.</summary>
+    public string ActiveCustomThemeId { get; set; } = string.Empty;
+
+    /// <summary>Активная своя тема (по <see cref="ActiveCustomThemeId"/>).</summary>
+    public CustomTheme? ActiveCustomTheme =>
+        CustomThemes.FirstOrDefault(theme =>
+            string.Equals(theme.Id, ActiveCustomThemeId, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>Масштаб шрифта: «Маленький», «Обычный» или «Крупный».</summary>
     public string FontScale { get; set; } = "Обычный";
 
