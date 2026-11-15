@@ -71,6 +71,7 @@ public partial class ThemeEditorPage : ContentPage
         _expandedRole = null;
         ApplyPreview();
         BuildRoles();
+        BuildPalettePresets();
         BuildMyThemes();
         UpdateHeader();
         _savedFingerprint = Fingerprint();
@@ -198,6 +199,107 @@ public partial class ThemeEditorPage : ContentPage
             : $"изменено ролей: {_draft.Count}";
     }
 
+    /// <summary>Строит плитки готовых палитр: образцы цветов и название.</summary>
+    private void BuildPalettePresets()
+    {
+        PalettePresetsLayout.Children.Clear();
+
+        foreach (var palette in ThemePalettePresets.All)
+        {
+            var dots = new HorizontalStackLayout { Spacing = 3 };
+
+            foreach (var key in new[]
+                     {
+                         ThemeColorKeys.PageBackground, ThemeColorKeys.Surface,
+                         ThemeColorKeys.Accent, ThemeColorKeys.MessageMe,
+                         ThemeColorKeys.MessageThem, ThemeColorKeys.TextPrimary
+                     })
+            {
+                if (!palette.Colors.TryGetValue(key, out var hex) ||
+                    !ThemeColor.TryParse(hex, out var color))
+                {
+                    continue;
+                }
+
+                dots.Children.Add(new Border
+                {
+                    BackgroundColor = color,
+                    WidthRequest = 20,
+                    HeightRequest = 20,
+                    StrokeThickness = 1,
+                    Stroke = (Color)Application.Current!.Resources["BorderColor"],
+                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 }
+                });
+            }
+
+            var title = new Label
+            {
+                Text = palette.Name,
+                Style = (Style)Application.Current.Resources["SectionTitle"]
+            };
+
+            var hint = new Label
+            {
+                Text = palette.Description,
+                Style = (Style)Application.Current.Resources["Caption"],
+                TextColor = (Color)Application.Current.Resources["TextMuted"]
+            };
+
+            var paletteName = palette.Name;
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += (_, _) => ApplyPalettePreset(paletteName);
+
+            var card = new Border
+            {
+                BackgroundColor = (Color)Application.Current!.Resources["SurfaceAlt"],
+                Stroke = (Color)Application.Current.Resources["BorderColor"],
+                StrokeThickness = 1,
+                Padding = new Thickness(10, 8),
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 }
+            };
+            card.GestureRecognizers.Add(tap);
+            card.Content = new VerticalStackLayout
+            {
+                Spacing = 6,
+                Children =
+                {
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 8,
+                        Children = { dots, title }
+                    },
+                    hint
+                }
+            };
+
+            PalettePresetsLayout.Children.Add(card);
+        }
+    }
+
+    /// <summary>Применяет готовую палитру: все роли получают её цвета.</summary>
+    private async void ApplyPalettePreset(string name)
+    {
+        if (name.Length == 0)
+        {
+            return;
+        }
+
+        var palette = ThemePalettePresets.All
+            .FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (palette is null)
+        {
+            return;
+        }
+
+        palette.ApplyTo(_draft);
+        ApplyPreview();
+        BuildRoles();
+
+        await DisplayAlert("Палитра применена",
+            $"«{palette.Name}» — цвета применены ко всем ролям. Их можно править по отдельности ниже.",
+            "Ок");
+    }
+
     private View BuildRoleRow(ThemeColorRole role)
     {
         var isChanged = _draft.ContainsKey(role.Key);
@@ -260,33 +362,47 @@ public partial class ThemeEditorPage : ContentPage
         header.Add(hexLabel, 1);
         header.Add(swatch, 2);
 
-        // Раскрываемая часть: палитра, поле HEX и сброс роли.
-        var presets = new Grid
-        {
-            ColumnSpacing = 6,
-            RowSpacing = 6,
-            ColumnDefinitions = BuildColumns(9)
-        };
+        // Раскрываемая часть: палитра по семействам, поле HEX и сброс роли.
+        var swatchPanel = new VerticalStackLayout { Spacing = 8 };
 
-        var presetIndex = 0;
-        foreach (var hex in ThemeColorRoles.Presets)
+        foreach (var family in ThemeColorRoles.SwatchFamilies)
         {
-            var color = Color.FromArgb(hex);
-            var preset = new Button
+            swatchPanel.Children.Add(new Label
             {
-                BackgroundColor = color,
-                WidthRequest = 30,
-                HeightRequest = 30,
-                Padding = 0,
-                BorderWidth = 0,
-                CornerRadius = 15,
-                CommandParameter = $"{role.Key}|{hex}"
+                Text = family.Title,
+                Style = (Style)Application.Current!.Resources["Caption"],
+                Margin = new Thickness(0, 2, 0, 0)
+            });
+
+            var swatches = new Grid
+            {
+                ColumnSpacing = 6,
+                RowSpacing = 6,
+                ColumnDefinitions = BuildColumns(10)
             };
-            preset.Clicked += OnPresetClicked;
-            Grid.SetColumn(preset, presetIndex % 9);
-            Grid.SetRow(preset, presetIndex / 9);
-            presets.Children.Add(preset);
-            presetIndex++;
+
+            var index = 0;
+            foreach (var hex in family.Colors)
+            {
+                var color = Color.FromArgb(hex);
+                var preset = new Button
+                {
+                    BackgroundColor = color,
+                    WidthRequest = 28,
+                    HeightRequest = 28,
+                    Padding = 0,
+                    BorderWidth = 0,
+                    CornerRadius = 14,
+                    CommandParameter = $"{role.Key}|{hex}"
+                };
+                preset.Clicked += OnPresetClicked;
+                Grid.SetColumn(preset, index % 10);
+                Grid.SetRow(preset, index / 10);
+                swatches.Children.Add(preset);
+                index++;
+            }
+
+            swatchPanel.Children.Add(swatches);
         }
 
         var hexEntry = new Entry
@@ -321,7 +437,7 @@ public partial class ThemeEditorPage : ContentPage
             IsVisible = _expandedRole == role.Key,
             Children =
             {
-                presets,
+                swatchPanel,
                 new HorizontalStackLayout
                 {
                     Spacing = 8,

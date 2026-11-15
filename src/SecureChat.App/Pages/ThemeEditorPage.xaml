@@ -169,6 +169,16 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- Готовые палитры -->
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Готовые палитры" Style="{DynamicResource H2}" />
+                    <Label Text="Нажмите на палитру — все цвета темы сразу станут такими. Дальше можно править любой цвет вручную."
+                           Style="{DynamicResource Caption}" />
+                    <VerticalStackLayout x:Name="PalettePresetsLayout" Spacing="8" />
+                </VerticalStackLayout>
+            </Border>
+
             <!-- Цвета -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">

@@ -1,7 +1,6 @@
 using SecureChat.Core.Text;
 
 namespace SecureChat.App.Services;
-
 /// <summary>
 /// Своя тема оформления: набор переопределений цветов поверх встроенной палитры.
 /// Хранится в зашифрованном хранилище устройства (SecretStore).
@@ -59,15 +58,11 @@ public static class ThemeColorRoles
         new(ThemeColorKeys.Warning, "Внимание", "Предупреждения")
     };
 
-    /// <summary>Палитра быстрого выбора (материальные тона + нейтральные).</summary>
-    public static readonly IReadOnlyList<string> Presets = new List<string>
-    {
-        "#FFFFFF", "#F3F4F6", "#E5E7EB", "#D1D5DB", "#9CA3AF", "#6B7280",
-        "#374151", "#1F2937", "#111827", "#000000",
-        "#5865F2", "#3B82F6", "#0EA5E9", "#14B8A6", "#22C55E", "#84CC16",
-        "#EAB308", "#F97316", "#EF4444", "#EC4899", "#8B5CF6", "#A855F7",
-        "#64748B", "#0F766E", "#B45309", "#7F1D1D"
-    };
+    /// <summary>Палитра быстрого выбора — расширенная, по семействам оттенков.</summary>
+    public static IReadOnlyList<ThemeSwatchFamily> SwatchFamilies => ThemeSwatchPresets.Families;
+
+    /// <summary>Палитра быстрого выбора (все образцы подряд).</summary>
+    public static IReadOnlyList<string> Presets => ThemeSwatchPresets.All;
 
     /// <summary>Группы ролей — показываются подзаголовками в списке цветов.</summary>
     public static readonly IReadOnlyList<ThemeColorGroup> Groups = new List<ThemeColorGroup>
