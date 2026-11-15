@@ -1,4 +1,5 @@
 using SecureChat.App.Services;
+using SecureChat.Core.Text;
 
 namespace SecureChat.App.Pages;
 
@@ -23,10 +24,23 @@ public partial class ThemeEditorPage : ContentPage
     /// <summary>Поля ввода HEX по ролям — чтобы «Применить» знал, что введено.</summary>
     private readonly Dictionary<string, Entry> _hexEntries = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Снимок черновика на момент последнего сохранения — для проверки
+    /// несохранённых изменений.</summary>
+    private string _savedFingerprint = string.Empty;
+
     public ThemeEditorPage()
     {
         InitializeComponent();
     }
+
+    /// <summary>Отпечаток черновика: отсортированный список «роль=цвет».</summary>
+    private string Fingerprint() =>
+        string.Join(";", _draft.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => $"{pair.Key}={pair.Value}"));
+
+    /// <summary>Есть ли несохранённые изменения.</summary>
+    private bool HasUnsavedChanges =>
+        !string.Equals(Fingerprint(), _savedFingerprint, StringComparison.Ordinal);
 
     protected override void OnAppearing()
     {
@@ -58,6 +72,20 @@ public partial class ThemeEditorPage : ContentPage
         ApplyPreview();
         BuildRoles();
         BuildMyThemes();
+        UpdateHeader();
+        _savedFingerprint = Fingerprint();
+        UpdateUnsavedHint();
+    }
+
+    /// <summary>Обновляет шапку: как называется редактируемая тема и на чём она
+    /// основана.</summary>
+    private void UpdateHeader()
+    {
+        var theme = _session.CustomThemes.FirstOrDefault(item => item.Id == _editingThemeId);
+        EditorTitleLabel.Text = theme is null ? "Новая тема" : theme.Name;
+        EditorBaseLabel.Text = theme is null
+            ? "Подберите цвета — тема сохранится на этом устройстве"
+            : $"основа: {theme.BaseTheme} · правка сохранённой темы";
     }
 
     protected override void OnDisappearing()
@@ -69,18 +97,59 @@ public partial class ThemeEditorPage : ContentPage
         _session.NotifyAppearanceChanged();
     }
 
-    // ============================== РОЛИ ЦВЕТА ==============================
-
-    /// <summary>Строит строки редактируемых цветов: название, образец и палитра.</summary>
-    private void BuildRoles()
+    /// <summary>Предупреждает о несохранённых цветах при выходе из конструктора.</summary>
+    protected override bool OnBackButtonPressed()
     {
-        RolesLayout.Children.Clear();
-
-        foreach (var role in ThemeColorRoles.All)
+        if (!HasUnsavedChanges)
         {
-            RolesLayout.Children.Add(BuildRoleRow(role));
+            return base.OnBackButtonPressed();
         }
+
+        _ = ConfirmLeaveAsync();
+        return true;
     }
+
+    /// <summary>Кнопка «✕» в шапке — выход с проверкой несохранённых изменений.</summary>
+    private async void OnCloseClicked(object? sender, EventArgs e)
+    {
+        if (HasUnsavedChanges)
+        {
+            await ConfirmLeaveAsync();
+            return;
+        }
+
+        await Navigation.PopAsync();
+    }
+
+    /// <summary>Спрашивает подтверждение выхода и уходит со страницы, если выход
+    /// подтверждён.</summary>
+    private async Task ConfirmLeaveAsync()
+    {
+        var confirmed = await DisplayAlert(
+            "Выйти без сохранения?",
+            "Подобранные цвета не сохранены — они пропадут. Сохранённая тема останется как была.",
+            "Выйти", "Остаться");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        _savedFingerprint = Fingerprint();
+        await Navigation.PopAsync();
+    }
+
+    /// <summary>Показывает подсказку о несохранённых изменениях.</summary>
+    private void UpdateUnsavedHint()
+    {
+        UnsavedHint.Text = HasUnsavedChanges
+            ? "Есть несохранённые изменения — нажмите «Сохранить как свою тему»."
+            : string.Empty;
+
+        UnsavedHint.IsVisible = HasUnsavedChanges;
+    }
+
+    // ============================== РОЛИ ЦВЕТА ==============================
 
     /// <summary>Равные колонки для сетки образцов цвета.</summary>
     private static ColumnDefinitionCollection BuildColumns(int count)
@@ -94,8 +163,46 @@ public partial class ThemeEditorPage : ContentPage
         return columns;
     }
 
+    /// <summary>Строит строки редактируемых цветов: по группам, с названием,
+    /// HEX-значением, образцом и палитрой.</summary>
+    private void BuildRoles()
+    {
+        RolesLayout.Children.Clear();
+
+        foreach (var group in ThemeColorRoles.Groups)
+        {
+            var roles = ThemeColorRoles.All
+                .Where(role => group.Roles.Contains(role.Key, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            if (roles.Count == 0)
+            {
+                continue;
+            }
+
+            RolesLayout.Children.Add(new Label
+            {
+                Text = group.Title,
+                Style = (Style)Application.Current!.Resources["SectionTitle"],
+                Margin = new Thickness(0, 4, 0, 0)
+            });
+
+            foreach (var role in roles)
+            {
+                RolesLayout.Children.Add(BuildRoleRow(role));
+            }
+        }
+
+        ChangedRolesLabel.Text = _draft.Count == 0
+            ? string.Empty
+            : $"изменено ролей: {_draft.Count}";
+    }
+
     private View BuildRoleRow(ThemeColorRole role)
     {
+        var isChanged = _draft.ContainsKey(role.Key);
+        var roleColor = ResolveRoleColor(role.Key);
+
         var title = new Label
         {
             Text = role.Title,
@@ -104,18 +211,32 @@ public partial class ThemeEditorPage : ContentPage
 
         var hint = new Label
         {
-            Text = role.Description,
-            Style = (Style)Application.Current.Resources["Caption"]
+            Text = isChanged ? $"{role.Description} · изменено" : role.Description,
+            Style = (Style)Application.Current.Resources["Caption"],
+            TextColor = isChanged
+                ? (Color)Application.Current.Resources["Accent"]
+                : (Color)Application.Current.Resources["TextMuted"]
+        };
+
+        // HEX текущего цвета — видно, какой именно оттенок стоит.
+        var hexLabel = new Label
+        {
+            Text = ThemeColor.ToHex(roleColor),
+            Style = (Style)Application.Current.Resources["Caption"],
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalTextAlignment = TextAlignment.End
         };
 
         var swatch = new Button
         {
-            BackgroundColor = ResolveRoleColor(role.Key),
+            BackgroundColor = roleColor,
             WidthRequest = 46,
             HeightRequest = 46,
             Padding = 0,
-            BorderWidth = 1,
-            BorderColor = (Color)Application.Current.Resources["BorderColor"],
+            BorderWidth = isChanged ? 2 : 1,
+            BorderColor = isChanged
+                ? (Color)Application.Current.Resources["Accent"]
+                : (Color)Application.Current.Resources["BorderColor"],
             CornerRadius = 8,
             CommandParameter = role.Key
         };
@@ -126,6 +247,7 @@ public partial class ThemeEditorPage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
             },
             ColumnSpacing = 10
@@ -135,7 +257,8 @@ public partial class ThemeEditorPage : ContentPage
             Spacing = 2,
             Children = { title, hint }
         }, 0);
-        header.Add(swatch, 1);
+        header.Add(hexLabel, 1);
+        header.Add(swatch, 2);
 
         // Раскрываемая часть: палитра, поле HEX и сброс роли.
         var presets = new Grid
@@ -296,8 +419,11 @@ public partial class ThemeEditorPage : ContentPage
             ? _session.CustomThemes.FirstOrDefault(item => item.Id == _editingThemeId)?.BaseTheme
             : _session.Theme;
 
+        PreviewBaseLabel.Text = $"основа: {baseTheme}";
+
         App.ApplyAppearance(_draft, baseTheme);
         _session.NotifyAppearanceChanged();
+        UpdateUnsavedHint();
     }
 
     /// <summary>Текущий цвет роли с учётом палитры, акцента и черновика.</summary>
@@ -330,8 +456,10 @@ public partial class ThemeEditorPage : ContentPage
         var name = await DisplayPromptAsync(
             "Название темы",
             "Как назвать вашу тему?",
-            initialValue: defaultName,
-            maxLength: 32);
+            "Сохранить",
+            "Отмена",
+            maxLength: 32,
+            initialValue: defaultName);
 
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -366,7 +494,88 @@ public partial class ThemeEditorPage : ContentPage
         await App.SaveAppearanceAsync();
 
         BuildMyThemes();
+        _savedFingerprint = Fingerprint();
+        UpdateUnsavedHint();
         await DisplayAlert("Тема сохранена", $"«{name}» применена и сохранена на этом устройстве.", "Ок");
+    }
+
+    /// <summary>Копирует текущую палитру в буфер обмена — можно передать её
+    /// сообщением в чате или вставить на другом устройстве.</summary>
+    private async void OnExportThemeClicked(object? sender, EventArgs e)
+    {
+        if (_draft.Count == 0)
+        {
+            await DisplayAlert("Нечего копировать",
+                "Сначала поменяйте хотя бы один цвет в разделе «Цвета».", "Ок");
+            return;
+        }
+
+        var name = _session.CustomThemes.FirstOrDefault(item => item.Id == _editingThemeId)?.Name
+            ?? $"Моя тема {DateTime.Now:dd.MM HH:mm}";
+
+        var transfer = new ThemeTransfer
+        {
+            Name = name,
+            BaseTheme = _session.Theme,
+            Colors = new Dictionary<string, string>(_draft, StringComparer.OrdinalIgnoreCase)
+        };
+
+        try
+        {
+            await Clipboard.Default.SetTextAsync(transfer.ToJson());
+            await DisplayAlert("Тема скопирована",
+                "Текст темы в буфере обмена — вставьте его в чат, чтобы передать другим, или в поле «Вставить тему» на другом устройстве.",
+                "Ок");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Не удалось скопировать", ex.Message, "Ок");
+        }
+    }
+
+    /// <summary>Вставляет тему из буфера обмена.</summary>
+    private async void OnImportThemeClicked(object? sender, EventArgs e)
+    {
+        string text;
+        try
+        {
+            text = await Clipboard.Default.GetTextAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Не удалось прочитать буфер", ex.Message, "Ок");
+            return;
+        }
+
+        var transfer = ThemeTransfer.Parse(text);
+        if (transfer is null)
+        {
+            await DisplayAlert("Это не тема",
+                "В буфере обмена нет текста темы. Скопируйте тему на другом устройстве и попробуйте снова.",
+                "Ок");
+            return;
+        }
+
+        _draft.Clear();
+        foreach (var pair in transfer.Colors)
+        {
+            _draft[pair.Key] = pair.Value;
+        }
+
+        // Основа импортированной темы — та же, на которой её делали.
+        if (ThemeCatalog.Resolve(transfer.BaseTheme).Name == transfer.BaseTheme)
+        {
+            _session.Theme = transfer.BaseTheme;
+        }
+
+        _editingThemeId = string.Empty;
+        ApplyPreview();
+        BuildRoles();
+        BuildMyThemes();
+
+        await DisplayAlert("Тема загружена",
+            $"«{transfer.Name}» загружена в редактор. Нажмите «Сохранить как свою тему», чтобы оставить её на этом устройстве.",
+            "Ок");
     }
 
     private async void OnResetColorsClicked(object? sender, EventArgs e)
@@ -449,6 +658,24 @@ public partial class ThemeEditorPage : ContentPage
         };
         applyButton.Clicked += OnApplyThemeClicked;
 
+        var editButton = new Button
+        {
+            Text = "Править",
+            Style = (Style)Application.Current.Resources["SecondaryButton"],
+            CommandParameter = theme.Id
+        };
+        editButton.Clicked += OnEditThemeClicked;
+
+        var renameButton = new Button
+        {
+            Text = "✎",
+            Style = (Style)Application.Current.Resources["GhostButton"],
+            Padding = new Thickness(8, 0),
+            WidthRequest = 34,
+            CommandParameter = theme.Id
+        };
+        renameButton.Clicked += OnRenameThemeClicked;
+
         var deleteButton = new Button
         {
             Text = "Удалить",
@@ -478,10 +705,71 @@ public partial class ThemeEditorPage : ContentPage
         {
             Spacing = 6,
             VerticalOptions = LayoutOptions.Center,
-            Children = { applyButton, deleteButton }
+            Children = { applyButton, editButton, renameButton, deleteButton }
         }, 1);
 
         return row;
+    }
+
+    /// <summary>Загружает сохранённую тему в редактор для правки.</summary>
+    private void OnEditThemeClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: string id })
+        {
+            return;
+        }
+
+        var theme = _session.CustomThemes.FirstOrDefault(item => item.Id == id);
+        if (theme is null)
+        {
+            return;
+        }
+
+        _editingThemeId = theme.Id;
+        _draft.Clear();
+        foreach (var pair in theme.Colors)
+        {
+            if (ThemeColorRoles.NormalizeKey(pair.Key) is { } key)
+            {
+                _draft[key] = pair.Value;
+            }
+        }
+
+        ApplyPreview();
+        BuildRoles();
+        UpdateHeader();
+    }
+
+    /// <summary>Переименовывает сохранённую тему.</summary>
+    private async void OnRenameThemeClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: string id })
+        {
+            return;
+        }
+
+        var theme = _session.CustomThemes.FirstOrDefault(item => item.Id == id);
+        if (theme is null)
+        {
+            return;
+        }
+
+        var name = await DisplayPromptAsync(
+            "Переименовать тему",
+            "Как назвать тему?",
+            "Сохранить",
+            "Отмена",
+            maxLength: 32,
+            initialValue: theme.Name);
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        theme.Name = name.Trim();
+        await App.SaveAppearanceAsync();
+        BuildMyThemes();
     }
 
     private async void OnApplyThemeClicked(object? sender, EventArgs e)

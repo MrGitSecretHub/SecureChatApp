@@ -6,49 +6,164 @@
     <ScrollView>
         <VerticalStackLayout Padding="16" Spacing="14">
 
+            <!-- Шапка: имя редактируемой темы и выход -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label x:Name="EditorTitleLabel"
+                           Text="Новая тема"
+                           Style="{DynamicResource H2}" />
+                    <Label x:Name="EditorBaseLabel"
+                           Style="{DynamicResource Caption}" />
+                </VerticalStackLayout>
+                <Button Grid.Column="1"
+                        x:Name="CloseButton"
+                        Text="✕"
+                        Style="{DynamicResource IconButton}"
+                        Padding="0"
+                        WidthRequest="32"
+                        HeightRequest="32"
+                        VerticalOptions="Center"
+                        Clicked="OnCloseClicked"
+                        ToolTipProperties.Text="Закрыть" />
+            </Grid>
+
             <!-- Превью -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Предпросмотр" Style="{DynamicResource H2}" />
-                    <Grid BackgroundColor="{DynamicResource PageBackground}"
-                          Padding="12"
-                          RowDefinitions="Auto,Auto,Auto"
-                          RowSpacing="8">
-                        <Border Grid.Row="0"
-                                BackgroundColor="{DynamicResource MessageThem}"
-                                Padding="10,6"
-                                HorizontalOptions="Start"
-                                StrokeThickness="0">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="12" />
-                            </Border.StrokeShape>
-                            <Label Text="Сообщение собеседника"
-                                   TextColor="{DynamicResource MessageThemText}"
-                                   FontSize="13" />
-                        </Border>
-                        <Border Grid.Row="1"
-                                BackgroundColor="{DynamicResource MessageMe}"
-                                Padding="10,6"
-                                HorizontalOptions="End"
-                                StrokeThickness="0">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="12" />
-                            </Border.StrokeShape>
-                            <Label Text="Ваше сообщение"
-                                   TextColor="{DynamicResource AccentText}"
-                                   FontSize="13" />
-                        </Border>
-                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                            <Label Grid.Column="0"
-                                   Text="Текст на фоне"
-                                   TextColor="{DynamicResource TextPrimary}"
-                                   FontSize="13" />
-                            <Label Grid.Column="1"
-                                   Text="подпись"
-                                   TextColor="{DynamicResource TextMuted}"
-                                   FontSize="11" />
-                        </Grid>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Label Grid.Column="0"
+                               Text="Предпросмотр"
+                               Style="{DynamicResource H2}" />
+                        <Label Grid.Column="1"
+                               x:Name="PreviewBaseLabel"
+                               Style="{DynamicResource Caption}"
+                               VerticalOptions="Center" />
                     </Grid>
+
+                    <!-- Имитация экрана переписки: шапка, панель, пузыри, поле ввода -->
+                    <Border BackgroundColor="{DynamicResource PageBackground}"
+                            Padding="10"
+                            Stroke="{DynamicResource BorderColor}"
+                            StrokeThickness="1">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="8">
+
+                            <!-- Шапка: акцентная кнопка, текст, подпись -->
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                <Border Grid.Column="0"
+                                        BackgroundColor="{DynamicResource Accent}"
+                                        WidthRequest="26"
+                                        HeightRequest="26"
+                                        StrokeThickness="0">
+                                    <Border.StrokeShape>
+                                        <Ellipse />
+                                    </Border.StrokeShape>
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="0">
+                                    <Label Text="Собеседник"
+                                           TextColor="{DynamicResource TextPrimary}"
+                                           FontSize="13"
+                                           FontAttributes="Bold" />
+                                    <Label Text="был(а) недавно"
+                                           TextColor="{DynamicResource TextMuted}"
+                                           FontSize="10" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="2"
+                                       Text="12:34"
+                                       TextColor="{DynamicResource TextMuted}"
+                                       FontSize="10"
+                                       VerticalOptions="Center" />
+                            </Grid>
+
+                            <!-- Панель: подложка и граница -->
+                            <Border BackgroundColor="{DynamicResource Surface}"
+                                    Stroke="{DynamicResource BorderColor}"
+                                    StrokeThickness="1"
+                                    Padding="10,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="Текст на панели"
+                                           TextColor="{DynamicResource TextPrimary}"
+                                           FontSize="12" />
+                                    <Label Text="второстепенный текст"
+                                           TextColor="{DynamicResource TextSecondary}"
+                                           FontSize="11" />
+                                    <Label Text="приглушённая подпись"
+                                           TextColor="{DynamicResource TextMuted}"
+                                           FontSize="10" />
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Чужой пузырь -->
+                            <Border BackgroundColor="{DynamicResource MessageThem}"
+                                    Padding="10,6"
+                                    HorizontalOptions="Start"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Label Text="Сообщение собеседника"
+                                       TextColor="{DynamicResource MessageThemText}"
+                                       FontSize="13" />
+                            </Border>
+
+                            <!-- Свой пузырь -->
+                            <Border BackgroundColor="{DynamicResource MessageMe}"
+                                    Padding="10,6"
+                                    HorizontalOptions="End"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Label Text="Ваше сообщение"
+                                       TextColor="{DynamicResource AccentText}"
+                                       FontSize="13" />
+                            </Border>
+
+                            <!-- Статусы -->
+                            <HorizontalStackLayout Spacing="6">
+                                <Label Text="успех"
+                                       TextColor="{DynamicResource Success}"
+                                       FontSize="11" />
+                                <Label Text="ошибка"
+                                       TextColor="{DynamicResource Danger}"
+                                       FontSize="11" />
+                                <Label Text="внимание"
+                                       TextColor="{DynamicResource Warning}"
+                                       FontSize="11" />
+                            </HorizontalStackLayout>
+
+                            <!-- Поле ввода с акцентной кнопкой -->
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                <Border Grid.Column="0"
+                                        BackgroundColor="{DynamicResource SurfaceAlt}"
+                                        Stroke="{DynamicResource BorderColor}"
+                                        StrokeThickness="1"
+                                        Padding="10,6">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <Label Text="Поле ввода"
+                                           TextColor="{DynamicResource TextMuted}"
+                                           FontSize="12" />
+                                </Border>
+                                <Border Grid.Column="1"
+                                        BackgroundColor="{DynamicResource Accent}"
+                                        WidthRequest="30"
+                                        HeightRequest="30"
+                                        StrokeThickness="0">
+                                    <Border.StrokeShape>
+                                        <Ellipse />
+                                    </Border.StrokeShape>
+                                </Border>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
                     <Label Text="Изменения видны сразу во всём приложении. Сохраните их как свою тему, чтобы вернуться к ним позже."
                            Style="{DynamicResource Caption}" />
                 </VerticalStackLayout>
@@ -57,17 +172,41 @@
             <!-- Цвета -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Цвета" Style="{DynamicResource H2}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Label Grid.Column="0"
+                               Text="Цвета"
+                               Style="{DynamicResource H2}" />
+                        <Label Grid.Column="1"
+                               x:Name="ChangedRolesLabel"
+                               Style="{DynamicResource Caption}"
+                               VerticalOptions="Center" />
+                    </Grid>
+                    <Label Text="Нажмите на образец, чтобы выбрать цвет: палитра, HEX-код или сброс к теме."
+                           Style="{DynamicResource Caption}" />
                     <VerticalStackLayout x:Name="RolesLayout" Spacing="8" />
                 </VerticalStackLayout>
             </Border>
 
             <!-- Действия -->
             <VerticalStackLayout Spacing="8">
+                <Label x:Name="UnsavedHint"
+                       TextColor="{DynamicResource Warning}"
+                       Style="{DynamicResource Caption}"
+                       IsVisible="False" />
                 <Button x:Name="SaveThemeButton"
                         Text="Сохранить как свою тему"
                         Style="{DynamicResource PrimaryButton}"
                         Clicked="OnSaveThemeClicked" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <Button Grid.Column="0"
+                            Text="Скопировать"
+                            Style="{DynamicResource SecondaryButton}"
+                            Clicked="OnExportThemeClicked" />
+                    <Button Grid.Column="1"
+                            Text="Вставить тему"
+                            Style="{DynamicResource SecondaryButton}"
+                            Clicked="OnImportThemeClicked" />
+                </Grid>
                 <Button x:Name="ResetColorsButton"
                         Text="Сбросить цвета к теме"
                         Style="{DynamicResource GhostButton}"

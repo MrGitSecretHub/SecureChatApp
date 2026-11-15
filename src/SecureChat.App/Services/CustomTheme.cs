@@ -31,6 +31,11 @@ public sealed class CustomTheme
 public sealed record ThemeColorRole(string Key, string Title, string Description);
 
 /// <summary>
+/// Группа ролей в конструкторе темы — подзаголовок в списке цветов.
+/// </summary>
+public sealed record ThemeColorGroup(string Title, string[] Roles);
+
+/// <summary>
 /// Список ролей, которые разрешено переопределять в конструкторе темы,
 /// и палитра быстрого выбора цвета.
 /// </summary>
@@ -62,6 +67,30 @@ public static class ThemeColorRoles
         "#5865F2", "#3B82F6", "#0EA5E9", "#14B8A6", "#22C55E", "#84CC16",
         "#EAB308", "#F97316", "#EF4444", "#EC4899", "#8B5CF6", "#A855F7",
         "#64748B", "#0F766E", "#B45309", "#7F1D1D"
+    };
+
+    /// <summary>Группы ролей — показываются подзаголовками в списке цветов.</summary>
+    public static readonly IReadOnlyList<ThemeColorGroup> Groups = new List<ThemeColorGroup>
+    {
+        new("Фон и поверхности", new[]
+        {
+            ThemeColorKeys.PageBackground, ThemeColorKeys.Surface,
+            ThemeColorKeys.SurfaceAlt, ThemeColorKeys.BorderColor
+        }),
+        new("Текст", new[]
+        {
+            ThemeColorKeys.TextPrimary, ThemeColorKeys.TextSecondary,
+            ThemeColorKeys.TextMuted
+        }),
+        new("Акцент и сообщения", new[]
+        {
+            ThemeColorKeys.Accent, ThemeColorKeys.MessageMe,
+            ThemeColorKeys.MessageThem, ThemeColorKeys.MessageThemText
+        }),
+        new("Статусы", new[]
+        {
+            ThemeColorKeys.Success, ThemeColorKeys.Danger, ThemeColorKeys.Warning
+        })
     };
 
     /// <summary>Приводит ключ к каноническому виду либо возвращает null,
