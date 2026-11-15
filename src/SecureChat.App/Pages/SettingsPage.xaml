@@ -465,6 +465,11 @@
                         <Label x:Name="AccentNameLabel"
                                Style="{DynamicResource Caption}" />
                         <HorizontalStackLayout x:Name="AccentRow" Spacing="10" />
+                        <Button x:Name="AccentPickerButton"
+                                Text="🎯 Выбрать свой цвет"
+                                Style="{DynamicResource GhostButton}"
+                                HorizontalOptions="Start"
+                                Clicked="OnAccentPickerClicked" />
                     </VerticalStackLayout>
 
                     <!-- Форма пузырей -->

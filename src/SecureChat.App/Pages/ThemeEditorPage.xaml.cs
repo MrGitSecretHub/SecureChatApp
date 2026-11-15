@@ -276,6 +276,36 @@ public partial class ThemeEditorPage : ContentPage
         }
     }
 
+    /// <summary>Открывает полный HSV-пикер для роли и применяет выбранный цвет.</summary>
+    private async void OnOpenPickerClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: string key })
+        {
+            return;
+        }
+
+        if (ThemeColorRoles.NormalizeKey(key) is not { } normalized)
+        {
+            return;
+        }
+
+        var role = ThemeColorRoles.All.First(item =>
+            string.Equals(item.Key, normalized, StringComparison.OrdinalIgnoreCase));
+
+        var current = ResolveRoleColor(normalized);
+        var picker = new ColorPickerPage(current, role.Title);
+        await Navigation.PushModalAsync(picker);
+
+        if (picker.SelectedColor is not { } chosen)
+        {
+            return;
+        }
+
+        _draft[normalized] = ThemeColor.ToHex(chosen);
+        ApplyPreview();
+        BuildRoles();
+    }
+
     /// <summary>Применяет готовую палитру: все роли получают её цвета.</summary>
     private async void ApplyPalettePreset(string name)
     {
@@ -344,11 +374,26 @@ public partial class ThemeEditorPage : ContentPage
         };
         swatch.Clicked += OnRoleClicked;
 
+        // Кнопка полного пикера (HSV) — для точного подбора оттенка.
+        var pickerButton = new Button
+        {
+            Text = "🎯",
+            Style = (Style)Application.Current.Resources["GhostButton"],
+            Padding = 0,
+            WidthRequest = 36,
+            HeightRequest = 36,
+            FontSize = 16,
+            VerticalOptions = LayoutOptions.Center,
+            CommandParameter = role.Key
+        };
+        pickerButton.Clicked += OnOpenPickerClicked;
+
         var header = new Grid
         {
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
             },
@@ -361,6 +406,7 @@ public partial class ThemeEditorPage : ContentPage
         }, 0);
         header.Add(hexLabel, 1);
         header.Add(swatch, 2);
+        header.Add(pickerButton, 3);
 
         // Раскрываемая часть: палитра по семействам, поле HEX и сброс роли.
         var swatchPanel = new VerticalStackLayout { Spacing = 8 };

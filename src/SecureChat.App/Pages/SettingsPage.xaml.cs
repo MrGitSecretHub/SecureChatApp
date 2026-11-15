@@ -474,6 +474,27 @@ public partial class SettingsPage : ContentPage
         await App.SaveAppearanceAsync();
     }
 
+    /// <summary>Открывает HSV-пикер для акцентного цвета.</summary>
+    private async void OnAccentPickerClicked(object? sender, EventArgs e)
+    {
+        var current = (Color)Application.Current!.Resources["Accent"];
+        var picker = new ColorPickerPage(current, "Акцентный цвет");
+        await Navigation.PushModalAsync(picker);
+
+        if (picker.SelectedColor is not { } chosen)
+        {
+            return;
+        }
+
+        _session.Accent = ThemeColor.ToHex(chosen);
+        AccentNameLabel.Text = "Свой цвет";
+
+        App.ApplyAppearance();
+        UpdateAccentSelection();
+        _session.NotifyAppearanceChanged();
+        await App.SaveAppearanceAsync();
+    }
+
     private void UpdateAccentSelection()
     {
         foreach (var view in AccentRow.Children)

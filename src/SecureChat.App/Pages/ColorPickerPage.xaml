@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Pages.ColorPickerPage"
+             Title="Выбор цвета">
+    <Grid Padding="16"
+          RowDefinitions="Auto,Auto,Auto,Auto,*"
+          RowSpacing="12"
+          BackgroundColor="{DynamicResource PageBackground}">
+
+        <!-- Заголовок и образец выбранного цвета -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <Label Grid.Column="0"
+                   x:Name="TitleLabel"
+                   Text="Выберите цвет"
+                   Style="{DynamicResource H2}"
+                   VerticalOptions="Center" />
+            <Border Grid.Column="1"
+                    x:Name="PreviewBorder"
+                    BackgroundColor="#5865F2"
+                    WidthRequest="56"
+                    HeightRequest="56"
+                    Stroke="{DynamicResource BorderColor}"
+                    StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+            </Border>
+        </Grid>
+
+        <!-- Квадрат насыщенности и яркости -->
+        <Grid Grid.Row="1"
+              x:Name="SaturationValueBox"
+              HeightRequest="220"
+              BackgroundColor="Transparent">
+            <!-- Слой 1: от белого к чистому тону (насыщенность) -->
+            <Border x:Name="SaturationLayer" StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+            </Border>
+            <!-- Слой 2: от прозрачного к чёрному (яркость) -->
+            <Border x:Name="ValueLayer" StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+            </Border>
+            <!-- Маркер выбранной точки -->
+            <Border x:Name="SaturationMarker"
+                    WidthRequest="18"
+                    HeightRequest="18"
+                    BackgroundColor="Transparent"
+                    Stroke="White"
+                    StrokeThickness="2"
+                    InputTransparent="True">
+                <Border.StrokeShape>
+                    <Ellipse />
+                </Border.StrokeShape>
+            </Border>
+            <Grid.GestureRecognizers>
+                <PanGestureRecognizer PanUpdated="OnSaturationValuePanned" />
+                <TapGestureRecognizer Tapped="OnSaturationValueTapped" />
+            </Grid.GestureRecognizers>
+        </Grid>
+
+        <!-- Ползунок тона -->
+        <Grid Grid.Row="2"
+              x:Name="HueSlider"
+              HeightRequest="28"
+              BackgroundColor="Transparent">
+            <Border x:Name="HueLayer" StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
+            </Border>
+            <Border x:Name="HueMarker"
+                    WidthRequest="16"
+                    HeightRequest="28"
+                    BackgroundColor="Transparent"
+                    Stroke="White"
+                    StrokeThickness="2"
+                    InputTransparent="True">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+            </Border>
+            <Grid.GestureRecognizers>
+                <PanGestureRecognizer PanUpdated="OnHuePanned" />
+                <TapGestureRecognizer Tapped="OnHueTapped" />
+            </Grid.GestureRecognizers>
+        </Grid>
+
+        <!-- Числовые поля -->
+        <VerticalStackLayout Grid.Row="3" Spacing="8">
+
+            <!-- H, S, V -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label Text="Тон" Style="{DynamicResource Caption}" />
+                    <Entry x:Name="HueEntry"
+                           Keyboard="Numeric"
+                           TextChanged="OnHsvFieldChanged" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                    <Label Text="Насыщ." Style="{DynamicResource Caption}" />
+                    <Entry x:Name="SaturationEntry"
+                           Keyboard="Numeric"
+                           TextChanged="OnHsvFieldChanged" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                    <Label Text="Яркость" Style="{DynamicResource Caption}" />
+                    <Entry x:Name="ValueEntry"
+                           Keyboard="Numeric"
+                           TextChanged="OnHsvFieldChanged" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- R, G, B -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label Text="R" Style="{DynamicResource Caption}" />
+                    <Entry x:Name="RedEntry"
+                           Keyboard="Numeric"
+                           TextChanged="OnRgbFieldChanged" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                    <Label Text="G" Style="{DynamicResource Caption}" />
+                    <Entry x:Name="GreenEntry"
+                           Keyboard="Numeric"
+                           TextChanged="OnRgbFieldChanged" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                    <Label Text="B" Style="{DynamicResource Caption}" />
+                    <Entry x:Name="BlueEntry"
+                           Keyboard="Numeric"
+                           TextChanged="OnRgbFieldChanged" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- HEX -->
+            <VerticalStackLayout Spacing="2">
+                <Label Text="HEX" Style="{DynamicResource Caption}" />
+                <Entry x:Name="HexEntry"
+                       Placeholder="#RRGGBB"
+                       MaxLength="7"
+                       TextChanged="OnHexFieldChanged" />
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+
+        <!-- Кнопки -->
+        <Grid Grid.Row="4" ColumnDefinitions="*,*" ColumnSpacing="8"
+              VerticalOptions="End">
+            <Button Grid.Column="0"
+                    Text="Отмена"
+                    Style="{DynamicResource GhostButton}"
+                    Clicked="OnCancelClicked" />
+            <Button Grid.Column="1"
+                    Text="Сохранить"
+                    Style="{DynamicResource PrimaryButton}"
+                    Clicked="OnSaveClicked" />
+        </Grid>
+    </Grid>
+</ContentPage>
