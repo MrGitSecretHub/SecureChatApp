@@ -1,4 +1,3 @@
-﻿using SecureChat.Core.Net;
 using SecureChat.App.Services;
 using System.Collections.ObjectModel;
 
@@ -43,6 +42,7 @@ public partial class SettingsPage : ContentPage
         SoundsSwitch.IsToggled = _session.SoundsEnabled;
         RingtoneButton.Text = Ringtones.NameOf(_session.RingtoneId);
         ContactsOnlySwitch.IsToggled = _session.AcceptOnlyFromContacts;
+        LinkPreviewSwitch.IsToggled = _session.LinkPreviewEnabled;
         RefreshBlockedList();
 
         ThemePicker.Items.Clear();
@@ -830,14 +830,6 @@ public partial class SettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            // Ошибку связи не показываем окном — подсказка в интерфейсе.
-            if (ConnectionErrors.IsConnectionProblem(ex.Message))
-            {
-                ServerHintLabel.Text = $"⚡ {ex.Message}";
-                ServerHintLabel.IsVisible = true;
-                return;
-            }
-
             await DisplayAlert("Сервер недоступен", ex.Message, "OK");
         }
     }
@@ -1033,6 +1025,20 @@ public partial class SettingsPage : ContentPage
         await SavePrivacyAsync();
     }
 
+    private async void OnLinkPreviewToggled(object sender, ToggledEventArgs e)
+    {
+        _session.LinkPreviewEnabled = e.Value;
+        await SavePrivacyAsync();
+
+        if (e.Value)
+        {
+            await DisplayAlert(
+                "Превью ссылок",
+                "Чат будет сам заходить на сайт ссылки, чтобы загрузить её заголовок и картинку. Владелец сайта увидит IP вашего устройства. Отключите опцию в настройках, если это нежелательно.",
+                "Понятно");
+        }
+    }
+
     private async void OnBlockClicked(object sender, EventArgs e)
     {
         var name = BlockEntry.Text?.Trim() ?? string.Empty;
@@ -1212,9 +1218,11 @@ public partial class SettingsPage : ContentPage
             _ => "Авто"
         };
 
-        await DisplayAlert(
-            "Подключение",
-            $"Транспорт: {_session.TransportMode}. Изменение применится при следующем подключении.",
-            "OK");
+        await App.SaveAppearanceAsync();
+
+        // Без модального окна: транспорт показывается рядом с переключателем.
+        TransportHintLabel.Text =
+            $"Транспорт: {_session.TransportMode}. Изменение применится при следующем подключении.";
+        TransportHintLabel.IsVisible = true;
     }
 }

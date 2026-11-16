@@ -415,23 +415,79 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     public bool HasUrls => _urls.Count > 0;
 
-    // Слоты чипов: BindableLayout с DataTemplate внутри пузыря в этой версии
+    private readonly List<LinkPreview> _previews = new();
+
+    /// <summary>Сколько карточек превью помещается в пузырь (лимит и у загрузки).</summary>
+    public const int MaxPreviews = 3;
+
+    public bool HasLinkPreviews => _previews.Count > 0;
+
+    public bool HasPreviewFor(string url) =>
+        _previews.Any(p => string.Equals(p.Url, url, StringComparison.OrdinalIgnoreCase));
+
+    public void AddPreview(LinkPreview preview)
+    {
+        if (HasPreviewFor(preview.Url) || _previews.Count >= MaxPreviews)
+        {
+            return;
+        }
+
+        _previews.Add(preview);
+        NotifyPreviewSlots();
+        NotifyChipSlots();
+    }
+
+    public void ClearPreviews()
+    {
+        if (_previews.Count == 0)
+        {
+            return;
+        }
+
+        _previews.Clear();
+        NotifyPreviewSlots();
+        NotifyChipSlots();
+    }
+
+    // Слоты превью и чипов: BindableLayout с DataTemplate внутри пузыря в этой версии
     // MAUI ведёт себя ненадёжно (пустые карточки вместо текста), поэтому рисуются
     // три фиксированных слота — как сетка альбома.
 
-    /// <summary>Сколько чипов со скрытыми markdown-целями помещается в пузырь.</summary>
-    public const int MaxChips = 3;
+    private LinkPreview? SlotPreview(int index) => index < _previews.Count ? _previews[index] : null;
 
-    /// <summary>Скрытые markdown-цели, показанные отдельной чипом.</summary>
+    public bool ShowPreview0 => SlotPreview(0) is not null;
+    public bool Preview0HasImage => SlotPreview(0)?.HasImage == true;
+    public ImageSource? Preview0Image => SlotPreview(0)?.ImageSource;
+    public string Preview0Title => SlotPreview(0)?.Title ?? string.Empty;
+    public string Preview0Description => SlotPreview(0)?.Description ?? string.Empty;
+    public string Preview0Domain => SlotPreview(0)?.Domain ?? string.Empty;
+
+    public bool ShowPreview1 => SlotPreview(1) is not null;
+    public bool Preview1HasImage => SlotPreview(1)?.HasImage == true;
+    public ImageSource? Preview1Image => SlotPreview(1)?.ImageSource;
+    public string Preview1Title => SlotPreview(1)?.Title ?? string.Empty;
+    public string Preview1Description => SlotPreview(1)?.Description ?? string.Empty;
+    public string Preview1Domain => SlotPreview(1)?.Domain ?? string.Empty;
+
+    public bool ShowPreview2 => SlotPreview(2) is not null;
+    public bool Preview2HasImage => SlotPreview(2)?.HasImage == true;
+    public ImageSource? Preview2Image => SlotPreview(2)?.ImageSource;
+    public string Preview2Title => SlotPreview(2)?.Title ?? string.Empty;
+    public string Preview2Description => SlotPreview(2)?.Description ?? string.Empty;
+    public string Preview2Domain => SlotPreview(2)?.Domain ?? string.Empty;
+
+    public string? HrefForPreview(int index) => SlotPreview(index)?.Url;
+
+    /// <summary>Скрытые markdown-цели, ещё не раскрытые превью-карточкой.</summary>
     private LinkChip? SlotChip(int index)
     {
         var visible = VisibleChips();
         return index < visible.Count ? visible[index] : null;
     }
 
-    private List<LinkChip> VisibleChips() => [.. _hiddenLinks];
+    private List<LinkChip> VisibleChips() => [.. _hiddenLinks.Where(c => !HasPreviewFor(c.Href))];
 
-    public bool HasHiddenChips => _hiddenLinks.Any();
+    public bool HasHiddenChips => _hiddenLinks.Any(c => !HasPreviewFor(c.Href));
     public bool ShowChip0 => SlotChip(0) is not null;
     public string Chip0Text => SlotChip(0)?.Display ?? string.Empty;
     public bool ShowChip1 => SlotChip(1) is not null;
@@ -441,10 +497,24 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     public string? HrefForChip(int index) => SlotChip(index)?.Href;
 
+    private void NotifyPreviewSlots()
+    {
+        Notify(nameof(HasLinkPreviews));
+        for (var i = 0; i < MaxPreviews; i++)
+        {
+            Notify($"ShowPreview{i}");
+            Notify($"Preview{i}HasImage");
+            Notify($"Preview{i}Image");
+            Notify($"Preview{i}Title");
+            Notify($"Preview{i}Description");
+            Notify($"Preview{i}Domain");
+        }
+    }
+
     private void NotifyChipSlots()
     {
         Notify(nameof(HasHiddenChips));
-        for (var i = 0; i < MaxChips; i++)
+        for (var i = 0; i < MaxPreviews; i++)
         {
             Notify($"ShowChip{i}");
             Notify($"Chip{i}Text");

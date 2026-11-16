@@ -35,6 +35,7 @@ public partial class ChatView : ContentView
 
     private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
     private readonly AppSession _session = AppServices.Get<AppSession>();
+    private readonly LinkPreviewService _previewService = AppServices.Get<LinkPreviewService>();
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<MessageVm> _messages = new();
     private readonly ObservableCollection<MediaListItemVm> _mediaItems = new();
@@ -629,6 +630,10 @@ public partial class ChatView : ContentView
 
         RefreshDerived();
         _ = LoadImagesAsync(_messages.ToList(), _username);
+        if (_session.LinkPreviewEnabled)
+        {
+            _ = EnsurePreviewsForLoadedAsync();
+        }
     }
 
     private MessageVm CreateMessageVm(StoredMessage stored, string peer)
@@ -905,8 +910,13 @@ public partial class ChatView : ContentView
             var existing = FindMessage(message.Id);
             if (existing is not null)
             {
+                existing.ClearPreviews();
                 existing.Update(message, _session.Username, peer);
                 RefreshDerived();
+                if (_session.LinkPreviewEnabled && existing.HasUrls)
+                {
+                    _ = EnsurePreviewAsync(existing);
+                }
                 if (_scrollToMessageId is not null && message.Id == _scrollToMessageId)
                 {
                     ScrollToMessage(existing);
@@ -930,6 +940,10 @@ public partial class ChatView : ContentView
             RefreshDerived();
             ScrollToBottom();
             _ = LoadImagesAsync(new[] { created }, peer);
+            if (_session.LinkPreviewEnabled && created.HasUrls)
+            {
+                _ = EnsurePreviewAsync(created);
+            }
             if (_scrollToMessageId is not null && created.Id == _scrollToMessageId)
             {
                 ScrollToMessage(created);
@@ -2427,21 +2441,24 @@ public partial class ChatView : ContentView
         }
     }
 
-    // Чипы скрытых markdown-целей: три фиксированных слота. Контекст у этих
-    // элементов — сам MessageVm, индекс слота известен из имени обработчика.
+    // Чипы скрытых markdown-целей и карточки превью: три фиксированных слота.
+    // Контекст у этих элементов — сам MessageVm, индекс слота известен из имени обработчика.
 
-    private void OnChip0Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 0);
-    private void OnChip1Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 1);
-    private void OnChip2Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 2);
+    private void OnChip0Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 0, preview: false);
+    private void OnChip1Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 1, preview: false);
+    private void OnChip2Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 2, preview: false);
+    private void OnPreview0Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 0, preview: true);
+    private void OnPreview1Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 1, preview: true);
+    private void OnPreview2Tapped(object? sender, EventArgs e) => OpenSlotHref(sender, 2, preview: true);
 
-    private void OpenSlotHref(object? sender, int slot)
+    private void OpenSlotHref(object? sender, int slot, bool preview)
     {
         if (sender is not BindableObject { BindingContext: MessageVm vm })
         {
             return;
         }
 
-        var url = vm.HrefForChip(slot);
+        var url = preview ? vm.HrefForPreview(slot) : vm.HrefForChip(slot);
         if (!string.IsNullOrEmpty(url))
         {
             _ = OpenUrlAsync(url);
@@ -3412,6 +3429,57 @@ public partial class ChatView : ContentView
 
     private void ScrollToMessage(MessageVm message) =>
         MessagesView.ScrollTo(message, position: ScrollToPosition.Center, animate: true);
+
+    /// <summary>Превью для первых ссылок сообщения: загрузки идут последовательно,
+    /// чтобы не создавать шквал запросов.</summary>
+    private async Task EnsurePreviewAsync(MessageVm message)
+    {
+        foreach (var url in message.Urls.Take(MessageVm.MaxPreviews))
+        {
+            if (message.HasPreviewFor(url))
+            {
+                continue;
+            }
+
+            var preview = await _previewService.GetPreviewAsync(url);
+            LogPreview(url, preview);
+            if (preview is not null)
+            {
+                MainThread.BeginInvokeOnMainThread(() => message.AddPreview(preview));
+            }
+        }
+    }
+
+    /// <summary>Диагностика превью: что удалось извлечь по каждой ссылке.</summary>
+    private static void LogPreview(string url, LinkPreview? preview)
+    {
+        try
+        {
+            var description = preview?.Description ?? string.Empty;
+            if (description.Length > 60)
+            {
+                description = description[..60];
+            }
+
+            var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} url={url} title=\"{preview?.Title}\" " +
+                       $"desc=\"{description}\" image={(preview?.ImageUrl is null ? "нет" : preview.ImageUrl)}\n";
+            System.IO.File.AppendAllText(
+                System.IO.Path.Combine(System.IO.Path.GetTempPath(), "securechat-links.log"), line);
+        }
+        catch
+        {
+            // Диагностика не должна влиять на работу чата.
+        }
+    }
+
+    /// <summary>Превью ссылок в уже открытой истории: начиная с последних сообщений.</summary>
+    private async Task EnsurePreviewsForLoadedAsync()
+    {
+        foreach (var vm in _messages.Where(m => m.ShowText && m.HasUrls).Reverse().Take(30).ToList())
+        {
+            await EnsurePreviewAsync(vm);
+        }
+    }
 
     private void ScrollToBottom()
     {

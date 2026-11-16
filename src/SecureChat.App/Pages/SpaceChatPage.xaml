@@ -565,6 +565,121 @@
                                     </Label>
                                 </VerticalStackLayout>
 
+                                <!-- Превью ссылок: три фиксированные карточки -->
+                                <VerticalStackLayout IsVisible="{Binding HasLinkPreviews}"
+                                                     Spacing="6"
+                                                     Margin="0,4,0,0"
+                                                     HorizontalOptions="Start">
+                                    <Border IsVisible="{Binding ShowPreview0}"
+                                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                                            StrokeThickness="0"
+                                            Padding="8"
+                                            MaximumWidthRequest="260"
+                                            HorizontalOptions="Start">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnSpacePreview0Tapped" />
+                                        </Border.GestureRecognizers>
+                                        <VerticalStackLayout Spacing="4">
+                                            <Image Source="{Binding Preview0Image}"
+                                                   IsVisible="{Binding Preview0HasImage}"
+                                                   Aspect="AspectFill"
+                                                   WidthRequest="244"
+                                                   HeightRequest="110"
+                                                   HorizontalOptions="Fill" />
+                                            <Label Text="{Binding Preview0Title}"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{DynamicResource TextPrimary}"
+                                                   LineBreakMode="WordWrap"
+                                                   MaxLines="2" />
+                                            <Label Text="{Binding Preview0Description}"
+                                                   FontSize="11"
+                                                   TextColor="{DynamicResource TextMuted}"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="2" />
+                                            <Label Text="{Binding Preview0Domain}"
+                                                   FontSize="11"
+                                                   TextColor="{DynamicResource TextMuted}"
+                                                   LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                    <Border IsVisible="{Binding ShowPreview1}"
+                                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                                            StrokeThickness="0"
+                                            Padding="8"
+                                            MaximumWidthRequest="260"
+                                            HorizontalOptions="Start">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnSpacePreview1Tapped" />
+                                        </Border.GestureRecognizers>
+                                        <VerticalStackLayout Spacing="4">
+                                            <Image Source="{Binding Preview1Image}"
+                                                   IsVisible="{Binding Preview1HasImage}"
+                                                   Aspect="AspectFill"
+                                                   WidthRequest="244"
+                                                   HeightRequest="110"
+                                                   HorizontalOptions="Fill" />
+                                            <Label Text="{Binding Preview1Title}"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{DynamicResource TextPrimary}"
+                                                   LineBreakMode="WordWrap"
+                                                   MaxLines="2" />
+                                            <Label Text="{Binding Preview1Description}"
+                                                   FontSize="11"
+                                                   TextColor="{DynamicResource TextMuted}"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="2" />
+                                            <Label Text="{Binding Preview1Domain}"
+                                                   FontSize="11"
+                                                   TextColor="{DynamicResource TextMuted}"
+                                                   LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                    <Border IsVisible="{Binding ShowPreview2}"
+                                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                                            StrokeThickness="0"
+                                            Padding="8"
+                                            MaximumWidthRequest="260"
+                                            HorizontalOptions="Start">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnSpacePreview2Tapped" />
+                                        </Border.GestureRecognizers>
+                                        <VerticalStackLayout Spacing="4">
+                                            <Image Source="{Binding Preview2Image}"
+                                                   IsVisible="{Binding Preview2HasImage}"
+                                                   Aspect="AspectFill"
+                                                   WidthRequest="244"
+                                                   HeightRequest="110"
+                                                   HorizontalOptions="Fill" />
+                                            <Label Text="{Binding Preview2Title}"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{DynamicResource TextPrimary}"
+                                                   LineBreakMode="WordWrap"
+                                                   MaxLines="2" />
+                                            <Label Text="{Binding Preview2Description}"
+                                                   FontSize="11"
+                                                   TextColor="{DynamicResource TextMuted}"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="2" />
+                                            <Label Text="{Binding Preview2Domain}"
+                                                   FontSize="11"
+                                                   TextColor="{DynamicResource TextMuted}"
+                                                   LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </VerticalStackLayout>
+
                                 <!-- Реакции: каждый эмодзи — отдельный чип со счётчиком -->
                                 <CollectionView IsVisible="{Binding HasReactions}"
                                                 ItemsSource="{Binding ReactionChips}"

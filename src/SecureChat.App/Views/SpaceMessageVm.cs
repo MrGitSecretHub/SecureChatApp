@@ -31,6 +31,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     private string _dateLabel = string.Empty;
     private readonly List<string> _urls = new();
     private readonly List<LinkChip> _hiddenLinks = new();
+    private readonly List<LinkPreview> _previews = new();
 
     /// <summary>
     /// Кэш логинов участников по пространствам (spaceId → логины). Нужен для
@@ -166,13 +167,12 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     }
 
     // ================================================================
-    // ССЫЛКИ: веб-адреса, скрытые markdown-цели (чипы).
+    // ССЫЛКИ: веб-адреса, скрытые markdown-цели (чипы), превью-карточки.
     // Слоты фиксированные (три), как в личных чатах: BindableLayout внутри
     // пузыря не получает контекст элемента.
     // ================================================================
 
-    /// <summary>Сколько чипов со скрытыми markdown-целями помещается в пузырь.</summary>
-    public const int MaxChips = 3;
+    public const int MaxPreviews = 3;
 
     private void RebuildLinks()
     {
@@ -206,11 +206,11 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
     private LinkChip? SlotChip(int index)
     {
-        var visible = _hiddenLinks.ToList();
+        var visible = _hiddenLinks.Where(c => !HasPreviewFor(c.Href)).ToList();
         return index < visible.Count ? visible[index] : null;
     }
 
-    public bool HasHiddenChips => _hiddenLinks.Any();
+    public bool HasHiddenChips => _hiddenLinks.Any(c => !HasPreviewFor(c.Href));
     public bool ShowChip0 => SlotChip(0) is not null;
     public string Chip0Text => SlotChip(0)?.Display ?? string.Empty;
     public bool ShowChip1 => SlotChip(1) is not null;
@@ -220,10 +220,78 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
     public string? HrefForChip(int index) => SlotChip(index)?.Href;
 
+    private LinkPreview? SlotPreview(int index) => index < _previews.Count ? _previews[index] : null;
+
+    public bool HasLinkPreviews => _previews.Count > 0;
+
+    public bool HasPreviewFor(string url) =>
+        _previews.Any(p => string.Equals(p.Url, url, StringComparison.OrdinalIgnoreCase));
+
+    public void AddPreview(LinkPreview preview)
+    {
+        if (HasPreviewFor(preview.Url) || _previews.Count >= MaxPreviews)
+        {
+            return;
+        }
+
+        _previews.Add(preview);
+        NotifyPreviewSlots();
+        NotifyChips();
+    }
+
+    public void ClearPreviews()
+    {
+        if (_previews.Count == 0)
+        {
+            return;
+        }
+
+        _previews.Clear();
+        NotifyPreviewSlots();
+        NotifyChips();
+    }
+
+    public string? HrefForPreview(int index) => SlotPreview(index)?.Url;
+
+    public bool ShowPreview0 => SlotPreview(0) is not null;
+    public bool Preview0HasImage => SlotPreview(0)?.HasImage == true;
+    public ImageSource? Preview0Image => SlotPreview(0)?.ImageSource;
+    public string Preview0Title => SlotPreview(0)?.Title ?? string.Empty;
+    public string Preview0Description => SlotPreview(0)?.Description ?? string.Empty;
+    public string Preview0Domain => SlotPreview(0)?.Domain ?? string.Empty;
+
+    public bool ShowPreview1 => SlotPreview(1) is not null;
+    public bool Preview1HasImage => SlotPreview(1)?.HasImage == true;
+    public ImageSource? Preview1Image => SlotPreview(1)?.ImageSource;
+    public string Preview1Title => SlotPreview(1)?.Title ?? string.Empty;
+    public string Preview1Description => SlotPreview(1)?.Description ?? string.Empty;
+    public string Preview1Domain => SlotPreview(1)?.Domain ?? string.Empty;
+
+    public bool ShowPreview2 => SlotPreview(2) is not null;
+    public bool Preview2HasImage => SlotPreview(2)?.HasImage == true;
+    public ImageSource? Preview2Image => SlotPreview(2)?.ImageSource;
+    public string Preview2Title => SlotPreview(2)?.Title ?? string.Empty;
+    public string Preview2Description => SlotPreview(2)?.Description ?? string.Empty;
+    public string Preview2Domain => SlotPreview(2)?.Domain ?? string.Empty;
+
+    private void NotifyPreviewSlots()
+    {
+        OnPropertyChanged(nameof(HasLinkPreviews));
+        for (var i = 0; i < MaxPreviews; i++)
+        {
+            OnPropertyChanged($"ShowPreview{i}");
+            OnPropertyChanged($"Preview{i}HasImage");
+            OnPropertyChanged($"Preview{i}Image");
+            OnPropertyChanged($"Preview{i}Title");
+            OnPropertyChanged($"Preview{i}Description");
+            OnPropertyChanged($"Preview{i}Domain");
+        }
+    }
+
     private void NotifyChips()
     {
         OnPropertyChanged(nameof(HasHiddenChips));
-        for (var i = 0; i < MaxChips; i++)
+        for (var i = 0; i < MaxPreviews; i++)
         {
             OnPropertyChanged($"ShowChip{i}");
             OnPropertyChanged($"Chip{i}Text");
