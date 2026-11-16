@@ -217,6 +217,16 @@
                             Style="{DynamicResource SecondaryButton}"
                             Clicked="OnImportThemeClicked" />
                 </Grid>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <Button Grid.Column="0"
+                            Text="💾 Сохранить в файл"
+                            Style="{DynamicResource GhostButton}"
+                            Clicked="OnExportFileClicked" />
+                    <Button Grid.Column="1"
+                            Text="📂 Открыть файл"
+                            Style="{DynamicResource GhostButton}"
+                            Clicked="OnImportFileClicked" />
+                </Grid>
                 <Button x:Name="ResetColorsButton"
                         Text="Сбросить цвета к теме"
                         Style="{DynamicResource GhostButton}"

@@ -3442,33 +3442,10 @@ public partial class ChatView : ContentView
             }
 
             var preview = await _previewService.GetPreviewAsync(url);
-            LogPreview(url, preview);
             if (preview is not null)
             {
                 MainThread.BeginInvokeOnMainThread(() => message.AddPreview(preview));
             }
-        }
-    }
-
-    /// <summary>Диагностика превью: что удалось извлечь по каждой ссылке.</summary>
-    private static void LogPreview(string url, LinkPreview? preview)
-    {
-        try
-        {
-            var description = preview?.Description ?? string.Empty;
-            if (description.Length > 60)
-            {
-                description = description[..60];
-            }
-
-            var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} url={url} title=\"{preview?.Title}\" " +
-                       $"desc=\"{description}\" image={(preview?.ImageUrl is null ? "нет" : preview.ImageUrl)}\n";
-            System.IO.File.AppendAllText(
-                System.IO.Path.Combine(System.IO.Path.GetTempPath(), "securechat-links.log"), line);
-        }
-        catch
-        {
-            // Диагностика не должна влиять на работу чата.
         }
     }
 

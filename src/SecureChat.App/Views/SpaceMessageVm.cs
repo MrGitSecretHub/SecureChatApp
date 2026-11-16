@@ -628,7 +628,10 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
                 .ToLocalTime()
                 .ToString("HH:mm"),
             AuthorText = source.SenderUsername,
-            ShowAuthor = !mine,
+            // В канале строка «Название канала через @админ» показывается у
+            // каждого поста — иначе «от кого» пропадает у части ленты.
+            // В группах и сообществах имя показывается у чужих сообщений.
+            ShowAuthor = isChannel || !mine,
             BubbleStyle = (Style)Application.Current!.Resources[mine ? "MessageBubbleMe" : "MessageBubbleThem"],
             TextStyle = (Style)Application.Current!.Resources[mine ? "MessageTextMe" : "MessageTextThem"],
             MetaColor = mine ? Color.FromArgb("#BFDBFE") : Color.FromArgb("#94A3B8")

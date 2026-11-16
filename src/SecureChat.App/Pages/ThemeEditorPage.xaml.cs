@@ -1,3 +1,5 @@
+using Microsoft.Maui.ApplicationModel.DataTransfer;
+using Microsoft.Maui.Storage;
 using SecureChat.App.Services;
 using SecureChat.Core.Text;
 
@@ -672,15 +674,7 @@ public partial class ThemeEditorPage : ContentPage
             return;
         }
 
-        var name = _session.CustomThemes.FirstOrDefault(item => item.Id == _editingThemeId)?.Name
-            ?? $"Моя тема {DateTime.Now:dd.MM HH:mm}";
-
-        var transfer = new ThemeTransfer
-        {
-            Name = name,
-            BaseTheme = _session.Theme,
-            Colors = new Dictionary<string, string>(_draft, StringComparer.OrdinalIgnoreCase)
-        };
+        var transfer = BuildTransfer();
 
         try
         {
@@ -693,6 +687,99 @@ public partial class ThemeEditorPage : ContentPage
         {
             await DisplayAlert("Не удалось скопировать", ex.Message, "Ок");
         }
+    }
+
+    /// <summary>Текущий черновик в виде обмениваемой темы.</summary>
+    private ThemeTransfer BuildTransfer()
+    {
+        var name = _session.CustomThemes.FirstOrDefault(item => item.Id == _editingThemeId)?.Name
+            ?? $"Моя тема {DateTime.Now:dd.MM HH:mm}";
+
+        return new ThemeTransfer
+        {
+            Name = name,
+            BaseTheme = _session.Theme,
+            Colors = new Dictionary<string, string>(_draft, StringComparer.OrdinalIgnoreCase)
+        };
+    }
+
+    /// <summary>Экспорт темы в файл: файл создаётся и передаётся системным меню
+    /// «Поделиться» — так его можно отправить в чат или положить в файлы.</summary>
+    private async void OnExportFileClicked(object? sender, EventArgs e)
+    {
+        if (_draft.Count == 0)
+        {
+            await DisplayAlert("Нечего сохранять",
+                "Сначала поменяйте хотя бы один цвет в разделе «Цвета».", "Ок");
+            return;
+        }
+
+        var transfer = BuildTransfer();
+        var fileName = SafeFileName(transfer.Name) + ".securechat-theme.json";
+        var path = Path.Combine(FileSystem.CacheDirectory, fileName);
+
+        try
+        {
+            await File.WriteAllTextAsync(path, transfer.ToJson());
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Не удалось сохранить файл", ex.Message, "Ок");
+            return;
+        }
+
+        try
+        {
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = $"Тема «{transfer.Name}»",
+                File = new ShareFile(path)
+            });
+        }
+        catch (Exception ex)
+        {
+            // Системное меню может быть недоступно — показываем путь к файлу.
+            await DisplayAlert("Файл создан",
+                $"Тема сохранена в файл:\n{path}\n\nПередать файл не удалось: {ex.Message}",
+                "Ок");
+        }
+    }
+
+    /// <summary>Имя файла без запрещённых символов.</summary>
+    private static string SafeFileName(string name)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var cleaned = new string(name.Select(c => invalid.Contains(c) ? '_' : c).ToArray()).Trim();
+        return cleaned.Length == 0 ? "theme" : cleaned;
+    }
+
+    /// <summary>Импорт темы из файла.</summary>
+    private async void OnImportFileClicked(object? sender, EventArgs e)
+    {
+        var file = await FilePicker.Default.PickAsync(new PickOptions
+        {
+            PickerTitle = "Выберите файл темы"
+        });
+
+        if (file is null)
+        {
+            return;
+        }
+
+        string text;
+        try
+        {
+            await using var stream = await file.OpenReadAsync();
+            using var reader = new StreamReader(stream);
+            text = await reader.ReadToEndAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Не удалось прочитать файл", ex.Message, "Ок");
+            return;
+        }
+
+        await ApplyImportedTheme(text, "файла");
     }
 
     /// <summary>Вставляет тему из буфера обмена.</summary>
@@ -718,6 +805,12 @@ public partial class ThemeEditorPage : ContentPage
             return;
         }
 
+        await ApplyImportedTheme(transfer);
+    }
+
+    /// <summary>Загружает разобранную тему в редактор.</summary>
+    private async Task ApplyImportedTheme(ThemeTransfer transfer)
+    {
         _draft.Clear();
         foreach (var pair in transfer.Colors)
         {
@@ -738,6 +831,21 @@ public partial class ThemeEditorPage : ContentPage
         await DisplayAlert("Тема загружена",
             $"«{transfer.Name}» загружена в редактор. Нажмите «Сохранить как свою тему», чтобы оставить её на этом устройстве.",
             "Ок");
+    }
+
+    /// <summary>Разбирает текст темы и загружает её в редактор.</summary>
+    private async Task ApplyImportedTheme(string text, string source)
+    {
+        var transfer = ThemeTransfer.Parse(text);
+        if (transfer is null)
+        {
+            await DisplayAlert("Это не тема",
+                $"В {source} нет текста темы. Проверьте, что файл создан в приложении.",
+                "Ок");
+            return;
+        }
+
+        await ApplyImportedTheme(transfer);
     }
 
     private async void OnResetColorsClicked(object? sender, EventArgs e)
