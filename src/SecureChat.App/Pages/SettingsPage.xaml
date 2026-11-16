@@ -292,7 +292,7 @@
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
                             <Label Text="Превью ссылок" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Включено — чат сам запросит заголовок и картинку ссылки у сайта; владелец сайта увидит ваш IP"
+                            <Label x:Name="LinkPreviewHintLabel"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="LinkPreviewSwitch"

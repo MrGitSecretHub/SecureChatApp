@@ -43,6 +43,7 @@ public partial class SettingsPage : ContentPage
         RingtoneButton.Text = Ringtones.NameOf(_session.RingtoneId);
         ContactsOnlySwitch.IsToggled = _session.AcceptOnlyFromContacts;
         LinkPreviewSwitch.IsToggled = _session.LinkPreviewEnabled;
+        UpdateLinkPreviewHint();
         RefreshBlockedList();
 
         ThemePicker.Items.Clear();
@@ -1029,14 +1030,15 @@ public partial class SettingsPage : ContentPage
     {
         _session.LinkPreviewEnabled = e.Value;
         await SavePrivacyAsync();
+        UpdateLinkPreviewHint();
+    }
 
-        if (e.Value)
-        {
-            await DisplayAlert(
-                "Превью ссылок",
-                "Чат будет сам заходить на сайт ссылки, чтобы загрузить её заголовок и картинку. Владелец сайта увидит IP вашего устройства. Отключите опцию в настройках, если это нежелательно.",
-                "Понятно");
-        }
+    /// <summary>Подпись под переключателем превью: что делает опция сейчас.</summary>
+    private void UpdateLinkPreviewHint()
+    {
+        LinkPreviewHintLabel.Text = _session.LinkPreviewEnabled
+            ? "Включено — чат сам запросит заголовок и картинку ссылки у сайта; владелец сайта увидит ваш IP"
+            : "Выключено — чат не заходит на сайты ссылок и не показывает карточки";
     }
 
     private async void OnBlockClicked(object sender, EventArgs e)
