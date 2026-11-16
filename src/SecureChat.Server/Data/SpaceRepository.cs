@@ -69,6 +69,8 @@ public sealed class SpaceRepository
                 Title       TEXT NOT NULL,
                 CreatedBy   TEXT NOT NULL,
                 CreatedAt   TEXT NOT NULL,
+                IsClosed    INTEGER NOT NULL DEFAULT 0,
+                Position    INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (SpaceId) REFERENCES Spaces(Id) ON DELETE CASCADE
             );
 
@@ -117,8 +119,46 @@ public sealed class SpaceRepository
         await EnsureMessageColumnsAsync(connection, cancellationToken);
         await EnsureMemberColumnsAsync(connection, cancellationToken);
         await EnsureSpaceColumnsAsync(connection, cancellationToken);
+        await EnsureTopicColumnsAsync(connection, cancellationToken);
         await EnsureMigrationsAsync(connection, cancellationToken);
         _logger.LogInformation("Хранилище пространств готово");
+    }
+
+    /// <summary>Добавляет колонки тем форума в уже созданную базу:
+    /// признак закрытой темы и её порядок в списке.</summary>
+    private static async Task EnsureTopicColumnsAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using (var info = connection.CreateCommand())
+        {
+            info.CommandText = "PRAGMA table_info(Topics);";
+            await using var reader = await info.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                existing.Add(reader.GetString(1));
+            }
+        }
+
+        var columns = new (string Name, string Definition)[]
+        {
+            ("IsClosed", "INTEGER NOT NULL DEFAULT 0"),
+            ("Position", "INTEGER NOT NULL DEFAULT 0")
+        };
+
+        foreach (var column in columns)
+        {
+            if (existing.Contains(column.Name))
+            {
+                continue;
+            }
+
+            await using var alter = connection.CreateCommand();
+            alter.CommandText =
+                $"ALTER TABLE Topics ADD COLUMN {column.Name} {column.Definition};";
+            await alter.ExecuteNonQueryAsync(cancellationToken);
+        }
     }
 
     /// <summary>Добавляет колонки шифротекста в уже созданную базу.</summary>
@@ -1150,14 +1190,20 @@ public sealed class SpaceRepository
             await using (var insert = connection.CreateCommand())
             {
                 insert.CommandText = """
-                    INSERT INTO Topics (Id, SpaceId, Title, CreatedBy, CreatedAt)
-                    VALUES ($id, $spaceId, $title, $createdBy, $createdAt);
+                    INSERT INTO Topics (Id, SpaceId, Title, CreatedBy, CreatedAt, Position)
+                    VALUES ($id, $spaceId, $title, $createdBy, $createdAt, $position);
                     """;
                 insert.Parameters.AddWithValue("$id", id);
                 insert.Parameters.AddWithValue("$spaceId", spaceId);
                 insert.Parameters.AddWithValue("$title", title.Trim());
                 insert.Parameters.AddWithValue("$createdBy", createdBy);
                 insert.Parameters.AddWithValue("$createdAt", now.ToString("O"));
+
+                // Новая тема встаёт в конец списка форума.
+                insert.Parameters.AddWithValue("$position", await NextTopicPositionAsync(
+                    connection,
+                    spaceId,
+                    cancellationToken));
                 await insert.ExecuteNonQueryAsync(cancellationToken);
             }
 
@@ -1190,6 +1236,19 @@ public sealed class SpaceRepository
         };
     }
 
+    /// <summary>Следующая позиция темы в списке форума (после последней).</summary>
+    private static async Task<int> NextTopicPositionAsync(
+        SqliteConnection connection,
+        string spaceId,
+        CancellationToken cancellationToken)
+    {
+        await using var query = connection.CreateCommand();
+        query.CommandText = "SELECT COALESCE(MAX(Position), 0) + 1 FROM Topics WHERE SpaceId = $spaceId;";
+        query.Parameters.AddWithValue("$spaceId", spaceId);
+        var value = await query.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(value);
+    }
+
     public async Task<List<TopicDto>> ListTopicsAsync(
         string spaceId,
         CancellationToken cancellationToken = default)
@@ -1201,11 +1260,12 @@ public sealed class SpaceRepository
         command.CommandText = """
             SELECT t.Id, t.SpaceId, t.Title, t.CreatedBy, u.Username, t.CreatedAt,
                    (SELECT COUNT(*) FROM SpaceMessages sm WHERE sm.TopicId = t.Id),
-                   (SELECT COALESCE(MAX(SentAtUnixMs), 0) FROM SpaceMessages sm WHERE sm.TopicId = t.Id)
+                   (SELECT COALESCE(MAX(SentAtUnixMs), 0) FROM SpaceMessages sm WHERE sm.TopicId = t.Id),
+                   t.IsClosed, t.Position
             FROM Topics t
             LEFT JOIN Users u ON u.Id = t.CreatedBy
             WHERE t.SpaceId = $spaceId
-            ORDER BY t.CreatedAt DESC;
+            ORDER BY t.Position ASC, t.CreatedAt DESC;
             """;
         command.Parameters.AddWithValue("$spaceId", spaceId);
 
@@ -1225,11 +1285,103 @@ public sealed class SpaceRepository
                     System.Globalization.CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.RoundtripKind).ToUnixTimeMilliseconds(),
                 MessageCount = reader.GetInt32(6),
-                LastMessageAtUnixMs = reader.GetInt64(7)
+                LastMessageAtUnixMs = reader.GetInt64(7),
+                IsClosed = reader.GetInt64(8) != 0,
+                Position = reader.GetInt32(9)
             });
         }
 
         return result;
+    }
+
+    /// <summary>Переименовывает тему форума.</summary>
+    public async Task<bool> RenameTopicAsync(
+        string spaceId,
+        string topicId,
+        string title,
+        CancellationToken cancellationToken = default)
+    {
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                UPDATE Topics SET Title = $title
+                WHERE Id = $topicId AND SpaceId = $spaceId;
+                """;
+            command.Parameters.AddWithValue("$title", title.Trim());
+            command.Parameters.AddWithValue("$topicId", topicId);
+            command.Parameters.AddWithValue("$spaceId", spaceId);
+
+            return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    /// <summary>Закрывает или открывает тему форума.</summary>
+    public async Task<bool> SetTopicClosedAsync(
+        string spaceId,
+        string topicId,
+        bool isClosed,
+        CancellationToken cancellationToken = default)
+    {
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                UPDATE Topics SET IsClosed = $isClosed
+                WHERE Id = $topicId AND SpaceId = $spaceId;
+                """;
+            command.Parameters.AddWithValue("$isClosed", isClosed ? 1 : 0);
+            command.Parameters.AddWithValue("$topicId", topicId);
+            command.Parameters.AddWithValue("$spaceId", spaceId);
+
+            return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    /// <summary>Меняет порядок темы в списке форума.</summary>
+    public async Task<bool> SetTopicPositionAsync(
+        string spaceId,
+        string topicId,
+        int position,
+        CancellationToken cancellationToken = default)
+    {
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                UPDATE Topics SET Position = $position
+                WHERE Id = $topicId AND SpaceId = $spaceId;
+                """;
+            command.Parameters.AddWithValue("$position", position);
+            command.Parameters.AddWithValue("$topicId", topicId);
+            command.Parameters.AddWithValue("$spaceId", spaceId);
+
+            return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
     }
 
     public async Task<bool> DeleteTopicAsync(

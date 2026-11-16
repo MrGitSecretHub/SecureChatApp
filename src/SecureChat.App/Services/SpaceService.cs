@@ -100,6 +100,9 @@ public sealed class SpaceService
     public event Action<string, string>? SpaceMessageDeleted;
     public event Action<TopicDto>? TopicCreated;
 
+    /// <summary>Тему переименовали, закрыли или переставили.</summary>
+    public event Action<TopicDto>? TopicUpdated;
+
     private HubConnection? _subscribedConnection;
     public void Subscribe()
     {
@@ -126,6 +129,10 @@ public sealed class SpaceService
         connection.On<TopicDto>(
             "TopicCreated",
             topic => TopicCreated?.Invoke(topic));
+
+        connection.On<TopicDto>(
+            "TopicUpdated",
+            topic => TopicUpdated?.Invoke(topic));
 
         // Пригласили в новое пространство — подтягиваем участие в его группе,
         // чтобы получать сообщения без переподключения к серверу.
@@ -727,6 +734,57 @@ public sealed class SpaceService
 
         return await connection.InvokeAsync<bool>(
             "DeleteTopic", spaceId, topicId, cancellationToken);
+    }
+
+    /// <summary>Переименовывает тему форума.</summary>
+    public async Task<TopicDto?> RenameTopicAsync(
+        string spaceId,
+        string topicId,
+        string title,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = await GetConnectionAsync();
+        if (connection is null)
+        {
+            return null;
+        }
+
+        return await connection.InvokeAsync<TopicDto?>(
+            "RenameTopic", spaceId, topicId, title, cancellationToken);
+    }
+
+    /// <summary>Закрывает или открывает тему форума.</summary>
+    public async Task<TopicDto?> SetTopicClosedAsync(
+        string spaceId,
+        string topicId,
+        bool isClosed,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = await GetConnectionAsync();
+        if (connection is null)
+        {
+            return null;
+        }
+
+        return await connection.InvokeAsync<TopicDto?>(
+            "SetTopicClosed", spaceId, topicId, isClosed, cancellationToken);
+    }
+
+    /// <summary>Меняет порядок темы в списке форума.</summary>
+    public async Task<TopicDto?> SetTopicPositionAsync(
+        string spaceId,
+        string topicId,
+        int position,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = await GetConnectionAsync();
+        if (connection is null)
+        {
+            return null;
+        }
+
+        return await connection.InvokeAsync<TopicDto?>(
+            "SetTopicPosition", spaceId, topicId, position, cancellationToken);
     }
 
     /// <summary>Скачивает и расшифровывает вложение пространства (доступно участникам).</summary>

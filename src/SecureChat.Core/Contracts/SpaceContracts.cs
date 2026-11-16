@@ -92,6 +92,12 @@ public sealed class TopicDto
     public long CreatedAtUnixMs { get; set; }
     public int MessageCount { get; set; }
     public long LastMessageAtUnixMs { get; set; }
+
+    /// <summary>Тема закрыта для новых сообщений (создавать новые нельзя).</summary>
+    public bool IsClosed { get; set; }
+
+    /// <summary>Порядок темы в списке форума; меньше — выше.</summary>
+    public int Position { get; set; }
 }
 
 public sealed class CreateTopicRequest

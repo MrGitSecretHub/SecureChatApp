@@ -32,6 +32,9 @@ public partial class SpaceChatPage : ContentPage
     private bool _silentPosting;
     private string? _topicId;
     private string? _topicTitle;
+
+    /// <summary>Текущая тема закрыта — в неё нельзя писать.</summary>
+    private bool _currentTopicClosed;
     private SpaceMessageVm? _pinnedMessage;
     private string? _myUserId;
     private bool _canModerate;
@@ -120,6 +123,7 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageReceived += OnSpaceMessageReceived;
         _spaces.SpaceMessageUpdated += OnSpaceMessageUpdated;
         _spaces.SpaceMessageDeleted += OnSpaceMessageDeleted;
+        _spaces.TopicUpdated += OnTopicUpdated;
         AppServices.Get<AppSession>().AppearanceChanged += OnAppearanceChanged;
         RefreshSenderNameColors();
         ApplySpaceWallpaper();
@@ -167,7 +171,27 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageReceived -= OnSpaceMessageReceived;
         _spaces.SpaceMessageUpdated -= OnSpaceMessageUpdated;
         _spaces.SpaceMessageDeleted -= OnSpaceMessageDeleted;
+        _spaces.TopicUpdated -= OnTopicUpdated;
         AppServices.Get<AppSession>().AppearanceChanged -= OnAppearanceChanged;
+    }
+
+    /// <summary>Тему переименовали, закрыли или переставили — обновляем ленту.</summary>
+    private void OnTopicUpdated(TopicDto topic)
+    {
+        if (!string.Equals(topic.SpaceId, _spaceId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            if (string.Equals(topic.Id, _topicId, StringComparison.Ordinal))
+            {
+                _topicTitle = topic.Title;
+                _currentTopicClosed = topic.IsClosed;
+                await LoadAsync();
+            }
+        });
     }
 
     private void OnSpaceMessageUpdated(SpaceMessageDto message)
@@ -242,6 +266,18 @@ public partial class SpaceChatPage : ContentPage
             _signMessages = (await _spaces.ListAsync())
                 .FirstOrDefault(s => s.Id == _spaceId)?.SignMessages == true;
 
+            // Статус темы форума: закрытая тема не принимает новых сообщений.
+            if (_topicId is not null)
+            {
+                var topic = (await _spaces.GetTopicsAsync(_spaceId))
+                    .FirstOrDefault(item => item.Id == _topicId);
+                _currentTopicClosed = topic?.IsClosed == true;
+            }
+            else
+            {
+                _currentTopicClosed = false;
+            }
+
             // Публичное пространство после вступления: ключа может ещё не быть —
             // тогда лента не читается, показываем баннер ожидания.
             if (await _spaces.GetSpaceKeyAsync(_spaceId) is null)
@@ -313,9 +349,15 @@ public partial class SpaceChatPage : ContentPage
             ReadOnlyBanner.IsVisible = !_canPost;
             SilentButton.IsVisible = _spaceType == SpaceTypes.Channel && _canPost;
 
+            // Закрытая тема форума: писать в неё нельзя.
+            TopicClosedBanner.IsVisible = _currentTopicClosed && _canPost;
+            TopicClosedLabel.Text = _topicTitle is null
+                ? "Тема закрыта — писать в неё нельзя."
+                : $"Тема «{_topicTitle}» закрыта — писать в неё нельзя.";
+
             SpaceInfoLabel.Text = _topicTitle is null
                 ? $"{members.Count} участников"
-                : $"Тема: {_topicTitle} · {members.Count} участников";
+                : $"Тема: {(_currentTopicClosed ? "🔒 " : string.Empty)}{_topicTitle} · {members.Count} участников";
 
             UpdatePinnedBanner();
         }
@@ -473,6 +515,13 @@ public partial class SpaceChatPage : ContentPage
         if (!_canPost)
         {
             await DisplayAlert("Только чтение", "В этом канале сообщения могут публиковать только администраторы.", "OK");
+            return;
+        }
+
+        if (_currentTopicClosed)
+        {
+            await DisplayAlert("Тема закрыта",
+                "В этой теме нельзя писать — её закрыл администратор.", "Ок");
             return;
         }
 
@@ -2061,9 +2110,13 @@ public partial class SpaceChatPage : ContentPage
         }
 
         var options = new List<string> { "＋ Новая тема" };
-        options.AddRange(topics.Select(topic => topic.Title));
+        options.AddRange(topics.Select(TopicLabel));
         if (_canModerate)
         {
+            options.Add("✏️ Переименовать тему…");
+            options.Add("🔒 Закрыть или открыть тему…");
+            options.Add("⬆️ Переместить тему выше");
+            options.Add("⬇️ Переместить тему ниже");
             options.Add("🗑 Удалить тему…");
         }
 
@@ -2077,19 +2130,33 @@ public partial class SpaceChatPage : ContentPage
             return;
         }
 
+        if (selected == "✏️ Переименовать тему…")
+        {
+            await RenameTopicAsync(topics);
+            return;
+        }
+
+        if (selected == "🔒 Закрыть или открыть тему…")
+        {
+            await ToggleTopicClosedAsync(topics);
+            return;
+        }
+
+        if (selected == "⬆️ Переместить тему выше" || selected == "⬇️ Переместить тему ниже")
+        {
+            await MoveTopicAsync(topics, selected == "⬆️ Переместить тему выше" ? -1 : 1);
+            return;
+        }
+
         if (selected == "🗑 Удалить тему…")
         {
-            var target = await DisplayActionSheet(
-                "Какую тему удалить? Все её сообщения будут стёрты.",
-                "Отмена",
-                null,
-                topics.Select(topic => topic.Title).ToArray());
-            var doomed = topics.FirstOrDefault(item => item.Title == target);
-            if (doomed is null)
+            var target = await PickTopicAsync(topics, "Какую тему удалить? Все её сообщения будут стёрты.");
+            if (target is null)
             {
                 return;
             }
 
+            var doomed = target;
             var confirmed = await DisplayAlert(
                 "Удалить тему",
                 $"Тема «{doomed.Title}» и все её сообщения исчезнут для всех участников.",
@@ -2133,13 +2200,130 @@ public partial class SpaceChatPage : ContentPage
             return;
         }
 
-        var topic = topics.FirstOrDefault(item => item.Title == selected);
+        // Иначе выбрана тема: ищем её по позиции в списке (у закрытых — замок).
+        var index = options.IndexOf(selected) - 1;
+        var topic = index >= 0 && index < topics.Count ? topics[index] : null;
         if (topic is not null)
         {
             _topicId = topic.Id;
             _topicTitle = topic.Title;
+            _currentTopicClosed = topic.IsClosed;
             await LoadAsync();
         }
+    }
+
+    /// <summary>Подпись темы в списке: у закрытой — замок.</summary>
+    private static string TopicLabel(TopicDto topic) =>
+        topic.IsClosed ? $"{topic.Title}  🔒" : topic.Title;
+
+    /// <summary>Выбор темы из списка (с заголовком-вопросом).</summary>
+    private async Task<TopicDto?> PickTopicAsync(IReadOnlyList<TopicDto> topics, string question)
+    {
+        if (topics.Count == 0)
+        {
+            return null;
+        }
+
+        var labels = topics.Select(TopicLabel).ToArray();
+        var selected = await DisplayActionSheet(question, "Отмена", null, labels);
+        if (string.IsNullOrWhiteSpace(selected) || selected == "Отмена")
+        {
+            return null;
+        }
+
+        var index = Array.IndexOf(labels, selected);
+        return index >= 0 && index < topics.Count ? topics[index] : null;
+    }
+
+    /// <summary>Переименование темы форума.</summary>
+    private async Task RenameTopicAsync(IReadOnlyList<TopicDto> topics)
+    {
+        var target = await PickTopicAsync(topics, "Какую тему переименовать?");
+        if (target is null)
+        {
+            return;
+        }
+
+        var title = await DisplayPromptAsync(
+            "Переименовать тему",
+            "Новое название темы:",
+            "Сохранить",
+            "Отмена",
+            maxLength: 120,
+            initialValue: target.Title,
+            keyboard: Keyboard.Text);
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            return;
+        }
+
+        var updated = await _spaces.RenameTopicAsync(_spaceId, target.Id, title);
+        if (updated is null)
+        {
+            await DisplayAlert("Не удалось", "Не хватает прав или тема не найдена.", "Ок");
+            return;
+        }
+
+        if (string.Equals(_topicId, target.Id, StringComparison.Ordinal))
+        {
+            _topicTitle = updated.Title;
+        }
+
+        await LoadAsync();
+    }
+
+    /// <summary>Закрытие и открытие темы форума.</summary>
+    private async Task ToggleTopicClosedAsync(IReadOnlyList<TopicDto> topics)
+    {
+        var target = await PickTopicAsync(topics, "Какую тему закрыть или открыть?");
+        if (target is null)
+        {
+            return;
+        }
+
+        var updated = await _spaces.SetTopicClosedAsync(_spaceId, target.Id, !target.IsClosed);
+        if (updated is null)
+        {
+            await DisplayAlert("Не удалось", "Не хватает прав или тема не найдена.", "Ок");
+            return;
+        }
+
+        if (string.Equals(_topicId, target.Id, StringComparison.Ordinal))
+        {
+            _currentTopicClosed = updated.IsClosed;
+        }
+
+        await LoadAsync();
+    }
+
+    /// <summary>Перестановка темы в списке форума.</summary>
+    private async Task MoveTopicAsync(IReadOnlyList<TopicDto> topics, int shift)
+    {
+        var target = await PickTopicAsync(topics, "Какую тему переместить?");
+        if (target is null)
+        {
+            return;
+        }
+
+        var ordered = topics.OrderBy(topic => topic.Position).ThenBy(topic => topic.Title).ToList();
+        var index = ordered.FindIndex(topic => topic.Id == target.Id);
+        var newIndex = index + shift;
+        if (index < 0 || newIndex < 0 || newIndex >= ordered.Count)
+        {
+            return;
+        }
+
+        // Меняем местами с соседней темой.
+        var other = ordered[newIndex];
+        var updated = await _spaces.SetTopicPositionAsync(_spaceId, other.Id, target.Position);
+        if (updated is null)
+        {
+            await DisplayAlert("Не удалось", "Не хватает прав или тема не найдена.", "Ок");
+            return;
+        }
+
+        await _spaces.SetTopicPositionAsync(_spaceId, target.Id, other.Position);
+        await LoadAsync();
     }
 
     private async Task<byte[]?> ReadAttachmentAsync(FileResult file)

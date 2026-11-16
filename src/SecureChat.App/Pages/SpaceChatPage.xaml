@@ -1057,6 +1057,30 @@
             </HorizontalStackLayout>
         </Border>
 
+        <!-- Баннер «тема закрыта» -->
+        <Border Grid.Row="5"
+                x:Name="TopicClosedBanner"
+                IsVisible="False"
+                BackgroundColor="{DynamicResource SurfaceAlt}"
+                Stroke="{DynamicResource Danger}"
+                StrokeThickness="1"
+                Margin="12,0,12,8"
+                Padding="10,8">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="10" />
+            </Border.StrokeShape>
+            <HorizontalStackLayout VerticalOptions="Center" Spacing="8">
+                <Label Text="🔒"
+                       FontSize="15"
+                       VerticalOptions="Center" />
+                <Label x:Name="TopicClosedLabel"
+                       Text="Тема закрыта — писать в неё нельзя."
+                       FontSize="14"
+                       TextColor="{DynamicResource TextPrimary}"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
+        </Border>
+
         <!-- Баннер «нет связи»: показывается вместо модального окна -->
         <Border Grid.Row="5"
                 x:Name="OfflineBanner"

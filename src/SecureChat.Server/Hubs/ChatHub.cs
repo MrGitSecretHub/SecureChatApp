@@ -960,6 +960,102 @@ public sealed class ChatHub : Hub
         return await _spaces.DeleteTopicAsync(topicId);
     }
 
+    /// <summary>Переименовывает тему форума (владелец или администратор).</summary>
+    public async Task<TopicDto?> RenameTopic(string spaceId, string topicId, string title)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId) ||
+            string.IsNullOrWhiteSpace(topicId) || string.IsNullOrWhiteSpace(title))
+        {
+            return null;
+        }
+
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null || !IsAdmin(space.MyRole))
+        {
+            return null;
+        }
+
+        var updated = await _spaces.RenameTopicAsync(spaceId, topicId, title.Trim());
+        if (!updated)
+        {
+            return null;
+        }
+
+        var topic = (await _spaces.ListTopicsAsync(spaceId))
+            .FirstOrDefault(item => item.Id == topicId);
+        if (topic is not null)
+        {
+            await Clients.Group($"space:{spaceId}").SendAsync("TopicUpdated", topic);
+        }
+
+        return topic;
+    }
+
+    /// <summary>Закрывает или открывает тему форума (владелец или администратор).</summary>
+    public async Task<TopicDto?> SetTopicClosed(string spaceId, string topicId, bool isClosed)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId) ||
+            string.IsNullOrWhiteSpace(topicId))
+        {
+            return null;
+        }
+
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null || !IsAdmin(space.MyRole))
+        {
+            return null;
+        }
+
+        var updated = await _spaces.SetTopicClosedAsync(spaceId, topicId, isClosed);
+        if (!updated)
+        {
+            return null;
+        }
+
+        var topic = (await _spaces.ListTopicsAsync(spaceId))
+            .FirstOrDefault(item => item.Id == topicId);
+        if (topic is not null)
+        {
+            await Clients.Group($"space:{spaceId}").SendAsync("TopicUpdated", topic);
+        }
+
+        return topic;
+    }
+
+    /// <summary>Меняет порядок темы в списке форума (владелец или администратор).</summary>
+    public async Task<TopicDto?> SetTopicPosition(string spaceId, string topicId, int position)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId) ||
+            string.IsNullOrWhiteSpace(topicId))
+        {
+            return null;
+        }
+
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null || !IsAdmin(space.MyRole))
+        {
+            return null;
+        }
+
+        var updated = await _spaces.SetTopicPositionAsync(spaceId, topicId, Math.Max(0, position));
+        if (!updated)
+        {
+            return null;
+        }
+
+        var topic = (await _spaces.ListTopicsAsync(spaceId))
+            .FirstOrDefault(item => item.Id == topicId);
+        if (topic is not null)
+        {
+            await Clients.Group($"space:{spaceId}").SendAsync("TopicUpdated", topic);
+        }
+
+        return topic;
+    }
+
     private static bool IsAdmin(string role) =>
         role is SpaceRoles.Owner or SpaceRoles.Admin;
 
