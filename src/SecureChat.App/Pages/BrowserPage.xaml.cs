@@ -1,3 +1,5 @@
+using SecureChat.App.Services;
+
 namespace SecureChat.App.Pages;
 
 /// <summary>Встроенный браузер на WebView: открытие ссылок из чатов и сообществ.</summary>
@@ -56,7 +58,7 @@ public partial class BrowserPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 

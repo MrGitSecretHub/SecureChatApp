@@ -127,7 +127,7 @@ public partial class UserProfilePage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 

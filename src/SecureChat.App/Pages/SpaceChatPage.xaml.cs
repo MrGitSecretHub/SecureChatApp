@@ -1,3 +1,4 @@
+using SecureChat.Core.Net;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -21,7 +22,6 @@ public partial class SpaceChatPage : ContentPage
 {
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
     private readonly ChatManager _chat = AppServices.Get<ChatManager>();
-    private readonly LinkPreviewService _previewService = AppServices.Get<LinkPreviewService>();
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<SpaceMessageVm> _messages = new();
     private readonly string _spaceId;
@@ -254,6 +254,7 @@ public partial class SpaceChatPage : ContentPage
             }
 
             KeyWaitBanner.IsVisible = false;
+            OfflineBanner.IsVisible = false;
             var messages = await _spaces.GetMessagesAsync(_spaceId, _topicId);
 
             var commentCounts = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -291,10 +292,6 @@ public partial class SpaceChatPage : ContentPage
             RefreshDateLabels();
             RefreshMentionJump();
             ApplyChannelAuthorGrouping();
-            if (AppServices.Get<AppSession>().LinkPreviewEnabled)
-            {
-                _ = EnsureSpacePreviewsAsync(_messages.ToList());
-            }
 
             if (_spaceType == SpaceTypes.Channel)
             {
@@ -320,8 +317,25 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            // Ошибки связи не показываем окном: всплывающие окна подряд только
+            // раздражают, а в интерфейсе уже есть индикатор офлайн-режима.
+            if (ConnectionErrors.IsConnectionProblem(ex.Message))
+            {
+                ShowOfflineBanner(ex.Message);
+                return;
+            }
+
+            await this.ShowErrorAsync(ex);
         }
+    }
+
+    /// <summary>Показывает баннер «нет связи» вместо модального окна.</summary>
+    private void ShowOfflineBanner(string? message)
+    {
+        OfflineBannerLabel.Text = string.IsNullOrWhiteSpace(message)
+            ? ConnectionErrors.OfflineHint
+            : $"⚡ {message}";
+        OfflineBanner.IsVisible = true;
     }
 
     /// <summary>Создаёт VM сообщения и подписывает её на нажатия по @упоминаниям.</summary>
@@ -443,10 +457,6 @@ public partial class SpaceChatPage : ContentPage
             _messages.Add(vm);
             RefreshDateLabels();
             RefreshMentionJump();
-            if (AppServices.Get<AppSession>().LinkPreviewEnabled && vm.HasUrls)
-            {
-                _ = EnsurePreviewAsync(vm);
-            }
         });
     }
 
@@ -499,7 +509,7 @@ public partial class SpaceChatPage : ContentPage
         catch (Exception ex)
         {
             MessageEntry.Text = text;
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -518,7 +528,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -658,35 +668,9 @@ public partial class SpaceChatPage : ContentPage
         return date.ToString("d MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"));
     }
 
-    /// <summary>Превью последних загруженных сообщений ленты — по порядку, чтобы не плодить запросы.</summary>
-    private async Task EnsureSpacePreviewsAsync(IReadOnlyList<SpaceMessageVm> messages)
-    {
-        foreach (var vm in messages.Where(m => m.HasUrls).Reverse().Take(30).ToList())
-        {
-            await EnsurePreviewAsync(vm);
-        }
-    }
+    // Чипы скрытых markdown-целей: три фиксированных слота.
 
-    private async Task EnsurePreviewAsync(SpaceMessageVm vm)
-    {
-        foreach (var url in vm.Urls.Take(SpaceMessageVm.MaxPreviews))
-        {
-            if (vm.HasPreviewFor(url))
-            {
-                continue;
-            }
-
-            var preview = await _previewService.GetPreviewAsync(url);
-            if (preview is not null)
-            {
-                MainThread.BeginInvokeOnMainThread(() => vm.AddPreview(preview));
-            }
-        }
-    }
-
-    // Чипы скрытых markdown-целей и карточки превью: три фиксированных слота.
-
-    private void OnSpaceChip0Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 0, chip: true);
+    private void OnSpaceChip0Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 0);
 
     /// <summary>Режим тихой публикации для следующего поста канала.</summary>
     private void OnSilentClicked(object? sender, EventArgs e)
@@ -707,20 +691,17 @@ public partial class SpaceChatPage : ContentPage
             ? "Тихий пост включён — следующий пост придёт без уведомлений"
             : "Тихий пост — следующий пост придёт без уведомлений у подписчиков");
     }
-    private void OnSpaceChip1Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 1, chip: true);
-    private void OnSpaceChip2Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 2, chip: true);
-    private void OnSpacePreview0Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 0, chip: false);
-    private void OnSpacePreview1Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 1, chip: false);
-    private void OnSpacePreview2Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 2, chip: false);
+    private void OnSpaceChip1Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 1);
+    private void OnSpaceChip2Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 2);
 
-    private void OpenSlotSpaceLink(object? sender, int slot, bool chip)
+    private void OpenSlotSpaceLink(object? sender, int slot)
     {
         if (sender is not BindableObject { BindingContext: SpaceMessageVm vm })
         {
             return;
         }
 
-        var url = chip ? vm.HrefForChip(slot) : vm.HrefForPreview(slot);
+        var url = vm.HrefForChip(slot);
         if (!string.IsNullOrEmpty(url))
         {
             _ = OpenSpaceLinkAsync(url);
@@ -746,7 +727,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -758,7 +739,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -782,7 +763,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -962,7 +943,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -1003,7 +984,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -1030,7 +1011,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -1094,7 +1075,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -2016,7 +1997,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 

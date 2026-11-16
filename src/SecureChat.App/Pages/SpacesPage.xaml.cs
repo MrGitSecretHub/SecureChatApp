@@ -1,3 +1,4 @@
+using SecureChat.Core.Net;
 using System.Collections.ObjectModel;
 using SecureChat.App.Services;
 using SecureChat.App.Views;
@@ -127,7 +128,16 @@ public partial class SpacesPage : ContentPage
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Ошибка", ex.Message, "OK");
+                // Ошибку связи не показываем окном — есть постоянная подсказка
+                // про офлайн-режим.
+                if (ConnectionErrors.IsConnectionProblem(ex.Message))
+                {
+                    OfflineLabel.Text = $"⚡ {ex.Message}. Нажмите, чтобы повторить.";
+                    OfflineLabel.IsVisible = true;
+                    return;
+                }
+
+                await this.ShowErrorAsync(ex);
             }
 
             return;
@@ -196,7 +206,7 @@ public partial class SpacesPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 }

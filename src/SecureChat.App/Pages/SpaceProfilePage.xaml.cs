@@ -1,3 +1,4 @@
+using SecureChat.Core.Net;
 using SecureChat.App.Services;
 using SecureChat.Core.Contracts;
 
@@ -83,10 +84,19 @@ public partial class SpaceProfilePage : ContentPage
             _loadingSwitch = true;
             MuteSwitch.IsToggled = await _chat.IsSpaceMutedAsync(_spaceId);
             _loadingSwitch = false;
+            ErrorLabel.IsVisible = false;
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            // Ошибку связи показываем тихо, без модального окна.
+            if (ConnectionErrors.IsConnectionProblem(ex.Message))
+            {
+                ErrorLabel.Text = $"⚡ {ex.Message}";
+                ErrorLabel.IsVisible = true;
+                return;
+            }
+
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -103,7 +113,7 @@ public partial class SpaceProfilePage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -115,7 +125,7 @@ public partial class SpaceProfilePage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -145,7 +155,7 @@ public partial class SpaceProfilePage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 }

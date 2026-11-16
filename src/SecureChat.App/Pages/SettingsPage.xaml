@@ -282,19 +282,6 @@
                                 VerticalOptions="Center" />
                     </Grid>
 
-                    <!-- Приватность: превью ссылок -->
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Превью ссылок" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Включено — чат сам запросит заголовок и картинку ссылки у сайта; владелец сайта увидит ваш IP"
-                                   Style="{DynamicResource Caption}" />
-                        </VerticalStackLayout>
-                        <Switch x:Name="LinkPreviewSwitch"
-                                Toggled="OnLinkPreviewToggled"
-                                HorizontalOptions="End"
-                                VerticalOptions="Center" />
-                    </Grid>
-
                     <!-- Код-пароль приложения -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
@@ -360,6 +347,10 @@
                     <Label Text="Сервер" Style="{DynamicResource H2}" />
                     <Label Text="Адрес задаётся при входе. Проверьте доступность сервера."
                            Style="{DynamicResource Caption}" />
+                    <Label x:Name="ServerHintLabel"
+                           Style="{DynamicResource Caption}"
+                           TextColor="{DynamicResource Warning}"
+                           IsVisible="False" />
                     <Button Text="Проверить сервер"
                             Style="{DynamicResource SecondaryButton}"
                             HorizontalOptions="Start"

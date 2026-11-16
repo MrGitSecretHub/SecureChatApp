@@ -37,6 +37,11 @@
                         </VerticalStackLayout>
                     </Grid>
 
+                    <Label x:Name="ErrorLabel"
+                           FontSize="12"
+                           TextColor="{DynamicResource Warning}"
+                           IsVisible="False" />
+
                     <Label x:Name="DescriptionLabel"
                            FontSize="13"
                            TextColor="{DynamicResource TextPrimary}"

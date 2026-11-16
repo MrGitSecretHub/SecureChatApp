@@ -22,7 +22,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<LocalStore>();
         builder.Services.AddSingleton<ChatService>();
         builder.Services.AddSingleton<ChatManager>();
-        builder.Services.AddSingleton<LinkPreviewService>();
         builder.Services.AddSingleton<SpaceService>();
         builder.Services.AddSingleton<CustomPackService>();
         builder.Services.AddSingleton<AccountService>();

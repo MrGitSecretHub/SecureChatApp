@@ -92,6 +92,10 @@
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="Участники" Style="{DynamicResource H2}" />
+                    <Label x:Name="ErrorLabel"
+                           TextColor="{DynamicResource Warning}"
+                           Style="{DynamicResource Caption}"
+                           IsVisible="False" />
                     <Label x:Name="MembersHintLabel"
                            Style="{DynamicResource Caption}" />
 

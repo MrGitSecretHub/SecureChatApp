@@ -1,3 +1,4 @@
+using SecureChat.Core.Net;
 using System.Collections.ObjectModel;
 using Microsoft.Maui.ApplicationModel;
 using SecureChat.App.Services;
@@ -117,7 +118,15 @@ public partial class PostCommentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            // Ошибку связи показываем тихо, без модального окна.
+            if (ConnectionErrors.IsConnectionProblem(ex.Message))
+            {
+                EmptyLabel.Text = $"⚡ {ex.Message}";
+                EmptyLabel.IsVisible = true;
+                return;
+            }
+
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -218,7 +227,7 @@ public partial class PostCommentsPage : ContentPage
         catch (Exception ex)
         {
             CommentEntry.Text = text;
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -250,7 +259,7 @@ public partial class PostCommentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -279,7 +288,7 @@ public partial class PostCommentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -298,7 +307,7 @@ public partial class PostCommentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 

@@ -1,3 +1,4 @@
+using SecureChat.Core.Net;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -92,10 +93,19 @@ public partial class SpaceSettingsPage : ContentPage
 
             // Секции по ролям, как в Telegram: владелец, администраторы, участники, гости.
             RebuildMemberRows();
+            ErrorLabel.IsVisible = false;
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            // Ошибку связи показываем тихо, без модального окна.
+            if (ConnectionErrors.IsConnectionProblem(ex.Message))
+            {
+                ErrorLabel.Text = $"⚡ {ex.Message}";
+                ErrorLabel.IsVisible = true;
+                return;
+            }
+
+            await this.ShowErrorAsync(ex);
         }
 
         // Загрузка текущих обоев пространства
@@ -138,7 +148,7 @@ public partial class SpaceSettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -292,7 +302,7 @@ public partial class SpaceSettingsPage : ContentPage
                 }
                 catch (Exception ex)
                 {
-                    await DisplayAlert("Ошибка", ex.Message, "OK");
+                    await this.ShowErrorAsync(ex);
                 }
 
                 return;
@@ -384,7 +394,7 @@ public partial class SpaceSettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -407,7 +417,7 @@ public partial class SpaceSettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -436,7 +446,7 @@ public partial class SpaceSettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -472,7 +482,7 @@ public partial class SpaceSettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
@@ -493,7 +503,7 @@ public partial class SpaceSettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await this.ShowErrorAsync(ex);
         }
     }
 
