@@ -786,6 +786,19 @@ public partial class SpaceChatPage : ContentPage
     }
 
 
+    /// <summary>Открывает галерею вложений пространства.</summary>
+    private async void OnMediaClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            await Navigation.PushAsync(new SpaceMediaPage(_spaceId, _topicId));
+        }
+        catch (Exception ex)
+        {
+            await this.ShowErrorAsync(ex);
+        }
+    }
+
     private void OnPinnedBannerTapped(object sender, EventArgs e)
     {
         if (_pinnedMessage is null)
