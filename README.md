@@ -94,15 +94,19 @@ HTTPS там работает на стандартном 443, поэтому п
 `Kestrel:Endpoints` (HttpPublic 80, HttpsPublic 443, Http 5080, Https 5443).
 TCP-порт задаётся ключом `Tcp:Port`.
 
+Скрипт автоматически добавляет в SAN домены Playit (`secure.playit.plus`,
+`svcea.playit.plus`, `playit.plus`, `tun.ply.gg`) — без них клиент отклоняет
+сертификат с «имя узла не совпадает». Свои домены можно добавить параметром
+`-DnsNames 'my.domain','other.domain'`. После перевыпуска нужно перезапустить
+сервер и заново доверить `lan-tls.cer` на других устройствах/учётных записях.
+
 **Как проверить подключение через туннель:**
 
 ```powershell
-# Здоровье сервера через HTTPS-туннель (должно быть 200)
-curl.exe -k https://secure.playit.plus/api/health
-
-# SignalR-хаб (401 без токена — это нормально, значит хаб доступен)
-curl.exe -k -X POST https://secure.playit.plus/hubs/chat/negotiate?negotiateVersion=1
+curl.exe https://secure.playit.plus/api/health
 ```
+
+Если сертификат в доверенных корнях — `curl` без `-k` должен вернуть 200.
 
 Если `:5080` и `:5443` пробрасываются отдельным туннелем, проверяйте его
 адрес (`https://svcea.playit.plus/api/health`). В клиенте вводите домен

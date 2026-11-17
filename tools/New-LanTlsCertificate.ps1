@@ -9,9 +9,13 @@
     (Current User) by double-clicking the file.
 .PARAMETER IpAddresses
     IPv4 addresses to put into the certificate. Default: all active IPv4 addresses of this PC plus 127.0.0.1.
+.PARAMETER DnsNames
+    Extra DNS names for public tunnels (for example, secure.playit.plus).
+    Without them the browser/client rejects the certificate with "name does not match".
 #>
 param(
-    [string[]]$IpAddresses
+    [string[]]$IpAddresses,
+    [string[]]$DnsNames
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,10 +31,19 @@ if (-not $IpAddresses -or $IpAddresses.Count -eq 0) {
     $IpAddresses = @('127.0.0.1') + @($detected)
 }
 $IpAddresses = @($IpAddresses | Sort-Object -Unique)
-$dnsNames = @('localhost', $env:COMPUTERNAME) | Sort-Object -Unique
+$allDnsNames = @('localhost', $env:COMPUTERNAME) | Sort-Object -Unique
+if ($DnsNames -and $DnsNames.Count -gt 0) {
+    $allDnsNames = @($allDnsNames + $DnsNames | Where-Object { $_ } | Sort-Object -Unique)
+}
+
+# Публичные туннели Playit пробрасывают HTTPS на 443, и сервер отдаёт этот же
+# сертификат. Без доменов туннеля в SAN клиент отклоняет его как
+# «имя узла не совпадает» — добавляем их автоматически.
+$tunnelDomains = @('secure.playit.plus', 'svcea.playit.plus', 'playit.plus', 'tun.ply.gg')
+$allDnsNames = @($allDnsNames + $tunnelDomains | Sort-Object -Unique)
 
 $sanParts = @()
-$sanParts += $dnsNames | ForEach-Object { "DNS=$_" }
+$sanParts += $allDnsNames | ForEach-Object { "DNS=$_" }
 $sanParts += $IpAddresses | ForEach-Object { "IPAddress=$_" }
 $sanExtension = '2.5.29.17={text}' + ($sanParts -join '&')
 $serverAuthExtension = '2.5.29.37={text}1.3.6.1.5.5.7.3.1'
