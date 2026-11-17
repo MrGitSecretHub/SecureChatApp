@@ -340,6 +340,28 @@ public sealed class ChatService : IDisposable
         await _connection.InvokeAsync("SetPresenceHidden", hidden);
     }
 
+    /// <summary>Сообщает серверу, что одноразовое сообщение просмотрено.</summary>
+    public async Task<bool> ConsumeViewOnceAsync(string messageId, CancellationToken cancellationToken = default)
+    {
+        if (!IsConnected)
+        {
+            await ConnectAsync(cancellationToken);
+        }
+
+        var connection = _connection
+            ?? throw new InvalidOperationException("Нет подключения к серверу.");
+
+        if (_usingTcp)
+        {
+            return false;
+        }
+
+        return await connection.InvokeAsync<bool>(
+            "ConsumeViewOnce",
+            messageId,
+            cancellationToken);
+    }
+
     public async Task<bool> DeletePrivateMessageAsync(string messageId, CancellationToken cancellationToken = default)
     {
         if (!IsConnected)

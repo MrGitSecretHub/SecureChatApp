@@ -55,6 +55,12 @@ public sealed class MessagePayload
     public string? ReplyToSender { get; set; }
 
     /// <summary>
+    /// Одноразовое сообщение: после просмотра получателя оно исчезает у обоих.
+    /// Флаг внутри шифрования — сервер о нём не знает.
+    /// </summary>
+    public bool IsOnce { get; set; }
+
+    /// <summary>
     /// Идентификатор альбома: несколько фото, отправленных вместе, собираются
     /// в один блок, как в Telegram. Пусто — обычное одиночное вложение.
     /// </summary>

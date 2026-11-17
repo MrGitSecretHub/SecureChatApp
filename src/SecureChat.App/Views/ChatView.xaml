@@ -384,6 +384,13 @@
                                                FontAttributes="Italic"
                                                TextColor="{DynamicResource TextMuted}" />
 
+                                        <!-- Одноразовое сообщение -->
+                                        <Label IsVisible="{Binding IsOnce}"
+                                               Text="👁 Один раз — исчезнет после просмотра"
+                                               FontSize="11"
+                                               FontAttributes="Bold"
+                                               TextColor="{DynamicResource Warning}" />
+
                                         <!-- Текст сообщения (или с подсветкой @упоминаний) -->
                                         <Label Text="{Binding DisplayText}"
                                                Style="{Binding TextStyle}"
@@ -1323,6 +1330,12 @@
                                     VerticalOptions="End"
                                     Clicked="OnEmojiButtonClicked"
                                     ToolTipProperties.Text="Эмодзи" />
+                            <Button x:Name="ViewOnceButton"
+                                    Text="👁"
+                                    Style="{DynamicResource IconButton}"
+                                    VerticalOptions="End"
+                                    Clicked="OnViewOnceToggled"
+                                    ToolTipProperties.Text="Одноразовое сообщение — исчезнет после просмотра" />
                         </HorizontalStackLayout>
 
                         <views:MentionEntryView Grid.Column="1"

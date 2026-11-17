@@ -46,6 +46,9 @@ public partial class ChatView : ContentView
     private bool _subscribed;
     private bool _sending;
     private bool _sendingAttachment;
+
+    /// <summary>Следующее сообщение (или вложение) будет одноразовым.</summary>
+    private bool _viewOnceNext;
     private bool _suppressDraft;
     private MessageVm? _selected;
     private int _pinnedIndex;
@@ -309,7 +312,9 @@ public partial class ChatView : ContentView
                 replyToMessageId: reply?.Id,
                 replyToText: reply?.Text,
                 replyToFileName: reply?.FileName,
-                replyToSender: reply?.ReplyAuthorName);
+                replyToSender: reply?.ReplyAuthorName,
+                isOnce: _viewOnceNext);
+            ResetViewOnce();
             ScrollToBottom();
         }
         catch (Exception ex)
@@ -1160,6 +1165,7 @@ public partial class ChatView : ContentView
         _sending = true;
         var replyTarget = _replyingTo;
         var isEditing = _editingMessageId is not null;
+        var sendOnce = _viewOnceNext;
         MessageEntry.Text = string.Empty;
         try
         {
@@ -1177,7 +1183,9 @@ public partial class ChatView : ContentView
                     replyToMessageId: replyTarget?.Id,
                     replyToText: replyTarget?.Text,
                     replyToFileName: replyTarget?.FileName,
-                    replyToSender: replyTarget?.ReplyAuthorName);
+                    replyToSender: replyTarget?.ReplyAuthorName,
+                    isOnce: sendOnce);
+                ResetViewOnce();
                 _replyingTo = null;
                 ReplyBar.IsVisible = false;
             }
@@ -1234,6 +1242,31 @@ public partial class ChatView : ContentView
         {
             { DevicePlatform.Android, new[] { "audio/*" } }
         });
+
+    /// <summary>Кнопка «👁» — включить или выключить одноразовую отправку.</summary>
+    private void OnViewOnceToggled(object? sender, EventArgs e)
+    {
+        _viewOnceNext = !_viewOnceNext;
+        ViewOnceButton.BackgroundColor = _viewOnceNext
+            ? (Color)Application.Current!.Resources["Accent"]
+            : Colors.Transparent;
+        ViewOnceButton.TextColor = _viewOnceNext
+            ? (Color)Application.Current.Resources["AccentText"]
+            : (Color)Application.Current.Resources["TextMuted"];
+    }
+
+    /// <summary>Сбросить режим одноразовой отправки после отправки.</summary>
+    private void ResetViewOnce()
+    {
+        if (!_viewOnceNext)
+        {
+            return;
+        }
+
+        _viewOnceNext = false;
+        ViewOnceButton.BackgroundColor = Colors.Transparent;
+        ViewOnceButton.TextColor = (Color)Application.Current!.Resources["TextMuted"];
+    }
 
     /// <summary>Кнопка 📎 — показать или скрыть меню вложений (как в Telegram по тапу).</summary>
     private void OnAttachClicked(object? sender, EventArgs e)
@@ -2875,6 +2908,12 @@ public partial class ChatView : ContentView
 
             await page.Navigation.PushModalAsync(
                 new NavigationPage(new ImageViewerPage(bytes, message.FileName)));
+
+            // Одноразовое сообщение исчезает после закрытия просмотрщика.
+            if (message.IsOnce && !message.IsMine)
+            {
+                await _chatManager.ConsumeViewOnceAsync(message.Id);
+            }
         }
         catch (Exception ex)
         {
@@ -2926,10 +2965,19 @@ public partial class ChatView : ContentView
             {
                 await page.Navigation.PushModalAsync(
                     new NavigationPage(new MediaPlayerPage(path, message.FileName, message.ContentType)));
+                if (message.IsOnce && !message.IsMine)
+                {
+                    await _chatManager.ConsumeViewOnceAsync(message.Id);
+                }
                 return;
             }
 
             await Launcher.Default.OpenAsync(new OpenFileRequest(message.FileName, new ReadOnlyFile(path)));
+
+            if (message.IsOnce && !message.IsMine)
+            {
+                await _chatManager.ConsumeViewOnceAsync(message.Id);
+            }
         }
         catch (Exception ex)
         {
@@ -3123,6 +3171,11 @@ public partial class ChatView : ContentView
 
             await page.Navigation.PushModalAsync(
                 new NavigationPage(new MediaPlayerPage(path, message.FileName, message.ContentType, isVideoCircle: true)));
+
+            if (message.IsOnce && !message.IsMine)
+            {
+                await _chatManager.ConsumeViewOnceAsync(message.Id);
+            }
         }
         catch (Exception ex)
         {

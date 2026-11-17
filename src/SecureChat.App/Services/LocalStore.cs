@@ -47,6 +47,9 @@ public sealed class StoredMessage
 
     /// <summary>Всего вложений в альбоме.</summary>
     public int AlbumCount { get; set; }
+
+    /// <summary>Одноразовое сообщение: исчезает у получателя после просмотра.</summary>
+    public bool IsOnce { get; set; }
 }
 
 public sealed class StoredConversation

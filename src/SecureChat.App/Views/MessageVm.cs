@@ -54,6 +54,7 @@ public sealed class MessageVm : INotifyPropertyChanged
         Kind = string.IsNullOrEmpty(message.Kind) ? MessageKinds.Text : message.Kind;
         IsMine = message.IsMine;
         SentAtUnixMs = message.SentAtUnixMs;
+        IsOnce = message.IsOnce;
         Update(message, ownName, peerName);
     }
 
@@ -584,6 +585,9 @@ public sealed class MessageVm : INotifyPropertyChanged
         get => _editedText;
         private set => Set(ref _editedText, value);
     }
+
+    /// <summary>Одноразовое сообщение: исчезает после просмотра получателем.</summary>
+    public bool IsOnce { get; set; }
 
     public bool IsForwarded
     {

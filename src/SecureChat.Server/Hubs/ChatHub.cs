@@ -675,6 +675,42 @@ public sealed class ChatHub : Hub
         return true;
     }
 
+    /// <summary>
+    /// Просмотрено один раз: получатель сообщает, что открыл одноразовое
+    /// сообщение. Сервер удаляет его и уведомляет обе стороны. Удалить может
+    /// только участник переписки (отправитель или получатель).
+    /// </summary>
+    public async Task<bool> ConsumeViewOnce(string messageId)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(messageId))
+        {
+            return false;
+        }
+
+        var message = await _repository.GetPrivateMessageAsync(messageId);
+        if (message is null)
+        {
+            return false;
+        }
+
+        var (senderId, recipientId) = message.Value;
+        if (!string.Equals(senderId, userId, StringComparison.Ordinal) &&
+            !string.Equals(recipientId, userId, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (!await _repository.DeletePrivateMessageByParticipantAsync(messageId, userId))
+        {
+            return false;
+        }
+
+        await Clients.User(senderId).SendAsync("PrivateMessageDeleted", messageId);
+        await Clients.User(recipientId).SendAsync("PrivateMessageDeleted", messageId);
+        return true;
+    }
+
     /// <summary>Удаляет всю личную переписку с пользователем для обеих сторон.</summary>
     public async Task<bool> DeletePrivateConversation(string username)
     {

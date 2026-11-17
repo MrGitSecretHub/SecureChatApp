@@ -431,7 +431,8 @@ public sealed class ChatManager
             ReplyToMessageId = message.ReplyToMessageId,
             ReplyToText = message.ReplyToText,
             ReplyToFileName = message.ReplyToFileName,
-            ReplyToSender = message.ReplyToSender
+            ReplyToSender = message.ReplyToSender,
+            IsOnce = message.IsOnce
         };
 
         if (message.Kind != MessageKinds.Text && message.Kind != MessageKinds.Sticker)
@@ -748,7 +749,8 @@ public sealed class ChatManager
         string? replyToText = null,
         string? replyToFileName = null,
         string kind = MessageKinds.Text,
-        string? replyToSender = null)
+        string? replyToSender = null,
+        bool isOnce = false)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -771,7 +773,8 @@ public sealed class ChatManager
             replyToText: replyToText,
             replyToFileName: replyToFileName,
             kind: kind,
-            replyToSender: replyToSender);
+            replyToSender: replyToSender,
+            isOnce: isOnce);
     }
 
     /// <summary>
@@ -857,7 +860,8 @@ public sealed class ChatManager
         string? replyToFileName = null,
         string kind = MessageKinds.Text,
         string? forwardedFrom = null,
-        string? replyToSender = null)
+        string? replyToSender = null,
+        bool isOnce = false)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -896,7 +900,8 @@ public sealed class ChatManager
             ReplyToMessageId = replyToMessageId,
             ReplyToText = replyToText,
             ReplyToFileName = replyToFileName,
-            ReplyToSender = string.IsNullOrWhiteSpace(replyToMessageId) ? null : replyToSender
+            ReplyToSender = string.IsNullOrWhiteSpace(replyToMessageId) ? null : replyToSender,
+            IsOnce = isOnce
         };
         var envelope = MessageCrypto.EncryptPayload(
             messageId,
@@ -972,6 +977,37 @@ public sealed class ChatManager
         {
             ConversationsChanged?.Invoke();
             MessageDeleted?.Invoke(messageId);
+        }
+    }
+
+    /// <summary>Отмечает одноразовое сообщение как просмотренное: оно исчезает
+    /// у обеих сторон.</summary>
+    public async Task ConsumeViewOnceAsync(string messageId)
+    {
+        if (string.IsNullOrWhiteSpace(messageId))
+        {
+            return;
+        }
+
+        var success = false;
+        try
+        {
+            success = await _chatService.ConsumeViewOnceAsync(messageId);
+        }
+        catch
+        {
+            // Нет связи — удаляем хотя бы локально.
+        }
+
+        if (!success)
+        {
+            var username = _activeChat;
+            if (!string.IsNullOrWhiteSpace(username))
+            {
+                await _localStore.DeleteMessageAsync(username, messageId);
+                MessageDeleted?.Invoke(messageId);
+                ConversationsChanged?.Invoke();
+            }
         }
     }
 
@@ -1323,7 +1359,8 @@ public sealed class ChatManager
         string? replyToMessageId = null,
         string? replyToText = null,
         string? replyToFileName = null,
-        string? replyToSender = null)
+        string? replyToSender = null,
+        bool isOnce = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
         ArgumentNullException.ThrowIfNull(data);
@@ -1411,7 +1448,8 @@ public sealed class ChatManager
             SenderUsername = user.Username,
             AlbumId = albumCount > 1 ? albumId : null,
             AlbumIndex = albumCount > 1 ? albumIndex : 0,
-            AlbumCount = albumCount > 1 ? albumCount : 0
+            AlbumCount = albumCount > 1 ? albumCount : 0,
+            IsOnce = isOnce
         };
 
         if (await _localStore.AddMessageAsync(username, localMessage, incrementUnread: false))
@@ -1835,6 +1873,7 @@ public sealed class ChatManager
                 AlbumId = string.IsNullOrWhiteSpace(payload.AlbumId) ? null : payload.AlbumId,
                 AlbumIndex = payload.AlbumIndex,
                 AlbumCount = payload.AlbumCount,
+                IsOnce = payload.IsOnce,
                 ReactionsJson = payload.Reactions is null or { Count: 0 }
                     ? string.Empty
                     : JsonSerializer.Serialize(payload.Reactions)
