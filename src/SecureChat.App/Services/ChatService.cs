@@ -165,6 +165,24 @@ public sealed class ChatService : IDisposable
             .WithUrl($"{_session.ServerUrl}/hubs/chat", options =>
             {
                 options.AccessTokenProvider = () => Task.FromResult(_session.Token);
+
+                // Сервер в локальной сети: системный прокси (например, включённый
+                // 127.0.0.1:10809 в Windows) рвёт TLS и ломает подключение.
+                // Меняем конкретный inner-handler, сохраняя цепочку SignalR.
+                options.HttpMessageHandlerFactory = inner =>
+                {
+                    switch (inner)
+                    {
+                        case SocketsHttpHandler sockets:
+                            sockets.UseProxy = false;
+                            break;
+                        case HttpClientHandler http:
+                            http.UseProxy = false;
+                            break;
+                    }
+
+                    return inner;
+                };
             })
             .WithAutomaticReconnect(new[]
             {

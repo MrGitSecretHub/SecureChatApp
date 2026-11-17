@@ -13,13 +13,21 @@ public sealed class ApiException : Exception
         StatusCode = statusCode;
 }
 
-/// <summary>HTTP-клиент REST API сервера.</summary>
-public sealed class ApiClient : IDisposable
-{
-    private readonly HttpClient _http = new()
+    /// <summary>
+    /// HTTP-клиент REST API сервера. Системный прокси отключён намеренно:
+    /// сервер находится в локальной сети, а прокси (например, 127.0.0.1:10809
+    /// в Windows) рвёт TLS-соединение, из-за чего появляется ошибка
+    /// «The SSL connection could not be established».
+    /// </summary>
+    public sealed class ApiClient : IDisposable
     {
-        Timeout = TimeSpan.FromSeconds(90)
-    };
+        private readonly HttpClient _http = new(new SocketsHttpHandler
+        {
+            UseProxy = false
+        })
+        {
+            Timeout = TimeSpan.FromSeconds(90)
+        };
 
     public ApiClient()
     {
