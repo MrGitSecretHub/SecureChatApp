@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecureChat — редактор базы данных</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; font:14px/1.5 system-ui, sans-serif; background:#0b0e16; color:#e6e8eb; }
+  header { padding:14px 20px; background:#141a26; border-bottom:1px solid #2a3444; }
+  h1 { margin:0; font-size:19px; }
+  .bar { display:flex; gap:8px; padding:12px 20px; flex-wrap:wrap; align-items:center; }
+  input, select, button, textarea { font:inherit; background:#1b2330; color:#e6e8eb;
+    border:1px solid #34425a; border-radius:6px; padding:7px 10px; }
+  button { cursor:pointer; background:#4d6bff; border-color:#4d6bff; }
+  button.secondary { background:#1b2330; border-color:#34425a; }
+  button.danger { background:#8b2f36; border-color:#8b2f36; }
+  table { border-collapse:collapse; width:100%; font-size:12px; }
+  th, td { border:1px solid #2a3444; padding:5px 8px; text-align:left;
+    max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  th { background:#141a26; position:sticky; top:0; }
+  .wrap { overflow:auto; max-height:65vh; margin:0 20px; border:1px solid #2a3444; }
+  #msg { padding:8px 20px; min-height:22px; color:#ffb454; }
+  textarea { width:100%; min-height:80px; font-family:monospace; }
+  .row-actions button { padding:2px 6px; font-size:11px; }
+</style>
+</head>
+<body>
+<header><h1>SecureChat — редактор базы данных</h1></header>
+
+<div class="bar">
+  <label>Пароль: <input type="password" id="pwd" placeholder="Admin:Password"></label>
+  <select id="tables"><option value="">— таблицы —</option></select>
+  <button id="load">Загрузить</button>
+  <button class="secondary" id="refresh">Обновить список</button>
+</div>
+
+<div class="bar">
+  <textarea id="sql" placeholder="SELECT * FROM Users LIMIT 20"></textarea>
+  <button id="query">Выполнить SELECT</button>
+</div>
+
+<div id="msg"></div>
+<div class="wrap"><table id="grid"></table></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const pwd = () => $('pwd').value;
+
+async function api(path, options = {}) {
+  const opts = Object.assign({}, options);
+  opts.headers = Object.assign({ 'X-Admin-Password': pwd() }, options.headers || {});
+  const res = await fetch('/api/admin/db/' + path, opts);
+  if (!res.ok) throw new Error((await res.text()) || ('HTTP ' + res.status));
+  return res.json();
+}
+
+function msg(text, isError) {
+  $('msg').textContent = text;
+  $('msg').style.color = isError ? '#ff7676' : '#ffb454';
+}
+
+function render(columns, rows) {
+  const grid = $('grid');
+  grid.innerHTML = '';
+  const thead = document.createElement('thead');
+  const hr = document.createElement('tr');
+  columns.forEach(c => { const th = document.createElement('th'); th.textContent = c; hr.appendChild(th); });
+  thead.appendChild(hr); grid.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  rows.forEach((row, index) => {
+    const tr = document.createElement('tr');
+    columns.forEach(c => {
+      const td = document.createElement('td');
+      td.textContent = row[c] === null || row[c] === undefined ? '(NULL)' : String(row[c]);
+      td.title = td.textContent;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  grid.appendChild(tbody);
+}
+
+async function refreshTables() {
+  try {
+    const tables = await api('tables');
+    $('tables').innerHTML = '<option value="">— таблицы —</option>' +
+      tables.map(t => `<option value="${t}">${t}</option>`).join('');
+    msg('Загружено таблиц: ' + tables.length);
+  } catch (e) { msg(e.message, true); }
+}
+
+async function loadRows() {
+  const table = $('tables').value;
+  if (!table) { msg('Выберите таблицу', true); return; }
+  try {
+    const data = await api('rows?table=' + encodeURIComponent(table));
+    render(data.columns, data.rows);
+    msg(`${table}: строк ${data.rows.length}`);
+  } catch (e) { msg(e.message, true); }
+}
+
+async function runQuery() {
+  try {
+    const data = await api('query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql: $('sql').value })
+    });
+    render(data.columns, data.rows);
+    msg('Строк: ' + data.rows.length);
+  } catch (e) { msg(e.message, true); }
+}
+
+$('refresh').onclick = refreshTables;
+$('load').onclick = loadRows;
+$('query').onclick = runQuery;
+$('tables').onchange = loadRows;
+</script>
+</body>
+</html>

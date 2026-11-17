@@ -109,6 +109,19 @@ builder.WebHost.ConfigureKestrel(options =>
     }
 });
 
+// Статические файлы искать в wwwRoot каталога проекта — при запуске exe из
+// bin\Release рабочий каталог другой, и редактор БД не находился бы.
+var projectRoot = Directory.GetCurrentDirectory();
+while (!string.IsNullOrEmpty(projectRoot) &&
+       !File.Exists(Path.Combine(projectRoot, "SecureChat.Server.csproj")))
+{
+    projectRoot = Directory.GetParent(projectRoot)?.FullName ?? string.Empty;
+}
+if (!string.IsNullOrEmpty(projectRoot))
+{
+    builder.WebHost.UseWebRoot(Path.Combine(projectRoot, "wwwroot"));
+}
+
 var app = builder.Build();
 
 app.UseExceptionHandler(errorApp =>
@@ -133,6 +146,10 @@ app.Use(async (context, next) =>
 });
 
 app.UseRateLimiter();
+
+// Статические файлы (в том числе админский редактор БД /admin/db.html).
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

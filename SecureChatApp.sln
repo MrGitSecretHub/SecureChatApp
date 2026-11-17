@@ -21,6 +21,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecureChat.Server.Tests", "tests\SecureChat.Server.Tests\SecureChat.Server.Tests.csproj", "{F25CA2D9-F653-4599-897B-BB836EFE9924}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecureChat.DbEditor", "tools\SecureChat.DbEditor\SecureChat.DbEditor.csproj", "{3F4F6715-E272-4A3C-9B35-7B5CF516619C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -103,6 +105,18 @@ Global
 		{F25CA2D9-F653-4599-897B-BB836EFE9924}.Release|x64.Build.0 = Release|Any CPU
 		{F25CA2D9-F653-4599-897B-BB836EFE9924}.Release|x86.ActiveCfg = Release|Any CPU
 		{F25CA2D9-F653-4599-897B-BB836EFE9924}.Release|x86.Build.0 = Release|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Debug|x64.Build.0 = Debug|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Debug|x86.Build.0 = Debug|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Release|x64.ActiveCfg = Release|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Release|x64.Build.0 = Release|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Release|x86.ActiveCfg = Release|Any CPU
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -114,5 +128,6 @@ Global
 		{B4B004FF-0C82-45AD-B6BE-0F359D03EDB5} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{A35E1B2E-F635-4165-A934-6F72CAA5C25F} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{F25CA2D9-F653-4599-897B-BB836EFE9924} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{3F4F6715-E272-4A3C-9B35-7B5CF516619C} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 	EndGlobalSection
 EndGlobal
