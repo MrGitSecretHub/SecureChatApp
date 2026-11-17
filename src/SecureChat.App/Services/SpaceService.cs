@@ -423,6 +423,66 @@ public sealed class SpaceService
             cancellationToken);
     }
 
+    /// <summary>
+    /// Создаёт отложенный пост: шифрует содержимое сейчас и сохраняет в
+    /// локальной очереди до указанного времени.
+    /// </summary>
+    public async Task<ScheduledSpacePost?> ScheduleMessageAsync(
+        string spaceId,
+        string? topicId,
+        string text,
+        DateTime sendAt,
+        CancellationToken cancellationToken = default)
+    {
+        var messageId = Guid.NewGuid().ToString("N");
+        var payload = new SpaceMessagePayload
+        {
+            Kind = "text",
+            Text = text
+        };
+        var cipher = await EncryptPayloadAsync(spaceId, messageId, payload, topicId);
+
+        var post = new ScheduledSpacePost
+        {
+            Id = messageId,
+            SpaceId = spaceId,
+            TopicId = topicId,
+            SendAtUnixMs = new DateTimeOffset(sendAt).ToUnixTimeMilliseconds(),
+            Cipher = cipher,
+            Preview = text.Length > 60 ? text[..60] + "…" : text
+        };
+
+        await AppServices.Get<LocalStore>().AddScheduledSpacePostAsync(post);
+        return post;
+    }
+
+    /// <summary>
+    /// Отправляет уже зашифрованное сообщение (используется планировщиком
+    /// отложенных постов — шифротекст готов заранее и хранится на устройстве).
+    /// </summary>
+    public async Task<SpaceMessageDto?> SendCipherAsync(
+        string spaceId,
+        string? topicId,
+        SpaceCipher cipher,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = await GetConnectionAsync();
+        if (connection is null)
+        {
+            return null;
+        }
+
+        return await connection.InvokeAsync<SpaceMessageDto?>(
+            "SendSpaceMessage",
+            new SendSpaceMessageRequest
+            {
+                SpaceId = spaceId,
+                TopicId = topicId,
+                Cipher = cipher
+            },
+            cancellationToken);
+    }
+
     public Task<SpaceMessageDto?> SendMessageAsync(
         string spaceId,
         string? topicId,

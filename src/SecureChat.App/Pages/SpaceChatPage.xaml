@@ -921,6 +921,13 @@
                                 BackgroundColor="Transparent"
                                 Clicked="OnSilentClicked"
                                 ToolTipProperties.Text="Тихий пост — следующий пост придёт без уведомлений у подписчиков" />
+                        <Button x:Name="ScheduleButton"
+                                Text="⏰"
+                                Style="{DynamicResource IconButton}"
+                                VerticalOptions="End"
+                                IsVisible="False"
+                                Clicked="OnScheduleClicked"
+                                ToolTipProperties.Text="Отложить пост — выбрать время публикации" />
                     </HorizontalStackLayout>
                     <views:MentionEntryView Grid.Column="1"
                                             x:Name="MessageEntry"

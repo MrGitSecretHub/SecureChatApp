@@ -348,6 +348,7 @@ public partial class SpaceChatPage : ContentPage
             Composer.IsVisible = _canPost;
             ReadOnlyBanner.IsVisible = !_canPost;
             SilentButton.IsVisible = _spaceType == SpaceTypes.Channel && _canPost;
+            ScheduleButton.IsVisible = _spaceType == SpaceTypes.Channel && _canPost;
 
             // Закрытая тема форума: писать в неё нельзя.
             TopicClosedBanner.IsVisible = _currentTopicClosed && _canPost;
@@ -846,6 +847,185 @@ public partial class SpaceChatPage : ContentPage
         {
             await this.ShowErrorAsync(ex);
         }
+    }
+
+    /// <summary>Отложить пост канала: выбрать время публикации.</summary>
+    private async void OnScheduleClicked(object? sender, EventArgs e)
+    {
+        var text = MessageEntry.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            // Без текста кнопка «⏰» показывает ожидающие посты.
+            await ShowScheduledPostsAsync();
+            return;
+        }
+
+        var choice = await DisplayActionSheet(
+            "Когда опубликовать пост?",
+            "Отмена",
+            null,
+            "Через 15 минут",
+            "Через 1 час",
+            "Через 3 часа",
+            "Завтра утром (09:00)",
+            "Выбрать время…");
+
+        if (string.IsNullOrWhiteSpace(choice) || choice == "Отмена")
+        {
+            return;
+        }
+
+        DateTime sendAt;
+        if (choice == "Выбрать время…")
+        {
+            sendAt = await PickScheduleTimeAsync();
+            if (sendAt == DateTime.MinValue)
+            {
+                return;
+            }
+        }
+        else
+        {
+            var now = DateTime.Now;
+            sendAt = choice switch
+            {
+                "Через 15 минут" => now.AddMinutes(15),
+                "Через 1 час" => now.AddHours(1),
+                "Через 3 часа" => now.AddHours(3),
+                "Завтра утром (09:00)" => now.Date.AddDays(1).AddHours(9),
+                _ => now.AddHours(1)
+            };
+        }
+
+        try
+        {
+            var post = await _spaces.ScheduleMessageAsync(_spaceId, _topicId, text!, sendAt);
+            if (post is not null)
+            {
+                MessageEntry.Text = string.Empty;
+                await DisplayAlert("Пост отложен",
+                    $"Пост будет опубликован {sendAt:dd.MM.yyyy HH:mm}. Он хранится только на этом устройстве.",
+                    "Ок");
+            }
+        }
+        catch (Exception ex)
+        {
+            await this.ShowErrorAsync(ex);
+        }
+    }
+
+    /// <summary>Показывает отложенные посты этого пространства и позволяет отменить.</summary>
+    private async Task ShowScheduledPostsAsync()
+    {
+        var local = AppServices.Get<LocalStore>();
+        var posts = (await local.GetScheduledSpacePostsAsync())
+            .Where(post => post.SpaceId == _spaceId)
+            .ToList();
+
+        if (posts.Count == 0)
+        {
+            await DisplayAlert("Отложенные посты",
+                "В этом пространстве нет отложенных постов. Напишите текст и нажмите «⏰», чтобы отложить пост.",
+                "Ок");
+            return;
+        }
+
+        var labels = posts.Select(post =>
+            $"{DateTimeOffset.FromUnixTimeMilliseconds(post.SendAtUnixMs).ToLocalTime():dd.MM HH:mm} — {post.Preview}").ToArray();
+
+        var choice = await DisplayActionSheet(
+            "Отложенные посты",
+            "Закрыть",
+            null,
+            labels);
+
+        if (string.IsNullOrWhiteSpace(choice) || choice == "Закрыть")
+        {
+            return;
+        }
+
+        var index = Array.IndexOf(labels, choice);
+        if (index < 0 || index >= posts.Count)
+        {
+            return;
+        }
+
+        var target = posts[index];
+        var cancel = await DisplayAlert(
+            "Отменить пост?",
+            $"Пост «{target.Preview}» будет удалён из очереди и не будет опубликован.",
+            "Отменить пост", "Оставить");
+
+        if (!cancel)
+        {
+            return;
+        }
+
+        await local.RemoveScheduledSpacePostAsync(target.Id);
+        await DisplayAlert("Готово", "Пост удалён из очереди.", "Ок");
+    }
+
+    /// <summary>Выбор конкретных даты и времени через системные диалоги.</summary>
+    private async Task<DateTime> PickScheduleTimeAsync()
+    {
+        var date = await DisplayActionSheet(
+            "Дата публикации",
+            "Отмена",
+            null,
+            "Сегодня",
+            "Завтра",
+            "Послезавтра");
+
+        if (date is null or "Отмена")
+        {
+            return DateTime.MinValue;
+        }
+
+        var days = date switch
+        {
+            "Завтра" => 1,
+            "Послезавтра" => 2,
+            _ => 0
+        };
+
+        var timeChoice = await DisplayActionSheet(
+            "Время публикации",
+            "Отмена",
+            null,
+            "09:00", "12:00", "15:00", "18:00", "21:00", "Свой час…");
+
+        if (timeChoice is null or "Отмена")
+        {
+            return DateTime.MinValue;
+        }
+
+        int hour;
+        if (timeChoice == "Свой час…")
+        {
+            var answer = await DisplayPromptAsync(
+                "Время публикации",
+                "Введите час от 0 до 23:",
+                "Ок", "Отмена",
+                keyboard: Keyboard.Numeric);
+            if (!int.TryParse(answer, out hour) || hour is < 0 or > 23)
+            {
+                return DateTime.MinValue;
+            }
+        }
+        else
+        {
+            hour = timeChoice switch
+            {
+                "12:00" => 12,
+                "15:00" => 15,
+                "18:00" => 18,
+                "21:00" => 21,
+                _ => 9
+            };
+        }
+
+        var result = DateTime.Now.Date.AddDays(days).AddHours(hour);
+        return result <= DateTime.Now ? result.AddDays(1) : result;
     }
 
     private void OnPinnedBannerTapped(object sender, EventArgs e)

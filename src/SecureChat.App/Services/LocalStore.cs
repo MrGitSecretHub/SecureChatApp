@@ -108,6 +108,9 @@ public sealed class LocalState
 
     /// <summary>Свои пакеты GIF и стикеров, импортированные на устройство.</summary>
     public List<CustomPack> CustomPacks { get; set; } = new();
+
+    /// <summary>Отложенные посты пространств (уже зашифрованные, ждут своего времени).</summary>
+    public List<ScheduledSpacePost> ScheduledSpacePosts { get; set; } = new();
 }
 
 /// <summary>Пользовательский пак: набор файлов (GIF или стикеры) на устройстве.</summary>
@@ -332,6 +335,79 @@ public sealed class LocalStore
             _lock.Release();
         }
     }
+
+    // ============================== ОТЛОЖЕННЫЕ ПОСТЫ ==============================
+
+    /// <summary>Добавляет отложенный пост в локальную очередь.</summary>
+    public async Task AddScheduledSpacePostAsync(ScheduledSpacePost post)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            _state!.ScheduledSpacePosts.RemoveAll(item => item.Id == post.Id);
+            _state.ScheduledSpacePosts.Add(post);
+            await SaveAsync();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Возвращает все отложенные посты, отсортированные по времени отправки.</summary>
+    public async Task<IReadOnlyList<ScheduledSpacePost>> GetScheduledSpacePostsAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            return _state!.ScheduledSpacePosts
+                .OrderBy(item => item.SendAtUnixMs)
+                .Select(CloneScheduledPost)
+                .ToList();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Удаляет отложенный пост по id.</summary>
+    public async Task RemoveScheduledSpacePostAsync(string id)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            if (_state!.ScheduledSpacePosts.RemoveAll(item => item.Id == id) > 0)
+            {
+                await SaveAsync();
+            }
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    private static ScheduledSpacePost CloneScheduledPost(ScheduledSpacePost post) => new()
+    {
+        Id = post.Id,
+        SpaceId = post.SpaceId,
+        TopicId = post.TopicId,
+        SendAtUnixMs = post.SendAtUnixMs,
+        Preview = post.Preview,
+        Cipher = new SpaceCipher
+        {
+            MessageId = post.Cipher.MessageId,
+            TopicId = post.Cipher.TopicId,
+            Nonce = post.Cipher.Nonce,
+            Tag = post.Cipher.Tag,
+            Ciphertext = post.Cipher.Ciphertext,
+            Signature = post.Cipher.Signature
+        }
+    };
 
     public async Task SetSpaceMutedAsync(string spaceId, bool muted)
     {

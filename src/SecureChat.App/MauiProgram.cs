@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using SecureChat.App.Pages;
+using SecureChat.App.Scheduling;
 using SecureChat.App.Services;
 
 namespace SecureChat.App;
@@ -27,6 +28,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<CustomPackService>();
         builder.Services.AddSingleton<AccountService>();
         builder.Services.AddSingleton<SpaceMentionNotifier>();
+        builder.Services.AddSingleton<ScheduledPostService>();
 
 #if ANDROID
         builder.Services.AddSingleton<IAudioRecorder, AudioRecorderAndroid>();

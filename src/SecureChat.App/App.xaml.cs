@@ -47,6 +47,10 @@ public partial class App : Application
         // Упоминания @ в пространствах: системное уведомление или звук
         // независимо от того, какие страницы открыты.
         AppServices.Get<SpaceMentionNotifier>();
+
+        // Отложенные посты пространств: таймер проверяет очередь и отправляет
+        // посты, чьё время пришло.
+        AppServices.Get<SecureChat.App.Scheduling.ScheduledPostService>().Start();
     }
 
     private static async void OnIncomingMessage(StoredMessage message, string username)
