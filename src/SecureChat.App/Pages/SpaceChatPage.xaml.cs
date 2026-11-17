@@ -22,6 +22,8 @@ public partial class SpaceChatPage : ContentPage
 {
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
     private readonly ChatManager _chat = AppServices.Get<ChatManager>();
+    private readonly SecureChat.App.Scheduling.ScheduledPostService _scheduledPosts =
+        AppServices.Get<SecureChat.App.Scheduling.ScheduledPostService>();
     private readonly LinkPreviewService _previewService = AppServices.Get<LinkPreviewService>();
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<SpaceMessageVm> _messages = new();
@@ -124,6 +126,11 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageUpdated += OnSpaceMessageUpdated;
         _spaces.SpaceMessageDeleted += OnSpaceMessageDeleted;
         _spaces.TopicUpdated += OnTopicUpdated;
+
+        // Отложенные посты публикуются фоновой службой — обновляем ленту сразу,
+        // не дожидаясь перезахода в канал.
+        _scheduledPosts.PostSent += OnScheduledPostSent;
+
         AppServices.Get<AppSession>().AppearanceChanged += OnAppearanceChanged;
         RefreshSenderNameColors();
         ApplySpaceWallpaper();
@@ -172,10 +179,45 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageUpdated -= OnSpaceMessageUpdated;
         _spaces.SpaceMessageDeleted -= OnSpaceMessageDeleted;
         _spaces.TopicUpdated -= OnTopicUpdated;
+        _scheduledPosts.PostSent -= OnScheduledPostSent;
         AppServices.Get<AppSession>().AppearanceChanged -= OnAppearanceChanged;
     }
 
     /// <summary>Тему переименовали, закрыли или переставили — обновляем ленту.</summary>
+    /// <summary>Отложенный пост опубликован — добавляем его в открытую ленту сразу.</summary>
+    private void OnScheduledPostSent(string spaceId, SpaceMessageDto message)
+    {
+        if (!string.Equals(spaceId, _spaceId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (_topicId is not null &&
+            !string.Equals(message.TopicId, _topicId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            if (_messages.Any(item => item.Id == message.Id))
+            {
+                return;
+            }
+
+            var payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
+            if (payload is null)
+            {
+                await LoadAsync();
+                return;
+            }
+
+            _messages.Add(CreateVm(message, payload));
+            RefreshDateLabels();
+            MessagesView.ScrollTo(_messages[^1], position: ScrollToPosition.End, animate: false);
+        });
+    }
+
     private void OnTopicUpdated(TopicDto topic)
     {
         if (!string.Equals(topic.SpaceId, _spaceId, StringComparison.Ordinal))

@@ -84,6 +84,11 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     public bool IsForwarded { get; init; }
     public string TimeText { get; init; } = string.Empty;
 
+    /// <summary>Показывать время у постов (настройка «Время у сообщений»).</summary>
+    public bool ShowTimestamps =>
+        Application.Current?.Resources.TryGetValue("ShowTimestamps", out var value) == true &&
+        value is bool show && show;
+
     /// <summary>Метка времени сервера — нужна для разделителей дат в ленте.</summary>
     public long SentAtUnixMs { get; init; }
 

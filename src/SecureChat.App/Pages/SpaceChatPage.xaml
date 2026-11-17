@@ -351,6 +351,13 @@
                                        FontAttributes="Bold"
                                        TextColor="{Binding SenderNameColor}" />
 
+                                <!-- Время публикации поста -->
+                                <Label Text="{Binding TimeText}"
+                                       IsVisible="{Binding ShowTimestamps}"
+                                       FontSize="10"
+                                       TextColor="{DynamicResource TextMuted}"
+                                       Margin="0,0,0,2" />
+
                                 <Label Text="↪ Переслано"
                                        IsVisible="{Binding IsForwarded}"
                                        FontSize="11"
