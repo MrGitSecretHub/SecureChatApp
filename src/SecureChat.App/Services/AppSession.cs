@@ -223,10 +223,47 @@ public sealed class AppSession
         Token = null;
     }
 
-    public static string NormalizeServerUrl(string value) =>
-        value.Trim().TrimEnd('/');
+    /// <summary>
+    /// Приводит адрес сервера к каноническому виду: убирает пробелы и
+    /// завершающий слэш, добавляет схему, если пользователь её не указал.
+    /// По умолчанию — HTTPS; порт 5080 означает локальный HTTP-отладчик.
+    /// </summary>
+    public static string NormalizeServerUrl(string value)
+    {
+        var text = value.Trim().TrimEnd('/');
+        if (text.Length == 0)
+        {
+            return text;
+        }
+
+        // Уже есть схема (http:// или https://) — только чистим хвост.
+        if (text.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            text.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return text;
+        }
+
+        // Домен туннеля (не IP): Playit и подобные сервисы пробрасывают HTTPS
+        // на стандартный 443, а не на 5443. Если пользователь указал
+        // «domain:5443», убираем порт — иначе соединение висит и падает с SSL.
+        var hostPart = text.Split(':', 2)[0];
+        var isIpHost = System.Net.IPAddress.TryParse(hostPart, out _);
+        var isLocal = hostPart.StartsWith("localhost", StringComparison.OrdinalIgnoreCase);
+
+        if (!isIpHost && !isLocal && text.EndsWith(":5443", StringComparison.Ordinal))
+        {
+            text = hostPart;
+        }
+
+        // 5080 — локальный HTTP-профиль сервера, всё остальное — HTTPS.
+        var isLocalHttp = text.Contains(":5080", StringComparison.Ordinal) ||
+                          isIpHost || isLocal;
+
+        return (isLocalHttp ? "http://" : "https://") + text;
+    }
 
     public static bool IsValidServerUrl(string value) =>
         Uri.TryCreate(NormalizeServerUrl(value), UriKind.Absolute, out var uri)
-        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
+        && !string.IsNullOrWhiteSpace(uri.Host);
 }

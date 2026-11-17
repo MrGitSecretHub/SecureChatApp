@@ -26,7 +26,7 @@
                     <VerticalStackLayout Spacing="10">
                         <Label Text="Адрес сервера" Style="{DynamicResource FieldLabel}" />
                         <Entry x:Name="ServerEntry"
-                               Placeholder="https://localhost:5443"
+                               Placeholder="домен или IP:порт (схема необязательна)"
                                Keyboard="Url"
                                ClearButtonVisibility="WhileEditing" />
                         <Label x:Name="ServerHintLabel"

@@ -289,7 +289,8 @@ public sealed class AccountService
     {
         if (!AppSession.IsValidServerUrl(serverUrl))
         {
-            throw new ArgumentException("Укажите корректный адрес сервера, например https://localhost:5443.");
+            throw new ArgumentException(
+                "Укажите адрес сервера: домен или IP с портом. Схему (http:// или https://) можно не писать.");
         }
 
         if (!UsernamePattern.IsMatch(username.Trim()))
