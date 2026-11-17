@@ -934,7 +934,7 @@
                                 VerticalOptions="End"
                                 IsVisible="False"
                                 Clicked="OnScheduleClicked"
-                                ToolTipProperties.Text="Отложить пост — выбрать время публикации" />
+                                ToolTipProperties.Text="Отложить сообщение — выбрать время публикации" />
                     </HorizontalStackLayout>
                     <views:MentionEntryView Grid.Column="1"
                                             x:Name="MessageEntry"

@@ -390,7 +390,9 @@ public partial class SpaceChatPage : ContentPage
             Composer.IsVisible = _canPost;
             ReadOnlyBanner.IsVisible = !_canPost;
             SilentButton.IsVisible = _spaceType == SpaceTypes.Channel && _canPost;
-            ScheduleButton.IsVisible = _spaceType == SpaceTypes.Channel && _canPost;
+            // Отложенные посты доступны во всех типах пространств, где можно писать:
+            // группы, каналы, темы форума и сообщества.
+            ScheduleButton.IsVisible = _canPost;
 
             // Закрытая тема форума: писать в неё нельзя.
             TopicClosedBanner.IsVisible = _currentTopicClosed && _canPost;
