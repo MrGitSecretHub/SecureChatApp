@@ -261,13 +261,16 @@ public sealed class ChatService : IDisposable
         var host = "localhost";
         var port = 5444;
 
-        if (Uri.TryCreate(serverUrl, UriKind.Absolute, out var uri))
+        // Явно заданный хост TCP-туннеля (например, домен Playit) имеет приоритет
+        // над хостом из ServerUrl — у туннелей HTTP и TCP разные адреса.
+        if (!string.IsNullOrWhiteSpace(_session.TcpHost))
+        {
+            host = _session.TcpHost.Trim();
+        }
+        else if (Uri.TryCreate(serverUrl, UriKind.Absolute, out var uri) &&
+                 !string.IsNullOrWhiteSpace(uri.Host))
         {
             host = uri.Host;
-            if (string.Equals(host, "10.0.2.2", StringComparison.OrdinalIgnoreCase))
-            {
-                host = "10.0.2.2";
-            }
         }
 
         if (_session.TcpPort > 0)

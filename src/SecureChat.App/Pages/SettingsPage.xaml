@@ -169,6 +169,26 @@
                            LineBreakMode="CharacterWrap"
                            IsVisible="False" />
 
+                    <!-- TCP-туннель (например, Playit): отдельный адрес и порт -->
+                    <VerticalStackLayout Spacing="6" Margin="0,8,0,0">
+                        <Label Text="TCP-туннель" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="Для доступа из интернета через Playit и подобные сервисы. Хост и порт берутся из туннеля, а не из адреса сервера."
+                               Style="{DynamicResource Caption}" />
+                        <Grid ColumnDefinitions="*,100" ColumnSpacing="8">
+                            <Entry x:Name="TcpHostEntry"
+                                   Placeholder="домен туннеля, например tun.ply.gg"
+                                   TextColor="{DynamicResource TextPrimary}"
+                                   Keyboard="Url"
+                                   TextChanged="OnTcpTunnelChanged" />
+                            <Entry x:Name="TcpPortEntry"
+                                   Placeholder="порт"
+                                   TextColor="{DynamicResource TextPrimary}"
+                                   Keyboard="Numeric"
+                                   MaxLength="5"
+                                   TextChanged="OnTcpTunnelChanged" />
+                        </Grid>
+                    </VerticalStackLayout>
+
                     <Label x:Name="FingerprintLabel"
                            Style="{DynamicResource Caption}"
                            LineBreakMode="CharacterWrap" />

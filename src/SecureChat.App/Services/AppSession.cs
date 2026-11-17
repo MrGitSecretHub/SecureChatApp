@@ -184,6 +184,12 @@ public sealed class AppSession
     /// <summary>Порт TCP-сервера чата.</summary>
     public int TcpPort { get; set; } = 5444;
 
+    /// <summary>
+    /// Хост TCP-туннеля (например, домен Playit). Пусто — использовать хост
+    /// из адреса сервера (локальная сеть).
+    /// </summary>
+    public string TcpHost { get; set; } = string.Empty;
+
     /// <summary>Сессия восстановлена без сервера, по локальному профилю.</summary>
     public bool RestoredOffline { get; set; }
 

@@ -18,6 +18,9 @@ public partial class App : Application
     private const string AutoNightKey = "ui.autoNight";
     private const string WallpaperKey = "ui.wallpaper";
     private const string WallpaperDimKey = "ui.wallpaperDim";
+    private const string TcpHostKey = "net.tcpHost";
+    private const string TcpPortKey = "net.tcpPort";
+    private const string TransportKey = "net.transport";
     private const string CustomThemesKey = "ui.customThemes";
     private const string ActiveCustomThemeKey = "ui.activeCustomTheme";
 
@@ -539,6 +542,20 @@ public partial class App : Application
             var wallpaperDim = await secrets.GetAsync(WallpaperDimKey);
             var customThemes = await secrets.GetAsync(CustomThemesKey);
             var activeCustomTheme = await secrets.GetAsync(ActiveCustomThemeKey);
+            var tcpHost = await secrets.GetAsync(TcpHostKey);
+            var tcpPort = await secrets.GetAsync(TcpPortKey);
+            var transport = await secrets.GetAsync(TransportKey);
+
+            session.TcpHost = tcpHost ?? string.Empty;
+            if (int.TryParse(tcpPort, out var parsedPort) && parsedPort > 0)
+            {
+                session.TcpPort = parsedPort;
+            }
+
+            if (!string.IsNullOrWhiteSpace(transport))
+            {
+                session.TransportMode = transport;
+            }
 
             if (!string.IsNullOrWhiteSpace(theme))
             {
@@ -626,6 +643,9 @@ public partial class App : Application
             await secrets.SetAsync(WallpaperDimKey, session.WallpaperDim ? "1" : "0");
             await secrets.SetAsync(CustomThemesKey, ChatJson.Serialize(session.CustomThemes));
             await secrets.SetAsync(ActiveCustomThemeKey, session.ActiveCustomThemeId);
+            await secrets.SetAsync(TcpHostKey, session.TcpHost);
+            await secrets.SetAsync(TcpPortKey, session.TcpPort.ToString());
+            await secrets.SetAsync(TransportKey, session.TransportMode);
         }
         catch
         {

@@ -13,6 +13,7 @@ public partial class SettingsPage : ContentPage
     private readonly WallpaperService _wallpapers = AppServices.Get<WallpaperService>();
     private CancellationTokenSource? _profileSyncCts;
     private bool _showAllThemes;
+    private bool _tcpTunnelInitialized;
     private readonly ObservableCollection<ThemeTileVm> _themeItems = new();
 
     public SettingsPage()
@@ -104,6 +105,10 @@ public partial class SettingsPage : ContentPage
             "TCP" => 2,
             _ => 0
         };
+        _tcpTunnelInitialized = false;
+        TcpHostEntry.Text = _session.TcpHost;
+        TcpPortEntry.Text = _session.TcpPort.ToString();
+        _tcpTunnelInitialized = true;
         TimestampsSwitch.IsToggled = _session.ShowTimestamps;
         CompactSidebarSwitch.IsToggled = _session.CompactSidebar;
 
@@ -253,6 +258,23 @@ public partial class SettingsPage : ContentPage
         await Navigation.PushAsync(new ThemeEditorPage());
         UpdateCustomThemeLabel();
         UpdateThemePreview();
+    }
+
+    /// <summary>Сохраняет адрес TCP-туннеля (хост и порт) без переподключения.</summary>
+    private async void OnTcpTunnelChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (!_tcpTunnelInitialized)
+        {
+            return;
+        }
+
+        _session.TcpHost = TcpHostEntry.Text?.Trim() ?? string.Empty;
+        if (int.TryParse(TcpPortEntry.Text?.Trim(), out var port) && port is > 0 and < 65536)
+        {
+            _session.TcpPort = port;
+        }
+
+        await App.SaveAppearanceAsync();
     }
 
     private async void OnFontScaleChanged(object sender, EventArgs e)
