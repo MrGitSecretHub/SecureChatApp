@@ -166,18 +166,22 @@ public sealed class ChatService : IDisposable
             {
                 options.AccessTokenProvider = () => Task.FromResult(_session.Token);
 
-                // Сервер в локальной сети: системный прокси (например, включённый
-                // 127.0.0.1:10809 в Windows) рвёт TLS и ломает подключение.
-                // Меняем конкретный inner-handler, сохраняя цепочку SignalR.
                 options.HttpMessageHandlerFactory = inner =>
                 {
+                    // Сервер в локальной сети: системный прокси (например, включённый
+                    // 127.0.0.1:10809 в Windows) рвёт TLS и ломает подключение.
+                    // Меняем конкретный inner-handler, сохраняя цепочку SignalR.
                     switch (inner)
                     {
                         case SocketsHttpHandler sockets:
                             sockets.UseProxy = false;
+                            sockets.SslOptions.RemoteCertificateValidationCallback =
+                                ServerCertificatePin.Validate;
                             break;
                         case HttpClientHandler http:
                             http.UseProxy = false;
+                            http.ServerCertificateCustomValidationCallback =
+                                ServerCertificatePin.Validate;
                             break;
                     }
 

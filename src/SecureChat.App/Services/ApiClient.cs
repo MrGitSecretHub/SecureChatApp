@@ -23,7 +23,11 @@ public sealed class ApiException : Exception
     {
         private readonly HttpClient _http = new(new SocketsHttpHandler
         {
-            UseProxy = false
+            UseProxy = false,
+            SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+            {
+                RemoteCertificateValidationCallback = ServerCertificatePin.Validate
+            }
         })
         {
             Timeout = TimeSpan.FromSeconds(90)
