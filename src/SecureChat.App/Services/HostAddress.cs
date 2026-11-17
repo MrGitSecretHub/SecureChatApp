@@ -61,15 +61,41 @@ public sealed partial class HostAddress
         }
 
         var host = text;
-        var port = defaultPort;
         var colon = text.LastIndexOf(':');
-        if (colon > 0 && int.TryParse(text[(colon + 1)..], out var parsed) && SupportedPorts.Contains(parsed))
+        var portText = colon > 0 ? text[(colon + 1)..] : string.Empty;
+        var parsedPort = int.TryParse(portText, out var p) ? p : 0;
+        var hasPort = colon > 0 && parsedPort > 0;
+
+        // TCP-туннель (например, :38109) не является HTTP-адресом — не трогаем.
+        if (hasPort && !SupportedPorts.Contains(parsedPort))
         {
-            host = text[..colon];
-            port = parsed;
+            return text;
         }
 
-        // TCP-порт 4444 не является HTTP-адресом — оставляем как есть.
+        int port;
+        if (hasPort)
+        {
+            host = text[..colon];
+            port = parsedPort;
+        }
+        else
+        {
+            // Домен без порта — публичный туннель: HTTPS на 443.
+            // IP-адрес или localhost — локальный сервер: HTTPS на 5443.
+            var isIp = System.Net.IPAddress.TryParse(host, out _);
+            var isLocal = host.StartsWith("localhost", StringComparison.OrdinalIgnoreCase);
+            port = isIp || isLocal ? defaultPort : PublicHttpsPort;
+        }
+
+        // Для доменного туннеля 5443 бесполезен — туннель слушает 443.
+        // Локальный 5080 (IP) оставляем как HTTP-отладку.
+        var isIpHost = System.Net.IPAddress.TryParse(host, out _);
+        var isLocalHost = host.StartsWith("localhost", StringComparison.OrdinalIgnoreCase);
+        if (!isIpHost && !isLocalHost && port == HttpsPort)
+        {
+            port = PublicHttpsPort;
+        }
+
         if (port == PublicTcpPort)
         {
             return text;
