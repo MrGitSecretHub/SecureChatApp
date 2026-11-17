@@ -45,46 +45,73 @@ public sealed class MainForm : Form
         Height = 760;
         StartPosition = FormStartPosition.CenterScreen;
 
+        // Компоновка строками: шапка файла, выбор таблицы, сетка, SQL, статус.
+        // TableLayoutPanel гарантирует, что сетка займёт именно среднюю строку
+        // и её заголовки колонок всегда будут видны.
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 5,
+            Padding = new Padding(0)
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 120));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+        Controls.Add(layout);
+
         // Верхняя панель: файл БД
         var topPanel = new FlowLayoutPanel
         {
-            Dock = DockStyle.Top,
-            Height = 42,
+            Dock = DockStyle.Fill,
             Padding = new Padding(8, 6, 8, 6),
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = false
         };
         topPanel.Controls.Add(_openButton);
-        var pathPanel = new Panel { Width = 620, Height = 28 };
+        var pathPanel = new Panel { Width = 620, Height = 28, Margin = new Padding(8, 0, 8, 0) };
+        _pathBox.Dock = DockStyle.Fill;
         pathPanel.Controls.Add(_pathBox);
         topPanel.Controls.Add(pathPanel);
         topPanel.Controls.Add(_refreshButton);
         topPanel.Controls.Add(_saveButton);
-        Controls.Add(topPanel);
+        layout.Controls.Add(topPanel, 0, 0);
 
         // Панель таблиц
         var tablePanel = new FlowLayoutPanel
         {
-            Dock = DockStyle.Top,
-            Height = 42,
+            Dock = DockStyle.Fill,
             Padding = new Padding(8, 6, 8, 6),
             FlowDirection = FlowDirection.LeftToRight
         };
         tablePanel.Controls.Add(new Label { Text = "Таблица:", AutoSize = true, Padding = new Padding(0, 6, 6, 0) });
         tablePanel.Controls.Add(_tablesBox);
-        Controls.Add(tablePanel);
+        layout.Controls.Add(tablePanel, 0, 1);
+
+        // Сетка — средняя строка, заголовки колонок видны всегда.
+        _grid.ColumnHeadersVisible = true;
+        _grid.RowHeadersVisible = true;
+        _grid.Dock = DockStyle.Fill;
+        _grid.Margin = new Padding(8, 0, 8, 0);
+        layout.Controls.Add(_grid, 0, 2);
 
         // SQL-панель
-        var sqlPanel = new Panel { Dock = DockStyle.Bottom, Height = 130, Padding = new Padding(8) };
-        var sqlHeader = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 30 };
+        var sqlPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(8) };
+        var sqlHeader = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 28 };
         sqlHeader.Controls.Add(new Label { Text = "SQL-запрос (SELECT / PRAGMA):", AutoSize = true });
         sqlHeader.Controls.Add(_queryButton);
         sqlPanel.Controls.Add(sqlHeader);
+        _sqlBox.Dock = DockStyle.Fill;
         sqlPanel.Controls.Add(_sqlBox);
-        Controls.Add(sqlPanel);
+        layout.Controls.Add(sqlPanel, 0, 3);
 
-        Controls.Add(_grid);
-        Controls.Add(_status);
+        // Статус
+        _status.Dock = DockStyle.Fill;
+        _status.Padding = new Padding(10, 4, 0, 0);
+        layout.Controls.Add(_status, 0, 4);
 
         _openButton.Click += (_, _) => OpenDatabase();
         _refreshButton.Click += (_, _) => LoadTables();
@@ -273,7 +300,17 @@ public sealed class MainForm : Form
             var row = table.NewRow();
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                row[i] = reader.IsDBNull(i) ? DBNull.Value : reader.GetValue(i);
+                var value = reader.IsDBNull(i) ? DBNull.Value : reader.GetValue(i);
+
+                // BLOB показываем в HEX, а не «System.Byte[]».
+                if (value is byte[] bytes)
+                {
+                    var preview = bytes.Length > 16 ? bytes[..16] : bytes;
+                    value = Convert.ToHexString(preview).ToLowerInvariant() +
+                            (bytes.Length > 16 ? $"… ({bytes.Length} байт)" : string.Empty);
+                }
+
+                row[i] = value;
             }
             table.Rows.Add(row);
         }
