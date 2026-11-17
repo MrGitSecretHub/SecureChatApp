@@ -576,6 +576,10 @@
 - Перевыпущен сертификат; проверено: обычный `HttpClient` без обхода SSL
   получает 200 от `https://secure.playit.plus/api/health`, SignalR negotiate
   отвечает 401 без токена.
+- **Для Android:** сертификат выпускается с `BasicConstraints CA:TRUE` и
+  `KeyUsage: Certificate Signing` — без этого Android не доверяет корневому
+  сертификату даже через `@raw/lan_tls`. Обновлён `.cer` в `res/raw` и
+  пересобран APK (на Android ошибка была `net_http_ssl_connection_failed`).
 
 ## [1.0.0]
 

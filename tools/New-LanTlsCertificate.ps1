@@ -47,6 +47,9 @@ $sanParts += $allDnsNames | ForEach-Object { "DNS=$_" }
 $sanParts += $IpAddresses | ForEach-Object { "IPAddress=$_" }
 $sanExtension = '2.5.29.17={text}' + ($sanParts -join '&')
 $serverAuthExtension = '2.5.29.37={text}1.3.6.1.5.5.7.3.1'
+# Android требует CA:TRUE у корневого сертификата, иначе не доверяет ему
+# даже через network_security_config (@raw/lan_tls).
+$basicConstraints = '2.5.29.19={text}CA=true&pathlength=0'
 
 # Remove previously issued LAN certificates from the trusted roots so they do not accumulate.
 Get-ChildItem -Path 'Cert:\CurrentUser\Root' | Where-Object { $_.Subject -eq 'CN=SecureChat LAN server' } | Remove-Item
@@ -54,11 +57,11 @@ Get-ChildItem -Path 'Cert:\CurrentUser\Root' | Where-Object { $_.Subject -eq 'CN
 $cert = New-SelfSignedCertificate `
     -Subject 'CN=SecureChat LAN server' `
     -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 `
-    -KeyUsage DigitalSignature, KeyEncipherment `
+    -KeyUsage DigitalSignature, KeyEncipherment, CertSign, CRLSign `
     -KeyExportPolicy Exportable `
     -NotAfter (Get-Date).AddYears(2) `
     -CertStoreLocation 'Cert:\CurrentUser\My' `
-    -TextExtension @($sanExtension, $serverAuthExtension)
+    -TextExtension @($sanExtension, $serverAuthExtension, $basicConstraints)
 
 $rng = New-Object System.Security.Cryptography.RNGCryptoServiceProvider
 $bytes = New-Object byte[] 24

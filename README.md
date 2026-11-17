@@ -95,10 +95,13 @@ HTTPS там работает на стандартном 443, поэтому п
 TCP-порт задаётся ключом `Tcp:Port`.
 
 Скрипт автоматически добавляет в SAN домены Playit (`secure.playit.plus`,
-`svcea.playit.plus`, `playit.plus`, `tun.ply.gg`) — без них клиент отклоняет
-сертификат с «имя узла не совпадает». Свои домены можно добавить параметром
+`svcea.playit.plus`, `playit.plus`, `tun.ply.gg`) и выпускает сертификат с
+`CA:TRUE` — Android требует этого, чтобы доверять корневому сертификату
+через `network_security_config.xml`. Свои домены можно добавить параметром
 `-DnsNames 'my.domain','other.domain'`. После перевыпуска нужно перезапустить
-сервер и заново доверить `lan-tls.cer` на других устройствах/учётных записях.
+сервер и заново скопировать `lan-tls.cer` в
+`src/SecureChat.App/Platforms/Android/Resources/raw/lan_tls.cer` перед
+сборкой APK.
 
 **Как проверить подключение через туннель:**
 
