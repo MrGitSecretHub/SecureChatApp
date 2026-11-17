@@ -10,9 +10,21 @@
         <VerticalStackLayout Grid.Row="0"
                              Padding="16,14,16,4"
                              Spacing="2">
-            <Label Text="Пространства" Style="{DynamicResource H1}" />
-            <Label Text="Группы, каналы и форумы с сквозным шифрованием."
-                   Style="{DynamicResource Caption}" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label Text="Пространства" Style="{DynamicResource H1}" />
+                    <Label Text="Группы, каналы и форумы с сквозным шифрованием."
+                           Style="{DynamicResource Caption}" />
+                </VerticalStackLayout>
+                <Button Grid.Column="1"
+                        x:Name="JoinRequestsButton"
+                        Text="📥"
+                        Style="{DynamicResource IconButton}"
+                        VerticalOptions="Center"
+                        IsVisible="False"
+                        Clicked="OnJoinRequestsClicked"
+                        ToolTipProperties.Text="Заявки на вступление" />
+            </Grid>
         </VerticalStackLayout>
 
         <SearchBar Grid.Row="1"

@@ -103,6 +103,12 @@ public sealed class SpaceService
     /// <summary>Тему переименовали, закрыли или переставили.</summary>
     public event Action<TopicDto>? TopicUpdated;
 
+    /// <summary>Новая заявка на вступление (у администраторов).</summary>
+    public event Action<string>? JoinRequestReceived;
+
+    /// <summary>Заявку приняли или отклонили (у заявителя).</summary>
+    public event Action<string, bool, string>? JoinRequestResolved;
+
     private HubConnection? _subscribedConnection;
     public void Subscribe()
     {
@@ -133,6 +139,14 @@ public sealed class SpaceService
         connection.On<TopicDto>(
             "TopicUpdated",
             topic => TopicUpdated?.Invoke(topic));
+
+        connection.On<string>(
+            "JoinRequestReceived",
+            spaceId => JoinRequestReceived?.Invoke(spaceId));
+
+        connection.On<string, bool, string>(
+            "JoinRequestResolved",
+            (spaceId, approved, spaceName) => JoinRequestResolved?.Invoke(spaceId, approved, spaceName));
 
         // Пригласили в новое пространство — подтягиваем участие в его группе,
         // чтобы получать сообщения без переподключения к серверу.
@@ -270,6 +284,54 @@ public sealed class SpaceService
         }
 
         return await connection.InvokeAsync<bool>("JoinSpace", spaceId, cancellationToken);
+    }
+
+    /// <summary>Подать заявку на вступление в приватное пространство.</summary>
+    public async Task<bool> RequestToJoinAsync(
+        string spaceId,
+        string message,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = await GetConnectionAsync();
+        if (connection is null)
+        {
+            return false;
+        }
+
+        return await connection.InvokeAsync<bool>(
+            "RequestToJoinSpace", spaceId, message, cancellationToken);
+    }
+
+    /// <summary>Ожидающие заявки на вступление (для владельца и админов).</summary>
+    public async Task<List<SpaceJoinRequestDto>> GetJoinRequestsAsync(
+        string spaceId,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = await GetConnectionAsync();
+        if (connection is null)
+        {
+            return new List<SpaceJoinRequestDto>();
+        }
+
+        return await connection.InvokeAsync<List<SpaceJoinRequestDto>>(
+            "GetJoinRequests", spaceId, cancellationToken)
+            ?? new List<SpaceJoinRequestDto>();
+    }
+
+    /// <summary>Принять или отклонить заявку.</summary>
+    public async Task<bool> ResolveJoinRequestAsync(
+        string requestId,
+        bool approved,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = await GetConnectionAsync();
+        if (connection is null)
+        {
+            return false;
+        }
+
+        return await connection.InvokeAsync<bool>(
+            "ResolveJoinRequest", requestId, approved, cancellationToken);
     }
 
     /// <summary>

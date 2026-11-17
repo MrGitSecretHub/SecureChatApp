@@ -462,6 +462,123 @@ public sealed class ChatHub : Hub
         return members;
     }
 
+    // ============================== ЗАЯВКИ НА ВСТУПЛЕНИЕ ==============================
+
+    /// <summary>Подать заявку на вступление в приватное пространство.</summary>
+    public async Task<bool> RequestToJoinSpace(string spaceId, string message)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId))
+        {
+            return false;
+        }
+
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null)
+        {
+            return false;
+        }
+
+        if (space.IsPublic)
+        {
+            // Публичное пространство не требует заявки — вступаем сразу.
+            return await JoinSpace(spaceId);
+        }
+
+        var members = await _spaces.GetMembersAsync(spaceId);
+        if (members.Any(item => string.Equals(item.UserId, userId, StringComparison.Ordinal)))
+        {
+            return true; // уже участник
+        }
+
+        var created = await _spaces.CreateJoinRequestAsync(spaceId, userId, message ?? string.Empty);
+
+        // Уведомляем администраторов о новой заявке.
+        var admins = members
+            .Where(item => item.Role is SpaceRoles.Owner or SpaceRoles.Admin)
+            .Select(item => item.UserId)
+            .ToList();
+        foreach (var adminId in admins)
+        {
+            await Clients.User(adminId).SendAsync("JoinRequestReceived", spaceId);
+        }
+
+        return created;
+    }
+
+    /// <summary>Список ожидающих заявок (только владелец и администраторы).</summary>
+    public async Task<List<SpaceJoinRequestDto>> GetJoinRequests(string spaceId)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId))
+        {
+            return new List<SpaceJoinRequestDto>();
+        }
+
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null || !IsAdmin(space.MyRole))
+        {
+            return new List<SpaceJoinRequestDto>();
+        }
+
+        return await _spaces.ListPendingJoinRequestsAsync(spaceId);
+    }
+
+    /// <summary>Принять или отклонить заявку (только владелец и администраторы).</summary>
+    public async Task<bool> ResolveJoinRequest(string requestId, bool approved)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(requestId))
+        {
+            return false;
+        }
+
+        var request = await _spaces.ResolveJoinRequestAsync(requestId, approved, userId);
+        if (request is null)
+        {
+            return false;
+        }
+
+        var space = await _spaces.GetAsync(request.SpaceId, userId);
+        var applicant = await _repository.GetUserByIdAsync(request.UserId);
+
+        if (approved)
+        {
+            // При одобрении добавляем в участники и в группу SignalR —
+            // дальше E2E-ключ доставляется по уже работающему механизму.
+            var canPost = string.Equals(space?.Type, SpaceTypes.Group, StringComparison.OrdinalIgnoreCase);
+            await _spaces.AddMemberAsync(request.SpaceId, request.UserId, SpaceRoles.Member, canPost);
+            await Groups.AddToGroupAsync($"space:{request.SpaceId}", request.UserId);
+
+            if (space is not null)
+            {
+                await Clients.User(request.UserId).SendAsync("SpaceAdded", space);
+            }
+
+            await Clients.Group($"space:{request.SpaceId}").SendAsync(
+                "SpaceMemberNeedKey",
+                request.SpaceId,
+                request.UserId,
+                applicant?.Username ?? request.Username);
+        }
+
+        // Уведомляем заявителя о решении.
+        await Clients.User(request.UserId).SendAsync(
+            "JoinRequestResolved",
+            request.SpaceId,
+            approved,
+            request.SpaceName);
+
+        // Обновляем списки заявок у администраторов.
+        var members = await _spaces.GetMembersAsync(request.SpaceId);
+        foreach (var admin in members.Where(item => item.Role is SpaceRoles.Owner or SpaceRoles.Admin))
+        {
+            await Clients.User(admin.UserId).SendAsync("JoinRequestReceived", request.SpaceId);
+        }
+
+        return true;
+    }
+
     public async Task<bool> JoinSpace(string spaceId)
     {
         var userId = Context.UserIdentifier;

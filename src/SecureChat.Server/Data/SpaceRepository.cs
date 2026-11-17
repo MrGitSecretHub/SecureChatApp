@@ -63,6 +63,18 @@ public sealed class SpaceRepository
                 FOREIGN KEY (SpaceId) REFERENCES Spaces(Id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS SpaceJoinRequests (
+                Id          TEXT PRIMARY KEY,
+                SpaceId     TEXT NOT NULL,
+                UserId      TEXT NOT NULL,
+                Message     TEXT NOT NULL DEFAULT '',
+                CreatedAt   INTEGER NOT NULL,
+                ResolvedBy  TEXT,
+                Approved    INTEGER,
+                UNIQUE (SpaceId, UserId),
+                FOREIGN KEY (SpaceId) REFERENCES Spaces(Id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS Topics (
                 Id          TEXT PRIMARY KEY,
                 SpaceId     TEXT NOT NULL,
@@ -589,6 +601,165 @@ public sealed class SpaceRepository
         {
             _writeLock.Release();
         }
+    }
+
+    // ============================== ЗАЯВКИ НА ВСТУПЛЕНИЕ ==============================
+
+    /// <summary>Создаёт или обновляет заявку на вступление.</summary>
+    public async Task<bool> CreateJoinRequestAsync(
+        string spaceId,
+        string userId,
+        string message,
+        CancellationToken cancellationToken = default)
+    {
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            // Повторная заявка после отклонения — сбрасываем решение.
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO SpaceJoinRequests (Id, SpaceId, UserId, Message, CreatedAt, ResolvedBy, Approved)
+                VALUES ($id, $spaceId, $userId, $message, $createdAt, NULL, NULL)
+                ON CONFLICT(SpaceId, UserId) DO UPDATE SET
+                    Id = excluded.Id,
+                    Message = excluded.Message,
+                    CreatedAt = excluded.CreatedAt,
+                    ResolvedBy = NULL,
+                    Approved = NULL;
+                """;
+            command.Parameters.AddWithValue("$id", Guid.NewGuid().ToString("N"));
+            command.Parameters.AddWithValue("$spaceId", spaceId);
+            command.Parameters.AddWithValue("$userId", userId);
+            command.Parameters.AddWithValue("$message", message.Trim());
+            command.Parameters.AddWithValue("$createdAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+
+            return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    /// <summary>Список ожидающих заявок пространства.</summary>
+    public async Task<List<SpaceJoinRequestDto>> ListPendingJoinRequestsAsync(
+        string spaceId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT r.Id, r.SpaceId, s.Name, r.UserId, u.Username, r.Message, r.CreatedAt
+            FROM SpaceJoinRequests r
+            JOIN Spaces s ON s.Id = r.SpaceId
+            LEFT JOIN Users u ON u.Id = r.UserId
+            WHERE r.SpaceId = $spaceId AND r.Approved IS NULL
+            ORDER BY r.CreatedAt ASC;
+            """;
+        command.Parameters.AddWithValue("$spaceId", spaceId);
+
+        var result = new List<SpaceJoinRequestDto>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            result.Add(new SpaceJoinRequestDto
+            {
+                Id = reader.GetString(0),
+                SpaceId = reader.GetString(1),
+                SpaceName = reader.GetString(2),
+                UserId = reader.GetString(3),
+                Username = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+                Message = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
+                CreatedAtUnixMs = reader.GetInt64(6)
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>Решает заявку: принять или отклонить.</summary>
+    public async Task<SpaceJoinRequestDto?> ResolveJoinRequestAsync(
+        string requestId,
+        bool approved,
+        string resolvedBy,
+        CancellationToken cancellationToken = default)
+    {
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            var request = await ReadJoinRequestAsync(connection, requestId, cancellationToken);
+            if (request is null || request.Approved is not null)
+            {
+                return null;
+            }
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                UPDATE SpaceJoinRequests
+                SET ResolvedBy = $resolvedBy, Approved = $approved
+                WHERE Id = $id AND Approved IS NULL;
+                """;
+            command.Parameters.AddWithValue("$resolvedBy", resolvedBy);
+            command.Parameters.AddWithValue("$approved", approved ? 1 : 0);
+            command.Parameters.AddWithValue("$id", requestId);
+
+            if (await command.ExecuteNonQueryAsync(cancellationToken) == 0)
+            {
+                return null;
+            }
+
+            request.Approved = approved;
+            request.ResolvedBy = resolvedBy;
+            return request;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    private static async Task<SpaceJoinRequestDto?> ReadJoinRequestAsync(
+        SqliteConnection connection,
+        string requestId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT r.Id, r.SpaceId, s.Name, r.UserId, u.Username, r.Message, r.CreatedAt,
+                   r.ResolvedBy, r.Approved
+            FROM SpaceJoinRequests r
+            JOIN Spaces s ON s.Id = r.SpaceId
+            LEFT JOIN Users u ON u.Id = r.UserId
+            WHERE r.Id = $id;
+            """;
+        command.Parameters.AddWithValue("$id", requestId);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            return null;
+        }
+
+        return new SpaceJoinRequestDto
+        {
+            Id = reader.GetString(0),
+            SpaceId = reader.GetString(1),
+            SpaceName = reader.GetString(2),
+            UserId = reader.GetString(3),
+            Username = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+            Message = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
+            CreatedAtUnixMs = reader.GetInt64(6),
+            ResolvedBy = reader.IsDBNull(7) ? null : reader.GetString(7),
+            Approved = reader.IsDBNull(8) ? null : reader.GetInt64(8) != 0
+        };
     }
 
     /// <summary>Замутить участника пространства на указанное время (Unix мс). 0 — снять мут.</summary>
