@@ -192,6 +192,8 @@ public sealed class AppSession
         get
         {
 #if ANDROID
+            // Локальная отладка на эмуляторе — HTTP; на устройстве сервер
+            // поднимается по HTTPS с LAN-сертификатом, доверенным приложению.
             return "http://10.0.2.2:5080";
 #else
             return "https://localhost:5443";
