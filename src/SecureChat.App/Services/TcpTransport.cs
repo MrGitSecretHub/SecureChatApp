@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Text.Json;
 using SecureChat.Core.Contracts;
@@ -32,6 +33,13 @@ public sealed class TcpTransport : IDisposable
     public event Action<string>? TypingReceived;
     public event Action<bool>? ConnectionStateChanged;
     public event Action<string>? Error;
+
+    /// <summary>Событие пространства, пришедшее по TCP.</summary>
+    public event Action<string, System.Text.Json.JsonElement?>? SpaceEventReceived;
+
+    /// <summary>Ожидающие ответы на запросы: id → источник результата.</summary>
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<TcpFrame>> _pending =
+        new(StringComparer.Ordinal);
 
     public bool IsConnected => _client?.Connected == true;
 
@@ -93,6 +101,53 @@ public sealed class TcpTransport : IDisposable
             cancellationToken);
     }
 
+    /// <summary>
+    /// Отправляет запрос пространств по TCP и ждёт ответ с тем же id.
+    /// </summary>
+    public async Task<System.Text.Json.JsonElement?> RequestAsync(
+        string type,
+        object payload,
+        CancellationToken cancellationToken = default)
+    {
+        if (_stream is null || !IsConnected)
+        {
+            throw new InvalidOperationException("Нет TCP-соединения.");
+        }
+
+        var id = Guid.NewGuid().ToString("N");
+        var source = new TaskCompletionSource<TcpFrame>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pending[id] = source;
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
+
+        try
+        {
+            await WriteFrameAsync(new TcpFrame
+            {
+                Type = type,
+                Id = id,
+                Payload = System.Text.Json.JsonSerializer.SerializeToElement(
+                    payload,
+                    new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))
+            }, cancellationToken);
+
+            using var registration = timeout.Token.Register(() => source.TrySetCanceled());
+            var response = await source.Task.WaitAsync(timeout.Token);
+
+            if (response.Type == "error" || !string.IsNullOrEmpty(response.Message))
+            {
+                throw new InvalidOperationException(response.Message ?? "Ошибка TCP-запроса.");
+            }
+
+            return response.Payload;
+        }
+        finally
+        {
+            _pending.TryRemove(id, out _);
+        }
+    }
+
     private async Task ReadLoopAsync(CancellationToken cancellationToken)
     {
         try
@@ -136,6 +191,20 @@ public sealed class TcpTransport : IDisposable
                             Error?.Invoke(frame.Message);
                         }
 
+                        break;
+
+                    // Ответы на запросы пространств и события пространств.
+                    default:
+                        if (!string.IsNullOrEmpty(frame.Id) &&
+                            _pending.TryRemove(frame.Id, out var source))
+                        {
+                            source.TrySetResult(frame);
+                        }
+                        else if (frame.Type.StartsWith("space", StringComparison.OrdinalIgnoreCase) ||
+                                 frame.Type == "error")
+                        {
+                            SpaceEventReceived?.Invoke(frame.Type, frame.Payload);
+                        }
                         break;
 
                     case "error" when !string.IsNullOrEmpty(frame.Message):
@@ -286,4 +355,7 @@ public sealed class TcpFrame
     public bool Accepted { get; set; }
     public string? Message { get; set; }
     public EncryptedEnvelope? Envelope { get; set; }
+
+    /// <summary>Данные пространств (списки, сообщения, темы).</summary>
+    public System.Text.Json.JsonElement? Payload { get; set; }
 }

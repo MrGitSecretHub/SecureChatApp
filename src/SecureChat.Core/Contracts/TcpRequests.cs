@@ -95,6 +95,9 @@ public sealed class TcpSpaceMessagesRequest
 {
     public required string SpaceId { get; set; }
     public string? TopicId { get; set; }
+
+    /// <summary>Сколько сообщений вернуть (1–500).</summary>
+    public int Limit { get; set; } = 200;
 }
 
 /// <summary>Отправка сообщения в пространство.</summary>

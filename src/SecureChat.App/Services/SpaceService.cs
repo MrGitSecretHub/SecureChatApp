@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using SecureChat.Core.Contracts;
 using SecureChat.Core.Crypto;
@@ -224,8 +225,40 @@ public sealed class SpaceService
         }
     }
 
+    /// <summary>
+    /// Выполняет запрос через TCP, если активен TCP-транспорт.
+    /// Возвращает null, если нужно идти через SignalR.
+    /// </summary>
+    private async Task<System.Text.Json.JsonElement?> TryTcpAsync<TRequest>(
+        string type,
+        TRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!_chatService.IsUsingTcp || !_chatService.Tcp.IsConnected)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await _chatService.Tcp.RequestAsync(type, request, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                $"Ошибка TCP-запроса «{type}»: {ex.Message}", ex);
+        }
+    }
+
     public async Task<List<SpaceDto>> ListAsync(CancellationToken cancellationToken = default)
     {
+        var tcp = await TryTcpAsync("spaces.list", new { }, cancellationToken);
+        if (tcp.HasValue)
+        {
+            return tcp.Value.Deserialize<List<SpaceDto>>(ChatJson.Options)
+                ?? new List<SpaceDto>();
+        }
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -277,6 +310,12 @@ public sealed class SpaceService
 
     public async Task<bool> JoinAsync(string spaceId, CancellationToken cancellationToken = default)
     {
+        var tcp = await TryTcpAsync("spaces.join", new TcpSpaceJoinRequest { SpaceId = spaceId }, cancellationToken);
+        if (tcp.HasValue)
+        {
+            return true;
+        }
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -426,6 +465,18 @@ public sealed class SpaceService
         string? topicId,
         CancellationToken cancellationToken = default)
     {
+        var tcp = await TryTcpAsync("spaces.messages", new TcpSpaceMessagesRequest
+        {
+            SpaceId = spaceId,
+            TopicId = topicId,
+            Limit = 200
+        }, cancellationToken);
+        if (tcp.HasValue)
+        {
+            return tcp.Value.Deserialize<List<SpaceMessageDto>>(ChatJson.Options)
+                ?? new List<SpaceMessageDto>();
+        }
+
         var connection = await GetConnectionAsync();
         return await connection.InvokeAsync<List<SpaceMessageDto>>(
             "GetSpaceMessages", spaceId, topicId, cancellationToken);
@@ -528,6 +579,19 @@ public sealed class SpaceService
         SpaceCipher cipher,
         CancellationToken cancellationToken = default)
     {
+        var request = new TcpSpaceSendRequest
+        {
+            SpaceId = spaceId,
+            TopicId = topicId,
+            Cipher = cipher
+        };
+
+        var tcp = await TryTcpAsync("spaces.send", request, cancellationToken);
+        if (tcp.HasValue)
+        {
+            return tcp.Value.Deserialize<SpaceMessageDto>(ChatJson.Options);
+        }
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -704,6 +768,13 @@ public sealed class SpaceService
         string spaceId,
         CancellationToken cancellationToken = default)
     {
+        var tcp = await TryTcpAsync("spaces.topics", new TcpSpaceIdRequest { SpaceId = spaceId }, cancellationToken);
+        if (tcp.HasValue)
+        {
+            return tcp.Value.Deserialize<List<TopicDto>>(ChatJson.Options)
+                ?? new List<TopicDto>();
+        }
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -719,6 +790,17 @@ public sealed class SpaceService
         string? text,
         CancellationToken cancellationToken = default)
     {
+        var tcp = await TryTcpAsync("spaces.createTopic", new TcpSpaceTopicRequest
+        {
+            SpaceId = spaceId,
+            Title = title,
+            Text = text
+        }, cancellationToken);
+        if (tcp.HasValue)
+        {
+            return tcp.Value.Deserialize<TopicDto>(ChatJson.Options);
+        }
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {

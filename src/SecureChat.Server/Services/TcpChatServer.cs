@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
@@ -6,11 +6,14 @@ using System.Net.Sockets;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SecureChat.Core.Contracts;
+using SecureChat.Core.Crypto;
 using SecureChat.Core.Serialization;
 using SecureChat.Server.Data;
+using SecureChat.Server.Hubs;
 using SecureChat.Server.Services;
 
 namespace SecureChat.Server.Services;
@@ -29,18 +32,24 @@ public sealed class TcpChatServer : BackgroundService
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<Guid, TcpSession>> _sessions = new();
     private readonly EnvelopeRouter _router;
     private readonly ChatRepository _repository;
+    private readonly SpaceRepository _spaces;
+    private readonly IHubContext<ChatHub> _hub;
     private readonly JwtSettings _jwt;
     private readonly ILogger<TcpChatServer> _logger;
 
     public TcpChatServer(
         EnvelopeRouter router,
         ChatRepository repository,
+        SpaceRepository spaces,
+        IHubContext<ChatHub> hub,
         IOptions<JwtSettings> jwtOptions,
         IConfiguration configuration,
         ILogger<TcpChatServer> logger)
     {
         _router = router;
         _repository = repository;
+        _spaces = spaces;
+        _hub = hub;
         _jwt = jwtOptions.Value;
         _logger = logger;
 
@@ -183,7 +192,256 @@ public sealed class TcpChatServer : BackgroundService
                     new TcpFrame { Type = "pong" },
                     cancellationToken);
                 return;
+
+            // ============================== ПРОСТРАНСТВА ==============================
+
+            case "spaces.list":
+            {
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var spaces = await _spaces.ListForUserAsync(userId, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame
+                {
+                    Type = "spaces.list.result",
+                    Id = frame.Id,
+                    Payload = JsonSerializer.SerializeToElement(spaces, SpaceJsonOptions)
+                }, cancellationToken);
+                return;
+            }
+
+            case "spaces.messages":
+            {
+                var request = frame.Payload?.Deserialize<TcpSpaceMessagesRequest>(SpaceJsonOptions);
+                if (request is null)
+                {
+                    await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken);
+                    return;
+                }
+
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(request.SpaceId, userId, cancellationToken);
+                if (space is null)
+                {
+                    await SendErrorAsync(principal, frame.Id, "Пространство недоступно", cancellationToken);
+                    return;
+                }
+
+                var messages = await _spaces.ListEncryptedMessagesAsync(
+                    request.SpaceId,
+                    request.TopicId,
+                    Math.Clamp(request.Limit, 1, 500),
+                    request.TopicId is null && space.Type == SpaceTypes.Forum,
+                    cancellationToken);
+
+                await SendToCallerAsync(principal, new TcpFrame
+                {
+                    Type = "spaces.messages.result",
+                    Id = frame.Id,
+                    Payload = JsonSerializer.SerializeToElement(messages, SpaceJsonOptions)
+                }, cancellationToken);
+                return;
+            }
+
+            case "spaces.send":
+            {
+                var request = frame.Payload?.Deserialize<TcpSpaceSendRequest>(SpaceJsonOptions);
+                if (request?.Cipher is null)
+                {
+                    await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken);
+                    return;
+                }
+
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(request.SpaceId, userId, cancellationToken);
+                if (space is null || !space.CanPost)
+                {
+                    await SendErrorAsync(principal, frame.Id, "Нет права писать", cancellationToken);
+                    return;
+                }
+
+                if (await _spaces.IsMemberMutedAsync(request.SpaceId, userId, cancellationToken))
+                {
+                    await SendErrorAsync(principal, frame.Id, "Вам запрещено писать", cancellationToken);
+                    return;
+                }
+
+                var sender = await _repository.GetUserByIdAsync(userId);
+                if (sender is null)
+                {
+                    await SendErrorAsync(principal, frame.Id, "Пользователь не найден", cancellationToken);
+                    return;
+                }
+
+                // Проверка подписи — та же, что в SignalR-хабе.
+                if (!SpaceCrypto.VerifyMessage(
+                        request.SpaceId, request.Cipher.MessageId, userId, request.Cipher,
+                        sender.SigningPublicKey))
+                {
+                    await SendErrorAsync(principal, frame.Id, "Неверная подпись", cancellationToken);
+                    return;
+                }
+
+                var message = new SpaceMessageDto
+                {
+                    Id = request.Cipher.MessageId,
+                    SpaceId = request.SpaceId,
+                    TopicId = request.TopicId ?? request.Cipher.TopicId,
+                    SenderId = userId,
+                    SenderUsername = sender.Username,
+                    Nonce = request.Cipher.Nonce,
+                    Tag = request.Cipher.Tag,
+                    Ciphertext = request.Cipher.Ciphertext,
+                    Signature = request.Cipher.Signature,
+                    SentAtUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                };
+
+                await _spaces.SaveEncryptedMessageAsync(message, cancellationToken);
+
+                // Рассылаем событие всем участникам с TCP-сессиями.
+                var memberIds = await _spaces.GetMemberIdsAsync(request.SpaceId, cancellationToken);
+                var eventFrame = new TcpFrame
+                {
+                    Type = "spaceMessage",
+                    Payload = JsonSerializer.SerializeToElement(message, SpaceJsonOptions)
+                };
+                foreach (var memberId in memberIds)
+                {
+                    await SendToUserAsync(memberId, eventFrame, cancellationToken);
+                }
+
+                // Мост Transport → SignalR: получатели на WebSocket тоже должны
+                // увидеть сообщение, отправленное по TCP.
+                await _hub.Clients.Group($"space:{request.SpaceId}")
+                    .SendAsync("SpaceMessage", message, cancellationToken);
+
+                await SendToCallerAsync(principal, new TcpFrame
+                {
+                    Type = "spaces.send.result",
+                    Id = frame.Id,
+                    Payload = JsonSerializer.SerializeToElement(message, SpaceJsonOptions)
+                }, cancellationToken);
+                return;
+            }
+
+            case "spaces.topics":
+            {
+                var request = frame.Payload?.Deserialize<TcpSpaceIdRequest>(SpaceJsonOptions);
+                if (request is null)
+                {
+                    await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken);
+                    return;
+                }
+
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(request.SpaceId, userId, cancellationToken);
+                if (space is null)
+                {
+                    await SendErrorAsync(principal, frame.Id, "Пространство недоступно", cancellationToken);
+                    return;
+                }
+
+                var topics = await _spaces.ListTopicsAsync(request.SpaceId, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame
+                {
+                    Type = "spaces.topics.result",
+                    Id = frame.Id,
+                    Payload = JsonSerializer.SerializeToElement(topics, SpaceJsonOptions)
+                }, cancellationToken);
+                return;
+            }
+
+            case "spaces.createTopic":
+            {
+                var request = frame.Payload?.Deserialize<TcpSpaceTopicRequest>(SpaceJsonOptions);
+                if (request is null || string.IsNullOrWhiteSpace(request.Title))
+                {
+                    await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken);
+                    return;
+                }
+
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(request.SpaceId, userId, cancellationToken);
+                if (space is null || !space.CanPost)
+                {
+                    await SendErrorAsync(principal, frame.Id, "Нет права создавать темы", cancellationToken);
+                    return;
+                }
+
+                var user = await _repository.GetUserByIdAsync(userId);
+                var topic = await _spaces.CreateTopicAsync(
+                    request.SpaceId, request.Title, userId,
+                    user?.Username ?? string.Empty, request.Text, cancellationToken);
+
+                await SendToCallerAsync(principal, new TcpFrame
+                {
+                    Type = "spaces.createTopic.result",
+                    Id = frame.Id,
+                    Payload = JsonSerializer.SerializeToElement(topic, SpaceJsonOptions)
+                }, cancellationToken);
+                return;
+            }
+
+            case "spaces.join":
+            {
+                var request = frame.Payload?.Deserialize<TcpSpaceJoinRequest>(SpaceJsonOptions);
+                if (request is null)
+                {
+                    await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken);
+                    return;
+                }
+
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(request.SpaceId, userId, cancellationToken);
+                if (space is null || !space.IsPublic)
+                {
+                    await SendErrorAsync(principal, frame.Id, "Пространство приватное или недоступно", cancellationToken);
+                    return;
+                }
+
+                var members = await _spaces.GetMembersAsync(request.SpaceId, cancellationToken);
+                if (!members.Any(item => string.Equals(item.UserId, userId, StringComparison.Ordinal)))
+                {
+                    var canPost = string.Equals(space.Type, SpaceTypes.Group, StringComparison.OrdinalIgnoreCase);
+                    await _spaces.AddMemberAsync(request.SpaceId, userId, SpaceRoles.Member, canPost, cancellationToken);
+                }
+
+                await SendToCallerAsync(principal, new TcpFrame
+                {
+                    Type = "spaces.join.result",
+                    Id = frame.Id,
+                    Payload = JsonSerializer.SerializeToElement(space, SpaceJsonOptions)
+                }, cancellationToken);
+                return;
+            }
         }
+    }
+
+    /// <summary>Настройки JSON для пространств (те же, что в SignalR-хабе).</summary>
+    private static readonly JsonSerializerOptions SpaceJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    private async Task SendToCallerAsync(
+        ClaimsPrincipal principal,
+        TcpFrame frame,
+        CancellationToken cancellationToken)
+    {
+        var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        await SendToUserAsync(userId, frame, cancellationToken);
+    }
+
+    private async Task SendErrorAsync(
+        ClaimsPrincipal principal,
+        string? requestId,
+        string message,
+        CancellationToken cancellationToken)
+    {
+        await SendToCallerAsync(principal, new TcpFrame
+        {
+            Type = "error",
+            Id = requestId,
+            Message = message
+        }, cancellationToken);
     }
 
     private async Task SendToUserAsync(string userId, TcpFrame frame, CancellationToken cancellationToken)
@@ -319,6 +577,9 @@ public sealed class TcpFrame
     public bool Accepted { get; set; }
     public string? Message { get; set; }
     public EncryptedEnvelope? Envelope { get; set; }
+
+    /// <summary>Произвольные данные пространств (список, сообщения, темы).</summary>
+    public System.Text.Json.JsonElement? Payload { get; set; }
 }
 
 /// <summary>Одно TCP-соединение пользователя.</summary>

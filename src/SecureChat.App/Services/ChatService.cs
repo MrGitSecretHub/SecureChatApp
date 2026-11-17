@@ -65,6 +65,12 @@ public sealed class ChatService : IDisposable
     /// <summary>Активный транспорт: «SignalR» или «TCP».</summary>
     public string ActiveTransport => _usingTcp ? "TCP" : "SignalR";
 
+    /// <summary>Активный TCP-транспорт (для пространств при недоступном WebSocket).</summary>
+    public TcpTransport Tcp => _tcp;
+
+    /// <summary>Сейчас используется TCP вместо SignalR.</summary>
+    public bool IsUsingTcp => _usingTcp;
+
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         if (!_session.IsAuthenticated)

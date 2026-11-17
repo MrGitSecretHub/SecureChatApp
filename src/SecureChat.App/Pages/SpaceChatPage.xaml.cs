@@ -5,11 +5,13 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Timers;
 using Microsoft.Maui.ApplicationModel;
 using SecureChat.App.Services;
 using SecureChat.App.Views;
 using SecureChat.Core.Contracts;
+using SecureChat.Core.Serialization;
 
 #if ANDROID
 using Android.Media;
@@ -21,6 +23,7 @@ namespace SecureChat.App.Pages;
 public partial class SpaceChatPage : ContentPage
 {
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
+    private readonly ChatService _chatService = AppServices.Get<ChatService>();
     private readonly ChatManager _chat = AppServices.Get<ChatManager>();
     private readonly SecureChat.App.Scheduling.ScheduledPostService _scheduledPosts =
         AppServices.Get<SecureChat.App.Scheduling.ScheduledPostService>();
@@ -127,6 +130,9 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageDeleted += OnSpaceMessageDeleted;
         _spaces.TopicUpdated += OnTopicUpdated;
 
+        // TCP-транспорт: события пространств приходят не через SignalR.
+        _chatService.Tcp.SpaceEventReceived += OnTcpSpaceEvent;
+
         // Отложенные посты публикуются фоновой службой — обновляем ленту сразу,
         // не дожидаясь перезахода в канал.
         _scheduledPosts.PostSent += OnScheduledPostSent;
@@ -180,6 +186,7 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageDeleted -= OnSpaceMessageDeleted;
         _spaces.TopicUpdated -= OnTopicUpdated;
         _scheduledPosts.PostSent -= OnScheduledPostSent;
+        _chatService.Tcp.SpaceEventReceived -= OnTcpSpaceEvent;
         AppServices.Get<AppSession>().AppearanceChanged -= OnAppearanceChanged;
     }
 
@@ -504,6 +511,25 @@ public partial class SpaceChatPage : ContentPage
         PinnedSectionInline.IsVisible = count > 0;
     }
 
+    /// <summary>Событие пространства, пришедшее по TCP вместо SignalR.</summary>
+    private async void OnTcpSpaceEvent(string type, System.Text.Json.JsonElement? payload)
+    {
+        if (!payload.HasValue || !_chatService.IsUsingTcp)
+        {
+            return;
+        }
+
+        if (type == "spaceMessage")
+        {
+            var message = payload.Value.Deserialize<SpaceMessageDto>(ChatJson.Options);
+            if (message is not null)
+            {
+                OnSpaceMessageReceived(message);
+            }
+        }
+    }
+
+    /// <summary>Событие space-сообщения от SignalR/I3.</summary>
     private async void OnSpaceMessageReceived(SpaceMessageDto message)
     {
         if (!string.Equals(message.SpaceId, _spaceId, StringComparison.Ordinal))
