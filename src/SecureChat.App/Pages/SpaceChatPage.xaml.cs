@@ -860,53 +860,12 @@ public partial class SpaceChatPage : ContentPage
             return;
         }
 
-        var choice = await DisplayActionSheet(
-            "Когда опубликовать пост?",
-            "Отмена",
-            null,
-            "Через 15 минут",
-            "Через 1 час",
-            "Через 3 часа",
-            "Завтра утром (09:00)",
-            "Выбрать время…");
-
-        if (string.IsNullOrWhiteSpace(choice) || choice == "Отмена")
-        {
-            return;
-        }
-
-        DateTime sendAt;
-        if (choice == "Выбрать время…")
-        {
-            sendAt = await PickScheduleTimeAsync();
-            if (sendAt == DateTime.MinValue)
-            {
-                return;
-            }
-        }
-        else
-        {
-            var now = DateTime.Now;
-            sendAt = choice switch
-            {
-                "Через 15 минут" => now.AddMinutes(15),
-                "Через 1 час" => now.AddHours(1),
-                "Через 3 часа" => now.AddHours(3),
-                "Завтра утром (09:00)" => now.Date.AddDays(1).AddHours(9),
-                _ => now.AddHours(1)
-            };
-        }
-
         try
         {
-            var post = await _spaces.ScheduleMessageAsync(_spaceId, _topicId, text!, sendAt);
-            if (post is not null)
-            {
-                MessageEntry.Text = string.Empty;
-                await DisplayAlert("Пост отложен",
-                    $"Пост будет опубликован {sendAt:dd.MM.yyyy HH:mm}. Он хранится только на этом устройстве.",
-                    "Ок");
-            }
+            // Отдельная страница с нативными DatePicker и TimePicker —
+            // надёжнее текстовых диалогов, особенно на Windows.
+            await Navigation.PushAsync(new SchedulePostPage(_spaceId, _topicId, text!));
+            MessageEntry.Text = string.Empty;
         }
         catch (Exception ex)
         {
@@ -963,69 +922,6 @@ public partial class SpaceChatPage : ContentPage
 
         await local.RemoveScheduledSpacePostAsync(target.Id);
         await DisplayAlert("Готово", "Пост удалён из очереди.", "Ок");
-    }
-
-    /// <summary>Выбор конкретных даты и времени через системные диалоги.</summary>
-    private async Task<DateTime> PickScheduleTimeAsync()
-    {
-        var date = await DisplayActionSheet(
-            "Дата публикации",
-            "Отмена",
-            null,
-            "Сегодня",
-            "Завтра",
-            "Послезавтра");
-
-        if (date is null or "Отмена")
-        {
-            return DateTime.MinValue;
-        }
-
-        var days = date switch
-        {
-            "Завтра" => 1,
-            "Послезавтра" => 2,
-            _ => 0
-        };
-
-        var timeChoice = await DisplayActionSheet(
-            "Время публикации",
-            "Отмена",
-            null,
-            "09:00", "12:00", "15:00", "18:00", "21:00", "Свой час…");
-
-        if (timeChoice is null or "Отмена")
-        {
-            return DateTime.MinValue;
-        }
-
-        int hour;
-        if (timeChoice == "Свой час…")
-        {
-            var answer = await DisplayPromptAsync(
-                "Время публикации",
-                "Введите час от 0 до 23:",
-                "Ок", "Отмена",
-                keyboard: Keyboard.Numeric);
-            if (!int.TryParse(answer, out hour) || hour is < 0 or > 23)
-            {
-                return DateTime.MinValue;
-            }
-        }
-        else
-        {
-            hour = timeChoice switch
-            {
-                "12:00" => 12,
-                "15:00" => 15,
-                "18:00" => 18,
-                "21:00" => 21,
-                _ => 9
-            };
-        }
-
-        var result = DateTime.Now.Date.AddDays(days).AddHours(hour);
-        return result <= DateTime.Now ? result.AddDays(1) : result;
     }
 
     private void OnPinnedBannerTapped(object sender, EventArgs e)
