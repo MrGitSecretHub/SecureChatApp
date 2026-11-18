@@ -128,6 +128,29 @@ public sealed class PollView : ContentView
 
         foreach (var option in poll.Options)
         {
+            var voteButton = new Button
+            {
+                Text = option.Text,
+                FontSize = 13,
+                BackgroundColor = Colors.Transparent,
+                TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White,
+                HorizontalOptions = LayoutOptions.Fill,
+                Padding = new Thickness(10, 6),
+                Command = option.VoteCommand
+            };
+
+            var percentButton = new Button
+            {
+                FontSize = 11,
+                BackgroundColor = Colors.Transparent,
+                TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray,
+                HorizontalOptions = LayoutOptions.End,
+                WidthRequest = 48,
+                Padding = 0,
+                Command = new Command(() => ShowVoters(option))
+            };
+            percentButton.SetBinding(Button.TextProperty, new Binding(nameof(PollOptionVm.PercentText)));
+
             var bar = new ProgressBar
             {
                 ProgressColor = (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue,
@@ -137,43 +160,17 @@ public sealed class PollView : ContentView
             };
             bar.SetBinding(ProgressBar.ProgressProperty, new Binding(nameof(PollOptionVm.Percent), converter: new PercentToDoubleConverter()));
 
-            var inner = new Grid { RowDefinitions = new RowDefinitionCollection { new(), new() }, Padding = 8, RowSpacing = 2, HorizontalOptions = LayoutOptions.Fill };
-            inner.Add(new Label
+            var outer = new Grid
             {
-                Text = option.Text,
-                FontSize = 13,
-                TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White,
-                VerticalOptions = LayoutOptions.Center
-            }, 0, 0);
-            inner.Add(bar, 0, 1);
-
-            var voteArea = new Border
-            {
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
-                Stroke = (Color?)Application.Current?.Resources["BorderColor"] ?? Colors.Gray,
-                StrokeThickness = 1,
-                BackgroundColor = Colors.Transparent,
-                Padding = 0,
+                ColumnDefinitions = new ColumnDefinitionCollection { new(), new(GridLength.Auto) },
+                RowDefinitions = new RowDefinitionCollection { new(), new(GridLength.Auto) },
                 HorizontalOptions = LayoutOptions.Fill,
-                MinimumWidthRequest = 180,
-                Content = inner,
-                GestureRecognizers = { new TapGestureRecognizer { Command = option.VoteCommand } }
+                MinimumWidthRequest = 240
             };
-
-            var percentLabel = new Label
-            {
-                TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray,
-                FontSize = 11,
-                VerticalOptions = LayoutOptions.Center,
-                HorizontalOptions = LayoutOptions.End,
-                MinimumWidthRequest = 44,
-                GestureRecognizers = { new TapGestureRecognizer { Command = new Command(() => ShowVoters(option)) } }
-            };
-            percentLabel.SetBinding(Label.TextProperty, new Binding(nameof(PollOptionVm.PercentText)));
-
-            var outer = new Grid { ColumnDefinitions = new ColumnDefinitionCollection { new(), new(GridLength.Auto) }, HorizontalOptions = LayoutOptions.Fill };
-            outer.Add(voteArea, 0, 0);
-            outer.Add(percentLabel, 1, 0);
+            outer.Add(voteButton, 0, 0);
+            outer.Add(percentButton, 1, 0);
+            outer.Add(bar, 0, 1);
+            Grid.SetColumnSpan(bar, 2);
             root.Add(outer);
         }
 

@@ -350,14 +350,14 @@
                                         Grid.Column="1"
                                         Style="{Binding BubbleStyle}"
                                         VerticalOptions="Start">
-                                    <Border.GestureRecognizers>
+
+                                    <VerticalStackLayout Spacing="4" IsVisible="{Binding HasPoll, Converter={StaticResource InvertedBool}}">
+                                    <VerticalStackLayout.GestureRecognizers>
                                         <TapGestureRecognizer Tapped="OnBubbleTapped" />
                                         <PointerGestureRecognizer PointerPressed="OnBubblePointerPressed"
                                                                   PointerReleased="OnBubblePointerReleased"
                                                                   PointerExited="OnBubblePointerExited" />
-                                    </Border.GestureRecognizers>
-
-                                    <VerticalStackLayout Spacing="4">
+                                    </VerticalStackLayout.GestureRecognizers>
 
                                         <!-- Цитата ответа -->
                                         <Border IsVisible="{Binding HasReplyQuote}"
@@ -396,8 +396,6 @@
                                                TextColor="{DynamicResource Warning}" />
 
                                         <!-- Текст сообщения (или с подсветкой @упоминаний) -->
-                                        <views:PollView Poll="{Binding Poll}"
-                                                        IsVisible="{Binding HasPoll}" />
 
                                         <Label Text="{Binding DisplayText}"
                                                Style="{Binding TextStyle}"
@@ -675,6 +673,12 @@
                                                                 VerticalOptions="Center" />
                                                     </Grid>
                                                 </VerticalStackLayout>
+
+                                        <!-- Опрос: отдельная область без жестов пузыря, чтобы кнопки работали -->
+                                        <VerticalStackLayout Spacing="6" IsVisible="{Binding HasPoll}"
+                                                             Padding="10">
+                                            <views:PollView Poll="{Binding Poll}" />
+                                        </VerticalStackLayout>
                                             </Border>
                                             <Grid IsVisible="{Binding IsImageReady}">
                                                 <views:GifWebView IsVisible="{Binding IsAnimatedGif}"
