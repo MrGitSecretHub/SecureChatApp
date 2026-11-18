@@ -106,28 +106,28 @@
 
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Border Style="{DynamicResource Card}" Margin="0,4" Padding="12">
-                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+                    <Border Style="{DynamicResource Card}" Margin="12,6" Padding="14,12">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
 
                             <!-- Аватар -->
-                            <Grid WidthRequest="46"
-                                  HeightRequest="46">
+                            <Grid WidthRequest="50"
+                                  HeightRequest="50">
                                 <Border StrokeThickness="0"
                                         BackgroundColor="{DynamicResource AccentSoft}">
                                     <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="23" />
+                                        <RoundRectangle CornerRadius="25" />
                                     </Border.StrokeShape>
                                     <Label Text="{Binding Initial}"
                                            FontAttributes="Bold"
-                                           FontSize="18"
+                                           FontSize="20"
                                            TextColor="{DynamicResource Accent}"
                                            HorizontalOptions="Center"
                                            VerticalOptions="Center" />
                                 </Border>
                                 <Image Source="{Binding AvatarSource}"
                                        Aspect="AspectFill"
-                                       WidthRequest="46"
-                                       HeightRequest="46">
+                                       WidthRequest="50"
+                                       HeightRequest="50">
                                     <Image.Clip>
                                         <EllipseGeometry />
                                     </Image.Clip>

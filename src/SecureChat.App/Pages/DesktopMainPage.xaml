@@ -157,43 +157,43 @@
                                 Text="Все"
                                 CommandParameter="Все"
                                 Clicked="OnFolderClicked"
-                                FontSize="11"
-                                HeightRequest="30"
-                                Padding="8,2"
-                                CornerRadius="14" />
+                                FontSize="12"
+                                HeightRequest="34"
+                                Padding="12,6"
+                                CornerRadius="17" />
                         <Button x:Name="FolderUnreadButton"
                                 Text="Непрочитанные"
                                 CommandParameter="Непрочитанные"
                                 Clicked="OnFolderClicked"
-                                FontSize="11"
-                                HeightRequest="30"
-                                Padding="8,2"
-                                CornerRadius="14" />
+                                FontSize="12"
+                                HeightRequest="34"
+                                Padding="12,6"
+                                CornerRadius="17" />
                         <Button x:Name="FolderMutedButton"
                                 Text="Без звука"
                                 CommandParameter="Без звука"
                                 Clicked="OnFolderClicked"
-                                FontSize="11"
-                                HeightRequest="30"
-                                Padding="8,2"
-                                CornerRadius="14" />
+                                FontSize="12"
+                                HeightRequest="34"
+                                Padding="12,6"
+                                CornerRadius="17" />
                         <Button x:Name="FolderArchiveButton"
                                 Text="Архив"
                                 CommandParameter="Архив"
                                 Clicked="OnFolderClicked"
-                                FontSize="11"
-                                HeightRequest="30"
-                                Padding="8,2"
-                                CornerRadius="14" />
+                                FontSize="12"
+                                HeightRequest="34"
+                                Padding="12,6"
+                                CornerRadius="17" />
                         <!-- Пользовательские папки: чипы создаются кодом -->
                         <HorizontalStackLayout x:Name="UserFolderChips" Spacing="6" />
                         <Button x:Name="FolderManageButton"
                                 Text="⋯"
                                 Clicked="OnFoldersManageClicked"
-                                FontSize="12"
-                                HeightRequest="30"
-                                Padding="8,2"
-                                CornerRadius="14"
+                                FontSize="14"
+                                HeightRequest="34"
+                                Padding="12,6"
+                                CornerRadius="17"
                                 ToolTipProperties.Text="Папки чатов: создать и настроить" />
                     </HorizontalStackLayout>
                 </ScrollView>
@@ -214,17 +214,17 @@
                             BackgroundColor="Transparent">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="views:ConversationVm">
-                        <Border Margin="8,2"
-                                Padding="10,8"
+                        <Border Margin="8,4"
+                                Padding="12,10"
                                 StrokeThickness="0"
                                 BackgroundColor="{Binding IsSelected, Converter={StaticResource BoolToSidebarColorConverter}}">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="12" />
+                                <RoundRectangle CornerRadius="14" />
                             </Border.StrokeShape>
-                            <Grid ColumnDefinitions="46,*,Auto,Auto" ColumnSpacing="6">
+                            <Grid ColumnDefinitions="50,*,Auto,Auto" ColumnSpacing="10">
                                 <Border Grid.Column="0"
-                                        WidthRequest="46"
-                                        HeightRequest="46"
+                                        WidthRequest="50"
+                                        HeightRequest="50"
                                         BackgroundColor="{DynamicResource Accent}"
                                         StrokeThickness="0"
                                         VerticalOptions="Center">
@@ -232,7 +232,7 @@
                                         <Ellipse />
                                     </Border.StrokeShape>
                                     <Label Text="{Binding Initial}"
-                                           FontSize="17"
+                                           FontSize="19"
                                            FontAttributes="Bold"
                                            TextColor="{DynamicResource AccentText}"
                                            HorizontalTextAlignment="Center"
