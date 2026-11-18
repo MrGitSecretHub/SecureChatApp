@@ -11,6 +11,8 @@ public partial class SettingsPage : ContentPage
     private readonly ApiClient _apiClient = AppServices.Get<ApiClient>();
     private readonly LocalStore _localStore = AppServices.Get<LocalStore>();
     private readonly WallpaperService _wallpapers = AppServices.Get<WallpaperService>();
+    private readonly LocalizationService _localization = AppServices.Get<LocalizationService>();
+
     private CancellationTokenSource? _profileSyncCts;
     private bool _showAllThemes;
     private bool _tcpTunnelInitialized;
@@ -46,6 +48,15 @@ public partial class SettingsPage : ContentPage
         LinkPreviewSwitch.IsToggled = _session.LinkPreviewEnabled;
         UpdateLinkPreviewHint();
         RefreshBlockedList();
+
+        LanguagePicker.Items.Clear();
+        foreach (var (code, name) in LocalizationService.Languages)
+        {
+            LanguagePicker.Items.Add($"{name} ({code})");
+        }
+        var langIndex = LocalizationService.Languages
+            .ToList().FindIndex(item => item.Code == _localization.Language);
+        LanguagePicker.SelectedIndex = langIndex < 0 ? 0 : langIndex;
 
         ThemePicker.Items.Clear();
         foreach (var name in ThemeCatalog.Names)
@@ -275,6 +286,18 @@ public partial class SettingsPage : ContentPage
         }
 
         await App.SaveAppearanceAsync();
+    }
+
+    private async void OnLanguageChanged(object sender, EventArgs e)
+    {
+        if (LanguagePicker.SelectedIndex < 0 ||
+            LanguagePicker.SelectedIndex >= LocalizationService.Languages.Count)
+        {
+            return;
+        }
+
+        var code = LocalizationService.Languages[LanguagePicker.SelectedIndex].Code;
+        await _localization.SetLanguageAsync(code);
     }
 
     private async void OnFontScaleChanged(object sender, EventArgs e)

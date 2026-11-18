@@ -60,6 +60,10 @@
     <ProjectReference Include="..\SecureChat.Core\SecureChat.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Localization\*.json" />
+  </ItemGroup>
+
   <!--
     Нативные файлы Windows App Runtime берём из установленного в системе
     пакета (Windows App Runtime 1.8). Если в системе стоит более новая версия

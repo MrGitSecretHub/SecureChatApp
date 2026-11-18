@@ -38,6 +38,10 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+
+        // Сначала словарь локализации — страницы используют {DynamicResource s_...}.
+        AppServices.Get<LocalizationService>().InitializeAsync().GetAwaiter().GetResult();
+
         ApplyAppearance();
         _ = LoadAppearanceAsync();
         EnsureAutoNightTimer();

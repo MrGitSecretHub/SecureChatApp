@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.ChatsPage"
-             Title="Чаты">
+             Title="{DynamicResource s_chats_title}">
     <Grid Padding="16" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="12">
 
         <!-- Шапка -->
@@ -42,7 +42,7 @@
                     Margin="0,2,0,0">
             <HorizontalStackLayout Spacing="6">
                 <Button x:Name="FolderAllButton"
-                        Text="Все"
+                        Text="{DynamicResource s_chats_all}"
                         CommandParameter="Все"
                         Clicked="OnFolderClicked"
                         FontSize="11"
@@ -50,7 +50,7 @@
                         Padding="8,2"
                         CornerRadius="14" />
                 <Button x:Name="FolderUnreadButton"
-                        Text="Непрочитанные"
+                        Text="{DynamicResource s_chats_unread}"
                         CommandParameter="Непрочитанные"
                         Clicked="OnFolderClicked"
                         FontSize="11"
@@ -58,7 +58,7 @@
                         Padding="8,2"
                         CornerRadius="14" />
                 <Button x:Name="FolderMutedButton"
-                        Text="Без звука"
+                        Text="{DynamicResource s_chats_muted}"
                         CommandParameter="Без звука"
                         Clicked="OnFolderClicked"
                         FontSize="11"
@@ -66,7 +66,7 @@
                         Padding="8,2"
                         CornerRadius="14" />
                 <Button x:Name="FolderArchiveButton"
-                        Text="Архив"
+                        Text="{DynamicResource s_chats_archive}"
                         CommandParameter="Архив"
                         Clicked="OnFolderClicked"
                         FontSize="11"

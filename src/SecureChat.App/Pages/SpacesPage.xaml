@@ -12,8 +12,8 @@
                              Spacing="2">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                    <Label Text="Пространства" Style="{DynamicResource H1}" />
-                    <Label Text="Группы, каналы и форумы с сквозным шифрованием."
+                    <Label Text="{DynamicResource s_spaces_title}" Style="{DynamicResource H1}" />
+                    <Label Text="{DynamicResource s_spaces_subtitle}"
                            Style="{DynamicResource Caption}" />
                 </VerticalStackLayout>
                 <Button Grid.Column="1"
@@ -23,13 +23,13 @@
                         VerticalOptions="Center"
                         IsVisible="False"
                         Clicked="OnJoinRequestsClicked"
-                        ToolTipProperties.Text="Заявки на вступление" />
+                        ToolTipProperties.Text="{DynamicResource s_spaces_join_requests}" />
             </Grid>
         </VerticalStackLayout>
 
         <SearchBar Grid.Row="1"
                    x:Name="SearchEntry"
-                   Placeholder="Поиск по названию"
+                   Placeholder="{DynamicResource s_spaces_search}"
                    Margin="16,0,16,0"
                    TextChanged="OnSearchTextChanged" />
 
@@ -40,23 +40,23 @@
             <HorizontalStackLayout Padding="16,8"
                                    Spacing="8">
                 <Button x:Name="AllFilterButton"
-                        Text="Все"
+                        Text="{DynamicResource s_spaces_all}"
                         Clicked="OnFilterClicked"
                         Style="{DynamicResource GhostButton}" />
                 <Button x:Name="GroupsFilterButton"
-                        Text="Группы"
+                        Text="{DynamicResource s_spaces_groups}"
                         Clicked="OnFilterClicked"
                         Style="{DynamicResource GhostButton}" />
                 <Button x:Name="ChannelsFilterButton"
-                        Text="Каналы"
+                        Text="{DynamicResource s_spaces_channels}"
                         Clicked="OnFilterClicked"
                         Style="{DynamicResource GhostButton}" />
                 <Button x:Name="ForumsFilterButton"
-                        Text="Форумы"
+                        Text="{DynamicResource s_spaces_forums}"
                         Clicked="OnFilterClicked"
                         Style="{DynamicResource GhostButton}" />
                 <Button x:Name="CommunitiesFilterButton"
-                        Text="Сообщества"
+                        Text="{DynamicResource s_spaces_communities}"
                         Clicked="OnFilterClicked"
                         Style="{DynamicResource GhostButton}" />
             </HorizontalStackLayout>

@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:SecureChat.App.Pages"
              x:Class="SecureChat.App.Pages.SettingsPage"
-             Title="Настройки">
+             Title="{DynamicResource s_settings_title}">
     <ContentPage.Resources>
         <ResourceDictionary>
             <local:ThemeNameToBackgroundColorConverter x:Key="ThemeToBgConverter" />
@@ -85,7 +85,7 @@
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="12">
 
-                    <Label Text="Профиль" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_settings_profile}" Style="{DynamicResource H2}" />
 
                     <!-- Аватар -->
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
@@ -147,14 +147,14 @@
                             <Label x:Name="UsernameLabel" FontSize="15" FontAttributes="Bold" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
-                            <Label Text="Сервер" Style="{DynamicResource Caption}" HorizontalTextAlignment="End" />
+                            <Label Text="{DynamicResource s_settings_server}" Style="{DynamicResource Caption}" HorizontalTextAlignment="End" />
                             <Label x:Name="ServerLabel" Style="{DynamicResource Caption}" HorizontalTextAlignment="End" />
                         </VerticalStackLayout>
                     </Grid>
 
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,8,0,0">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Транспорт" Style="{DynamicResource Caption}" />
+                            <Label Text="{DynamicResource s_settings_transport}" Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
                             <Picker x:Name="TransportPicker"
@@ -171,7 +171,7 @@
 
                     <!-- TCP-туннель (например, Playit): отдельный адрес и порт -->
                     <VerticalStackLayout Spacing="6" Margin="0,8,0,0">
-                        <Label Text="TCP-туннель" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_settings_tcp_tunnel}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Label Text="Для доступа из интернета через Playit и подобные сервисы. Хост и порт берутся из туннеля, а не из адреса сервера."
                                Style="{DynamicResource Caption}" />
                         <Grid ColumnDefinitions="*,100" ColumnSpacing="8">
@@ -200,7 +200,7 @@
                  ============================================================ -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Безопасность и приватность" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_settings_privacy}" Style="{DynamicResource H2}" />
 
                     <!-- Отпечаток ключа -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,8,0,0">
@@ -383,7 +383,7 @@
                  ============================================================ -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Сервер" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_settings_server}" Style="{DynamicResource H2}" />
                     <Label Text="Адрес задаётся при входе. Проверьте доступность сервера."
                            Style="{DynamicResource Caption}" />
                     <Button Text="Проверить сервер"
@@ -417,11 +417,11 @@
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="14">
 
-                    <Label Text="Оформление" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_settings_appearance}" Style="{DynamicResource H2}" />
 
                     <!-- Тема: плитки, как в Telegram -->
                     <VerticalStackLayout Spacing="8">
-                        <Label Text="Тема" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_settings_theme}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <!-- Тема: плитки, как в Telegram (горизонтальная прокрутка) -->
                         <CollectionView x:Name="ThemeCollectionView"
                                         ItemsLayout="HorizontalList"
@@ -453,8 +453,16 @@
                                 Clicked="OnThemeEditorClicked" />
                     </VerticalStackLayout>
 
-                    <!-- Настройки темы -->
-                    <Label Text="Настройки темы" Style="{DynamicResource SectionTitle}" Margin="0,10,0,0" />
+                    <!-- Язык интерфейса -->
+                    <VerticalStackLayout Spacing="4" Margin="0,10,0,0">
+                        <Label Text="{DynamicResource s_settings_language}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_settings_language_hint}" Style="{DynamicResource Caption}" />
+                        <Picker x:Name="LanguagePicker"
+                                SelectedIndexChanged="OnLanguageChanged"
+                                TextColor="{DynamicResource TextPrimary}" />
+                    </VerticalStackLayout>
+
+                    <Label Text="{DynamicResource s_settings_theme}" Style="{DynamicResource SectionTitle}" Margin="0,10,0,0" />
 
                     <!-- Цвет вашего имени -->
                     <VerticalStackLayout Spacing="6">
