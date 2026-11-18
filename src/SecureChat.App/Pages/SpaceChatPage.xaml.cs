@@ -25,7 +25,7 @@ public partial class SpaceChatPage : ContentPage
 {
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
     private readonly ChatService _chatService = AppServices.Get<ChatService>();
-    private readonly Dictionary<string, PollVoteData> _spaceVotes = new();
+    private readonly Dictionary<string, (PollVoteData Data, string Voter)> _spaceVotes = new();
     private readonly ChatManager _chat = AppServices.Get<ChatManager>();
     private readonly SecureChat.App.Scheduling.ScheduledPostService _scheduledPosts =
         AppServices.Get<SecureChat.App.Scheduling.ScheduledPostService>();
@@ -465,7 +465,7 @@ public partial class SpaceChatPage : ContentPage
         vm.PollVoteRequested += OnSpacePollVoteRequested;
         if (payload.Kind == MessageKinds.PollVote && payload.PollVote is not null)
         {
-            _spaceVotes[message.Id] = payload.PollVote;
+            _spaceVotes[message.Id] = (payload.PollVote, vm.Sender);
         }
         return vm;
     }
@@ -2541,11 +2541,11 @@ public partial class SpaceChatPage : ContentPage
     {
         var polls = _messages.Where(m => m.Poll is not null)
             .ToDictionary(m => m.Poll!.Id, m => m.Poll!);
-        foreach (var vote in _spaceVotes.Values)
+        foreach (var (vote, voter) in _spaceVotes.Values)
         {
             if (polls.TryGetValue(vote.PollId, out var poll))
             {
-                poll.ApplyVote(vote.OptionIndex, mine: false);
+                poll.ApplyVote(vote.OptionIndex, voter, mine: false);
             }
         }
     }
@@ -2555,7 +2555,8 @@ public partial class SpaceChatPage : ContentPage
         var poll = message.Poll;
         if (poll is null) return;
         var voteData = new PollVoteData { PollId = poll.Id, OptionIndex = optionIndex };
-        poll.ApplyVote(optionIndex, mine: true);
+        var ownName = AppServices.Get<AppSession>().User?.Username ?? "me";
+        poll.ApplyVote(optionIndex, ownName, mine: true);
         var payload = new SpaceMessagePayload
         {
             Kind = MessageKinds.PollVote,
@@ -2567,7 +2568,7 @@ public partial class SpaceChatPage : ContentPage
             var sent = await _spaces.SendPayloadAsync(_spaceId, _topicId, payload);
             if (sent is not null)
             {
-                _spaceVotes[sent.Id] = voteData;
+                _spaceVotes[sent.Id] = (voteData, ownName);
             }
         }
         catch (Exception ex)

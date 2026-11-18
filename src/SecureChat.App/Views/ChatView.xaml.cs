@@ -3947,7 +3947,9 @@ public partial class ChatView : ContentView
             {
                 var data = JsonSerializer.Deserialize<PollVoteData>(vote.Text);
                 if (data is null || !polls.TryGetValue(data.PollId, out var poll)) continue;
-                poll.ApplyVote(data.OptionIndex, vote.IsMine);
+                var own = AppServices.Get<SecureChat.App.Services.AppSession>().User?.Username;
+                var voter = vote.IsMine ? own ?? "me" : vote.SenderDisplay;
+                poll.ApplyVote(data.OptionIndex, voter, vote.IsMine);
             }
             catch (JsonException) { }
         }
@@ -3960,7 +3962,8 @@ public partial class ChatView : ContentView
         if (user is null || poll is null) return;
 
         var data = new PollVoteData { PollId = poll.Id, OptionIndex = optionIndex };
-        poll.ApplyVote(optionIndex, mine: true);
+        var ownName = AppServices.Get<SecureChat.App.Services.AppSession>().User?.Username ?? "me";
+        poll.ApplyVote(optionIndex, ownName, mine: true);
         try
         {
             await _chatManager.SendMessageAsync(user, JsonSerializer.Serialize(data), kind: MessageKinds.PollVote);
