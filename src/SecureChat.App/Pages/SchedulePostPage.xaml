@@ -2,25 +2,25 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.SchedulePostPage"
-             Title="Отложенная публикация">
+             Title="{DynamicResource s_ui_101}">
     <ScrollView>
         <VerticalStackLayout Padding="16" Spacing="16"
                              BackgroundColor="{DynamicResource PageBackground}">
 
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Время публикации"
+                    <Label Text="{DynamicResource s_ui_015}"
                            Style="{DynamicResource H2}" />
                     <Label x:Name="PreviewLabel"
                            Style="{DynamicResource Caption}" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                         <VerticalStackLayout Grid.Column="0" Spacing="4">
-                            <Label Text="Дата" Style="{DynamicResource SectionTitle}" />
+                            <Label Text="{DynamicResource s_ui_026}" Style="{DynamicResource SectionTitle}" />
                             <DatePicker x:Name="DatePickerControl"
                                         TextColor="{DynamicResource TextPrimary}" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Column="1" Spacing="4">
-                            <Label Text="Время" Style="{DynamicResource SectionTitle}" />
+                            <Label Text="{DynamicResource s_ui_014}" Style="{DynamicResource SectionTitle}" />
                             <TimePicker x:Name="TimePickerControl"
                                         TextColor="{DynamicResource TextPrimary}" />
                         </VerticalStackLayout>
@@ -28,7 +28,7 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Label Text="Пост шифруется сразу и хранится только на этом устройстве. Он уйдёт в выбранное время, пока приложение запущено."
+            <Label Text="{DynamicResource s_ui_130}"
                    Style="{DynamicResource Caption}" />
 
             <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
@@ -37,7 +37,7 @@
                         Style="{DynamicResource GhostButton}"
                         Clicked="OnCancelClicked" />
                 <Button Grid.Column="1"
-                        Text="Отложить"
+                        Text="{DynamicResource s_ui_102}"
                         Style="{DynamicResource PrimaryButton}"
                         Clicked="OnSaveClicked" />
             </Grid>

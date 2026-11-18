@@ -88,7 +88,7 @@
                         Padding="14"
                         IsVisible="False">
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Отпечаток ключа шифрования"
+                        <Label Text="{DynamicResource s_ui_107}"
                                FontSize="12"
                                FontAttributes="Bold"
                                TextColor="{DynamicResource TextMuted}" />
@@ -96,7 +96,7 @@
                                Text="…"
                                FontSize="13"
                                TextColor="{DynamicResource TextPrimary}" />
-                        <Label Text="Сверьте его с участником лично: он подтверждает подлинность ключа."
+                        <Label Text="{DynamicResource s_ui_144}"
                                FontSize="11"
                                TextColor="{DynamicResource TextMuted}" />
                     </VerticalStackLayout>
@@ -114,11 +114,11 @@
         <!-- Действие: начать чат -->
         <VerticalStackLayout Grid.Row="1" Spacing="8" Margin="16,0,16,16">
             <Button x:Name="StartChatButton"
-                    Text="💬 Начать чат"
+                    Text="{DynamicResource s_ui_196}"
                     Style="{DynamicResource PrimaryButton}"
                     HeightRequest="46"
                     Clicked="OnStartChatClicked"
-                    ToolTipProperties.Text="Открыть личный чат с этим участником" />
+                    ToolTipProperties.Text="{DynamicResource s_ui_100}" />
         </VerticalStackLayout>
     </Grid>
 </ContentPage>

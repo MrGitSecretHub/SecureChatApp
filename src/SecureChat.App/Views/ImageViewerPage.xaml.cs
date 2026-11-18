@@ -31,8 +31,8 @@ public partial class ImageViewerPage : ContentPage
 
         var isAnimatedGif = GifWebView.IsGifData(imageBytes);
         Title = string.IsNullOrWhiteSpace(fileName)
-            ? (isAnimatedGif ? "GIF" : "Изображение")
-            : $"{(isAnimatedGif ? "GIF" : "Фото")}: {fileName}";
+            ? (isAnimatedGif ? "GIF" : Loc.T("rs_055", "Изображение"))
+            : $"{(isAnimatedGif ? "GIF" : Loc.T("rs_167", "Фото"))}: {fileName}";
         BindingContext = this;
 
         if (isAnimatedGif)
@@ -213,7 +213,7 @@ public partial class ImageViewerPage : ContentPage
         }
 
         await DisplayAlert(
-            result.StartsWith("Не удалось", StringComparison.Ordinal) ? "Ошибка" : "Сохранено",
+            result.StartsWith(Loc.T("uc_022", "Не удалось"), StringComparison.Ordinal) ? Loc.T("common_error", "Ошибка") : Loc.T("dg_064", "Сохранено"),
             result,
             "OK");
     }

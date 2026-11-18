@@ -730,7 +730,7 @@ public sealed class MessageVm : INotifyPropertyChanged
     {
         var display = string.IsNullOrWhiteSpace(author)
             ? string.Empty
-            : string.Equals(author, ownName, StringComparison.OrdinalIgnoreCase) ? "Вы" : author;
+            : string.Equals(author, ownName, StringComparison.OrdinalIgnoreCase) ? Loc.T("rs_028", "Вы") : author;
         if (string.Equals(display, _replyAuthorFallback, StringComparison.Ordinal))
         {
             return;
@@ -858,7 +858,7 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     public Color SenderAvatarColor => AvatarColorFor(_senderDisplay);
 
-    public string PinnedAuthorText => IsMine ? "Вы" : _senderDisplay;
+    public string PinnedAuthorText => IsMine ? Loc.T("rs_028", "Вы") : _senderDisplay;
 
     public void SetImage(ImageSource? source)
     {
@@ -941,7 +941,7 @@ public sealed class MessageVm : INotifyPropertyChanged
         _replyAuthorDisplay = replyAuthor.Length == 0
             ? string.Empty
             : string.Equals(replyAuthor, ownName, StringComparison.OrdinalIgnoreCase)
-                ? "Вы"
+                ? Loc.T("rs_028", "Вы")
                 : replyAuthor;
         Notify(nameof(ReplyQuoteAuthorText));
         IsDraft = message.IsDraft;

@@ -2,16 +2,16 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.GlobalSearchPage"
-             Title="Поиск по сообщениям">
+             Title="{DynamicResource s_ui_120}">
     <Grid Padding="16" RowDefinitions="Auto,Auto,*" RowSpacing="10">
         <SearchBar x:Name="SearchEntry"
-                   Placeholder="Поиск по всем сообщениям"
+                   Placeholder="{DynamicResource s_ui_118}"
                    TextChanged="OnSearchTextChanged"
                    SearchButtonPressed="OnSearchPressed" />
 
         <Label x:Name="HintLabel"
                Grid.Row="1"
-               Text="Введите минимум 2 символа."
+               Text="{DynamicResource s_ui_010}"
                Style="{DynamicResource Caption}" />
 
         <CollectionView x:Name="ResultsView"
@@ -22,9 +22,9 @@
                 <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
                     <Label Text="🔍"
                            Style="{DynamicResource EmptyStateIcon}" />
-                    <Label Text="Ничего не найдено"
+                    <Label Text="{DynamicResource s_ui_087}"
                            Style="{DynamicResource EmptyStateTitle}" />
-                    <Label Text="Поиск идёт по локальной истории на этом устройстве."
+                    <Label Text="{DynamicResource s_ui_117}"
                            Style="{DynamicResource EmptyStateCaption}" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>

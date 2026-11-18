@@ -27,7 +27,7 @@ public sealed class ConversationVm
     {
         Username = source.Username,
         LastMessage = string.IsNullOrWhiteSpace(source.LastMessage)
-            ? "Нет сообщений"
+            ? Loc.T("vs_nomessages", "Нет сообщений")
             : source.LastMessage,
         TimeText = source.LastMessageAtUnixMs > 0
             ? DateTimeOffset.FromUnixTimeMilliseconds(source.LastMessageAtUnixMs)

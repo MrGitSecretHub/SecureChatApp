@@ -29,7 +29,7 @@ public partial class SpaceSettingsPage : ContentPage
         _spaceId = spaceId;
         _spaceType = spaceType;
 
-        Title = $"Настройки: {spaceName}";
+        Title = string.Format(Loc.T("rs_079"), spaceName);
         SpaceNameLabel.Text = spaceName;
         SpaceIconLabel.Text = spaceType switch
         {
@@ -88,8 +88,8 @@ public partial class SpaceSettingsPage : ContentPage
             }
 
             MembersHintLabel.Text = _members.Count > 0
-                ? $"{_members.Count} участников. Нажмите на участника, чтобы изменить роль."
-                : "Пока нет участников.";
+                ? string.Format(Loc.T("rs_001"), _members.Count)
+                : Loc.T("rs_130", "Пока нет участников.");
 
             // Секции по ролям, как в Telegram: владелец, администраторы, участники, гости.
             RebuildMemberRows();
@@ -121,7 +121,7 @@ public partial class SpaceSettingsPage : ContentPage
         var name = NameEntry.Text?.Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            await DisplayAlert("Ошибка", "Название не может быть пустым.", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_018", "Название не может быть пустым."), "OK");
             return;
         }
 
@@ -138,12 +138,12 @@ public partial class SpaceSettingsPage : ContentPage
                     : null);
             if (updated is not null)
             {
-                await DisplayAlert("Готово", "Настройки пространства сохранены.", "OK");
+                await DisplayAlert(Loc.T("set_036", "Готово"), Loc.T("uc_019", "Настройки пространства сохранены."), "OK");
                 await LoadAsync();
             }
             else
             {
-                await DisplayAlert("Ошибка", "Недостаточно прав для изменения.", "OK");
+                await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_048", "Недостаточно прав для изменения."), "OK");
             }
         }
         catch (Exception ex)
@@ -155,10 +155,10 @@ public partial class SpaceSettingsPage : ContentPage
     private async void OnAddMemberClicked(object sender, EventArgs e)
     {
         var username = await DisplayPromptAsync(
-            "Добавить участника",
-            "Введите логин пользователя:",
-            "Пригласить",
-            "Отмена",
+            Loc.T("rs_041", "Добавить участника"),
+            Loc.T("rs_016", "Введите логин пользователя:"),
+            Loc.T("rs_135", "Пригласить"),
+            Loc.T("common_cancel", "Отмена"),
             maxLength: 32,
             keyboard: Keyboard.Text);
         if (string.IsNullOrWhiteSpace(username))
@@ -173,9 +173,9 @@ public partial class SpaceSettingsPage : ContentPage
             if (result.Success)
             {
                 await DisplayAlert(
-                    "Готово",
-                    $"{result.Username ?? username.Trim()} добавлен в пространство. " +
-                    "Чтобы увидеть его, участнику нужно обновить список пространств.",
+                    Loc.T("set_036", "Готово"),
+                    string.Format(Loc.T("dg_004"), result.Username ?? username.Trim()) +
+                    Loc.T("dg_087", "Чтобы увидеть его, участнику нужно обновить список пространств."),
                     "OK");
                 await LoadAsync();
                 return;
@@ -183,7 +183,7 @@ public partial class SpaceSettingsPage : ContentPage
 
             var reason = result.Error switch
             {
-                "user_not_found" => $"Пользователь «{username.Trim()}» не найден на сервере. Проверьте логин.",
+                "user_not_found" => string.Format(Loc.T("rs_131"), username.Trim()),
                 "already_member" => "Этот пользователь уже состоит в пространстве.",
                 "no_rights" => "Приглашать участников может только владелец или администратор.",
                 "space_not_found" => "Пространство не найдено или у вас нет к нему доступа.",
@@ -193,11 +193,11 @@ public partial class SpaceSettingsPage : ContentPage
                 _ => "Не удалось добавить участника."
             };
 
-            await DisplayAlert("Не получилось", reason, "OK");
+            await DisplayAlert(Loc.T("uc_020", "Не получилось"), reason, "OK");
         }
         catch (ApiException ex)
         {
-            await DisplayAlert("Не получилось", ex.Message, "OK");
+            await DisplayAlert(Loc.T("uc_020", "Не получилось"), ex.Message, "OK");
         }
         catch (Exception ex)
         {
@@ -205,10 +205,10 @@ public partial class SpaceSettingsPage : ContentPage
             if (message.Contains("Failed to invoke", StringComparison.OrdinalIgnoreCase) ||
                 message.Contains("Method does not exist", StringComparison.OrdinalIgnoreCase))
             {
-                message = "Сервер запущен в старой версии. Перезапустите SecureChat.Server.exe и повторите приглашение.";
+                message = Loc.T("rs_143", "Сервер запущен в старой версии. Перезапустите SecureChat.Server.exe и повторите приглашение.");
             }
 
-            await DisplayAlert("Ошибка", message, "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), message, "OK");
         }
     }
 
@@ -240,10 +240,10 @@ public partial class SpaceSettingsPage : ContentPage
             }
         }
 
-        AddSection("Владелец", SpaceRoles.Owner);
-        AddSection("Администраторы", SpaceRoles.Admin);
+        AddSection(Loc.T("rs_021", "Владелец"), SpaceRoles.Owner);
+        AddSection(Loc.T("rs_012", "Администраторы"), SpaceRoles.Admin);
         AddSection("Участники", SpaceRoles.Member);
-        AddSection("Гости (только чтение)", SpaceRoles.Guest);
+        AddSection(Loc.T("rs_038", "Гости (только чтение)"), SpaceRoles.Guest);
 
         // Неизвестные серверные роли — в «Участники», чтобы люди не терялись.
         var rest = _members
@@ -277,24 +277,24 @@ public partial class SpaceSettingsPage : ContentPage
 
             var isAdmin = _space?.MyRole is SpaceRoles.Owner or SpaceRoles.Admin;
 
-        var actions = new List<string> { "👤 Открыть профиль" };
+        var actions = new List<string> { Loc.T("rs_198", "👤 Открыть профиль") };
             if (isAdmin)
             {
-                actions.Add("Изменить роль");
-                actions.Add(member.CanPost ? "🔇 Запретить писать" : "✏️ Разрешить писать");
-                actions.Add(member.IsMuted ? "🔊 Снять запрет записи" : "⏱ Запрет записи на время…");
-                actions.Add("Удалить из пространства");
+                actions.Add(Loc.T("rs_054", "Изменить роль"));
+                actions.Add(member.CanPost ? Loc.T("rs_213", "🔇 Запретить писать") : Loc.T("rs_191", "✏️ Разрешить писать"));
+                actions.Add(member.IsMuted ? Loc.T("rs_214", "🔊 Снять запрет записи") : Loc.T("rs_186", "⏱ Запрет записи на время…"));
+                actions.Add(Loc.T("rs_162", "Удалить из пространства"));
             }
 
             var choice = await DisplayActionSheet(
-                member.Username, "Отмена", null, actions.ToArray());
+                member.Username, Loc.T("common_cancel", "Отмена"), null, actions.ToArray());
 
-            if (string.IsNullOrWhiteSpace(choice) || choice == "Отмена")
+            if (string.IsNullOrWhiteSpace(choice) || choice == Loc.T("common_cancel", "Отмена"))
             {
                 return;
             }
 
-            if (choice == "👤 Открыть профиль")
+            if (choice == Loc.T("rs_198", "👤 Открыть профиль"))
             {
                 try
                 {
@@ -310,7 +310,7 @@ public partial class SpaceSettingsPage : ContentPage
 
             if (member.Role == SpaceRoles.Owner)
             {
-                await DisplayAlert(member.Username, "Это владелец пространства — его роль не меняют.", "OK");
+                await DisplayAlert(member.Username, Loc.T("uc_068", "Это владелец пространства — его роль не меняют."), "OK");
                 return;
             }
 
@@ -325,21 +325,21 @@ public partial class SpaceSettingsPage : ContentPage
 
         try
         {
-            if (choice == "Удалить из пространства")
+            if (choice == Loc.T("rs_162", "Удалить из пространства"))
             {
                 await _spaces.RemoveMemberAsync(_spaceId, member.UserId);
             }
-            else if (choice == "Изменить роль")
+            else if (choice == Loc.T("rs_054", "Изменить роль"))
             {
                 var role = await DisplayActionSheet(
-                    $"Роль: {member.Username}",
-                    "Отмена",
+                    string.Format(Loc.T("dg_057"), member.Username),
+                    Loc.T("common_cancel", "Отмена"),
                     null,
-                    "Участник",
-                    "Гость (только чтение)",
-                    "Администратор");
+                    Loc.T("dg_082", "Участник"),
+                    Loc.T("dg_023", "Гость (только чтение)"),
+                    Loc.T("dg_007", "Администратор"));
 
-                if (string.IsNullOrWhiteSpace(role) || role == "Отмена")
+                if (string.IsNullOrWhiteSpace(role) || role == Loc.T("common_cancel", "Отмена"))
                 {
                     return;
                 }
@@ -356,25 +356,25 @@ public partial class SpaceSettingsPage : ContentPage
                 await _spaces.UpdateMemberAsync(
                     _spaceId, member.UserId, newRole, newRole != SpaceRoles.Guest);
             }
-            else if (choice.StartsWith("🔇 Запретить") || choice.StartsWith("✏️ Разрешить"))
+            else if (choice.StartsWith(Loc.T("rs_212", "🔇 Запретить")) || choice.StartsWith(Loc.T("rs_190", "✏️ Разрешить")))
             {
                 // Право писать отдельно от роли: роль не трогаем.
                 await _spaces.UpdateMemberAsync(
                     _spaceId, member.UserId, canPost: !member.CanPost);
             }
-            else if (choice == "🔊 Снять запрет записи")
+            else if (choice == Loc.T("rs_214", "🔊 Снять запрет записи"))
             {
                 await _spaces.UnmuteMemberAsync(_spaceId, member.UserId);
             }
-            else if (choice == "⏱ Запрет записи на время…")
+            else if (choice == Loc.T("rs_186", "⏱ Запрет записи на время…"))
             {
                 var duration = await DisplayActionSheet(
-                    $"Запрет писать для {member.Username}:",
-                    "Отмена",
+                    string.Format(Loc.T("dg_025"), member.Username),
+                    Loc.T("common_cancel", "Отмена"),
                     null,
-                    "1 час",
-                    "1 день",
-                    "1 неделя");
+                    Loc.T("dg_002", "1 час"),
+                    Loc.T("dg_000", "1 день"),
+                    Loc.T("dg_001", "1 неделя"));
 
                 var hours = duration switch
                 {
@@ -401,10 +401,10 @@ public partial class SpaceSettingsPage : ContentPage
     private async void OnLeaveClicked(object sender, EventArgs e)
     {
         var confirmed = await DisplayAlert(
-            "Покинуть пространство?",
-            "Вы перестанете получать сообщения этого пространства.",
-            "Покинуть",
-            "Отмена");
+            Loc.T("dg_051", "Покинуть пространство?"),
+            Loc.T("dg_018", "Вы перестанете получать сообщения этого пространства."),
+            Loc.T("dg_050", "Покинуть"),
+            Loc.T("common_cancel", "Отмена"));
         if (!confirmed)
         {
             return;
@@ -424,10 +424,10 @@ public partial class SpaceSettingsPage : ContentPage
     private async void OnDeleteClicked(object sender, EventArgs e)
     {
         var confirmed = await DisplayAlert(
-            "Удалить пространство?",
-            "Будут удалены все сообщения, темы и список участников.",
-            "Удалить",
-            "Отмена");
+            Loc.T("dg_077", "Удалить пространство?"),
+            Loc.T("dg_008", "Будут удалены все сообщения, темы и список участников."),
+            Loc.T("common_delete", "Удалить"),
+            Loc.T("common_cancel", "Отмена"));
         if (!confirmed)
         {
             return;
@@ -441,7 +441,7 @@ public partial class SpaceSettingsPage : ContentPage
             }
             else
             {
-                await DisplayAlert("Ошибка", "Недостаточно прав для удаления.", "OK");
+                await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_049", "Недостаточно прав для удаления."), "OK");
             }
         }
         catch (Exception ex)
@@ -470,7 +470,7 @@ public partial class SpaceSettingsPage : ContentPage
         {
             var result = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = "Выберите обои",
+                PickerTitle = Loc.T("rs_030", "Выберите обои"),
                 FileTypes = FilePickerFileType.Images
             });
             if (result is null)
@@ -492,7 +492,7 @@ public partial class SpaceSettingsPage : ContentPage
         {
             var result = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = "Выберите файл обоев"
+                PickerTitle = Loc.T("rs_033", "Выберите файл обоев")
             });
             if (result is null)
             {
@@ -553,7 +553,7 @@ public partial class SpaceSettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось сохранить обои: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_043"), ex.Message), "OK");
         }
     }
 }

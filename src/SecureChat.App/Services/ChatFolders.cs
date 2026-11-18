@@ -22,15 +22,25 @@ public static class ChatFolders
     };
 
     /// <summary>Подпись вкладки с бейджем: «Непрочитанные · 3»; без счётчика — просто имя.</summary>
+    /// <summary>Локализованная подпись вкладки; внутренние ID остаются русскими.</summary>
+    public static string DisplayName(string folder) => folder switch
+    {
+        All => Loc.T("sf_all", All),
+        Unread => Loc.T("sf_unread", Unread),
+        Muted => Loc.T("sf_muted", Muted),
+        Archive => Loc.T("sf_archive", Archive),
+        _ => folder,
+    };
+
     public static string TabText(
         string folder,
         IReadOnlyList<StoredConversation> regular,
         int archivedCount) => folder switch
     {
-        Unread => WithBadge(folder, regular.Count(c => c.UnreadCount > 0)),
-        Muted => WithBadge(folder, regular.Count(c => c.IsMuted)),
-        Archive => WithBadge(folder, archivedCount),
-        _ => folder,
+        Unread => WithBadge(DisplayName(folder), regular.Count(c => c.UnreadCount > 0)),
+        Muted => WithBadge(DisplayName(folder), regular.Count(c => c.IsMuted)),
+        Archive => WithBadge(DisplayName(folder), archivedCount),
+        _ => DisplayName(folder),
     };
 
     private static string WithBadge(string folder, int count) =>

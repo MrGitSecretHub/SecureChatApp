@@ -3,14 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:views="clr-namespace:SecureChat.App.Views"
              x:Class="SecureChat.App.Pages.SpaceSettingsPage"
-             Title="Настройки пространства">
+             Title="{DynamicResource s_ui_079}">
     <ScrollView>
         <VerticalStackLayout Padding="16" Spacing="14" MaximumWidthRequest="760">
 
             <!-- Основное -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="Пространство" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_ui_136}" Style="{DynamicResource H2}" />
 
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                         <Border WidthRequest="56"
@@ -37,16 +37,16 @@
                     </Grid>
 
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Название" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_ui_072}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Entry x:Name="NameEntry" />
                     </VerticalStackLayout>
 
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Описание" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_ui_094}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Editor x:Name="DescriptionEditor"
                                 HeightRequest="80"
                                 AutoSize="TextChanges"
-                                Placeholder="Коротко о пространстве"
+                                Placeholder="{DynamicResource s_ui_061}"
                                 PlaceholderColor="{DynamicResource TextMuted}" />
                     </VerticalStackLayout>
 
@@ -56,8 +56,8 @@
                           ColumnSpacing="10"
                           IsVisible="False">
                         <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                            <Label Text="Публичное пространство" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Виден всем в списке пространств; читать и писать могут только участники — по приглашению"
+                            <Label Text="{DynamicResource s_ui_139}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_ui_011}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="PublicSwitch"
@@ -72,8 +72,8 @@
                           ColumnSpacing="10"
                           IsVisible="False">
                         <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                            <Label Text="Подписи постов" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Показывать, кто из администраторов опубликовал пост («название канала через @логин»)"
+                            <Label Text="{DynamicResource s_ui_114}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_ui_126}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="SignSwitch"
@@ -91,7 +91,7 @@
             <!-- Участники -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Участники" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_ui_168}" Style="{DynamicResource H2}" />
                     <Label x:Name="ErrorLabel"
                            TextColor="{DynamicResource Warning}"
                            Style="{DynamicResource Caption}"
@@ -150,7 +150,7 @@
                         </CollectionView.ItemTemplate>
                     </CollectionView>
 
-                    <Button Text="Добавить участника по логину"
+                    <Button Text="{DynamicResource s_ui_033}"
                             Style="{DynamicResource SecondaryButton}"
                             Clicked="OnAddMemberClicked" />
                 </VerticalStackLayout>
@@ -159,7 +159,7 @@
             <!-- Обои пространства -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Обои пространства" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_ui_092}" Style="{DynamicResource H2}" />
 
                     <Border x:Name="SpaceWallpaperPreview"
                             HeightRequest="110"
@@ -212,13 +212,13 @@
             <!-- Опасная зона -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Действия" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_ui_028}" Style="{DynamicResource H2}" />
                     <Button x:Name="LeaveButton"
-                            Text="Покинуть пространство"
+                            Text="{DynamicResource s_ui_127}"
                             Style="{DynamicResource SecondaryButton}"
                             Clicked="OnLeaveClicked" />
                     <Button x:Name="DeleteButton"
-                            Text="Удалить пространство"
+                            Text="{DynamicResource s_ui_167}"
                             Style="{DynamicResource DangerButton}"
                             Clicked="OnDeleteClicked" />
                 </VerticalStackLayout>

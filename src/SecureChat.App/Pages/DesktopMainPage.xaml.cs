@@ -63,13 +63,22 @@ public partial class DesktopMainPage : ContentPage, IDisposable
 
         Loaded += OnLoaded;
 
-        StatusPicker.Items.Add("Онлайн");
-        StatusPicker.Items.Add("Неактивен");
-        StatusPicker.Items.Add("Занят");
+        StatusPicker.Items.Add(Loc.T("vs_online", "Онлайн"));
+        StatusPicker.Items.Add(Loc.T("vs_away", "Неактивен"));
+        StatusPicker.Items.Add(Loc.T("vs_busy", "Занят"));
 
         // Индикатор соединения в шапке сайдбара
         ConnectionDot.TextColor = (Color)Application.Current!.Resources["Danger"];
     }
+
+    /// <summary>Локализованная подпись статуса; в сессии хранятся русские значения.</summary>
+    private static string StatusDisplay(string status) => status switch
+    {
+        "Онлайн" => Loc.T("vs_online", "Онлайн"),
+        "Неактивен" => Loc.T("vs_away", "Неактивен"),
+        "Занят" => Loc.T("vs_busy", "Занят"),
+        _ => status
+    };
 
     protected override async void OnAppearing()
     {
@@ -168,7 +177,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         UserLabel.Text = displayName;
 
         var status = _session.StatusMessage;
-        UserStatusLabel.Text = status;
+        UserStatusLabel.Text = StatusDisplay(status);
 
         StatusDot.BackgroundColor = status switch
         {
@@ -313,7 +322,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     /// <summary>Меню управления папками: создать или открыть любую на настройку.</summary>
     private async void OnFoldersManageClicked(object sender, EventArgs e)
     {
-        const string create = "＋ Создать папку";
+        string create = Loc.T("rs_196", "＋ Создать папку");
         if (_folders.Count == 0)
         {
             await Navigation.PushAsync(new FolderEditPage(null));
@@ -323,7 +332,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
 
         var names = _folders.Select(f => f.Name).ToArray();
         var choice = await DisplayActionSheet(
-            "Папки чатов", "Отмена", null,
+            Loc.T("dg_045", "Папки чатов"), "Отмена", null,
             names.Prepend(create).ToArray());
 
         if (string.IsNullOrEmpty(choice) || choice == "Отмена")
@@ -428,11 +437,11 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         try
         {
             var username = await DisplayPromptAsync(
-                "Новый чат",
-                "Введите имя пользователя:",
-                "Открыть",
+                Loc.T("vs_newchat", "Новый чат"),
+                Loc.T("rs_015", "Введите имя пользователя:"),
+                Loc.T("vs_open", "Открыть"),
                 "Отмена",
-                "например, bob",
+                Loc.T("rs_180", "например, bob"),
                 maxLength: 32,
                 keyboard: Keyboard.Text);
 
@@ -447,7 +456,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось добавить контакт", ex.Message, "OK");
+            await DisplayAlert(Loc.T("uc_026", "Не удалось добавить контакт"), ex.Message, "OK");
         }
         finally
         {
@@ -510,16 +519,16 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         // «Избранное» — служебный чат, его нельзя удалять и архивировать.
         if (string.Equals(vm.Username, ChatManager.SelfChatUsername, StringComparison.OrdinalIgnoreCase))
         {
-            await DisplayAlert("Избранное",
-                "Это служебный чат для сохранения сообщений. Его нельзя удалить или заархивировать.",
+            await DisplayAlert(Loc.T("vs_favorites", "Избранное"),
+                Loc.T("dg_090", "Это служебный чат для сохранения сообщений. Его нельзя удалить или заархивировать."),
                 "OK");
             return;
         }
 
-        var archiveAction = vm.IsArchived ? "📤 Разархивировать" : "📦 Архивировать";
-        var muteAction = vm.IsMuted ? "🔔 Включить звук" : "🔇 Без звука";
+        var archiveAction = vm.IsArchived ? Loc.T("rs_205", "📤 Разархивировать") : Loc.T("rs_207", "📦 Архивировать");
+        var muteAction = vm.IsMuted ? Loc.T("rs_217", "🔔 Включить звук") : Loc.T("rs_211", "🔇 Без звука");
         var choice = await DisplayActionSheet(vm.Username, "Отмена", null,
-            archiveAction, muteAction, "🧹 Удалить чат", "🧽 Очистить историю");
+            archiveAction, muteAction, Loc.T("dg_097", "🧹 Удалить чат"), Loc.T("dg_098", "🧽 Очистить историю"));
 
         if (choice == archiveAction)
         {
@@ -531,9 +540,9 @@ public partial class DesktopMainPage : ContentPage, IDisposable
             await _chatManager.SetConversationMutedAsync(vm.Username, !vm.IsMuted);
             await RefreshAsync();
         }
-        else if (choice == "🧹 Удалить чат" || choice == "🧽 Очистить историю")
+        else if (choice == Loc.T("dg_097", "🧹 Удалить чат") || choice == Loc.T("dg_098", "🧽 Очистить историю"))
         {
-            await DeleteOrClearConversationAsync(vm.Username, clearHistory: choice == "🧽 Очистить историю");
+            await DeleteOrClearConversationAsync(vm.Username, clearHistory: choice == Loc.T("dg_098", "🧽 Очистить историю"));
         }
     }
 
@@ -544,28 +553,28 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     private async Task DeleteOrClearConversationAsync(string username, bool clearHistory)
     {
         var scopeChoice = await DisplayActionSheet(
-            clearHistory ? "Очистить историю?" : "Удалить чат?",
+            clearHistory ? Loc.T("dg_042", "Очистить историю?") : Loc.T("dg_081", "Удалить чат?"),
             "Отмена",
             null,
-            "Удалить для всех",
-            clearHistory ? "Только у себя" : "Удалить для себя");
+            Loc.T("dg_074", "Удалить для всех"),
+            clearHistory ? Loc.T("dg_073", "Только у себя") : Loc.T("dg_075", "Удалить для себя"));
 
         if (scopeChoice is null || scopeChoice == "Отмена")
         {
             return;
         }
 
-        var forEveryone = string.Equals(scopeChoice, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
+        var forEveryone = string.Equals(scopeChoice, Loc.T("dg_074", "Удалить для всех"), StringComparison.OrdinalIgnoreCase);
 
         var confirmed = await DisplayAlert(
-            clearHistory ? "Очистить историю" : "Удалить чат",
+            clearHistory ? Loc.T("dg_041", "Очистить историю") : Loc.T("dg_080", "Удалить чат"),
             clearHistory
                 ? forEveryone
-                    ? $"История переписки с {username} будет удалена у вас и у собеседника."
-                    : $"История переписки с {username} будет удалена только у вас."
+                    ? string.Format(Loc.T("dg_031"), username)
+                    : string.Format(Loc.T("dg_030"), username)
                 : forEveryone
-                    ? $"Переписка с {username} будет удалена у вас и у собеседника."
-                    : $"Чат с {username} будет удалён только у вас. Собеседник увидит историю как раньше.",
+                    ? string.Format(Loc.T("dg_046"), username)
+                    : string.Format(Loc.T("dg_086"), username),
             "Удалить", "Отмена") == true;
         if (!confirmed)
         {
@@ -577,15 +586,15 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         {
             ok = await _chatManager.ClearConversationAsync(username, forEveryone);
             ShowHint(ok
-                ? forEveryone ? "История удалена у всех" : "История удалена только у вас"
-                : "Не удалось очистить историю", isError: !ok);
+                ? forEveryone ? Loc.T("rs_058", "История удалена у всех") : Loc.T("rs_057", "История удалена только у вас")
+                : Loc.T("rs_089", "Не удалось очистить историю"), isError: !ok);
         }
         else
         {
             ok = await _chatManager.DeleteConversationAsync(username, forEveryone);
             ShowHint(ok
-                ? forEveryone ? "Чат удалён у всех" : "Чат удалён только у вас"
-                : "Не удалось удалить чат", isError: !ok);
+                ? forEveryone ? Loc.T("rs_172", "Чат удалён у всех") : Loc.T("rs_171", "Чат удалён только у вас")
+                : Loc.T("rs_098", "Не удалось удалить чат"), isError: !ok);
 
             if (ok && string.Equals(_selectedUsername, username, StringComparison.OrdinalIgnoreCase))
             {
@@ -601,11 +610,11 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         try
         {
             var username = await DisplayPromptAsync(
-                "Добавить контакт",
-                "Введите имя пользователя:",
-                "Добавить",
+                Loc.T("vs_addcontact", "Добавить контакт"),
+                Loc.T("rs_015", "Введите имя пользователя:"),
+                Loc.T("vs_add", "Добавить"),
                 "Отмена",
-                "например, bob",
+                Loc.T("rs_180", "например, bob"),
                 maxLength: 32,
                 keyboard: Keyboard.Text);
 
@@ -620,7 +629,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось добавить контакт", ex.Message, "OK");
+            await DisplayAlert(Loc.T("uc_026", "Не удалось добавить контакт"), ex.Message, "OK");
         }
     }
 
@@ -646,7 +655,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось открыть", ex.Message, "OK");
+            await DisplayAlert(Loc.T("uc_033", "Не удалось открыть"), ex.Message, "OK");
         }
     }
 
@@ -658,7 +667,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось открыть браузер", ex.Message, "OK");
+            await DisplayAlert(Loc.T("uc_034", "Не удалось открыть браузер"), ex.Message, "OK");
         }
     }
 
@@ -697,9 +706,9 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
         var confirmed = await DisplayAlert(
-            "Выход",
-            "Завершить сеанс? Локальная история и ключи останутся на устройстве.",
-            "Выйти",
+            Loc.T("dg_022", "Выход"),
+            Loc.T("dg_024", "Завершить сеанс? Локальная история и ключи останутся на устройстве."),
+            Loc.T("dg_019", "Выйти"),
             "Отмена");
 
         if (!confirmed)
@@ -716,13 +725,13 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     {
         var status = StatusPicker.SelectedIndex switch
         {
-            1 => "Неактивен",
-            2 => "Занят",
+            1 => Loc.T("vs_away", "Неактивен"),
+            2 => Loc.T("vs_busy", "Занят"),
             _ => "Онлайн"
         };
 
         _session.StatusMessage = status;
-        UserStatusLabel.Text = status;
+        UserStatusLabel.Text = StatusDisplay(status);
 
         StatusDot.BackgroundColor = status switch
         {
@@ -765,7 +774,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
 
             var preview = _session.ShowNotificationPreview
                 ? MessagePreview.Build(message.Text)
-                : "Новое сообщение";
+                : Loc.T("rs_110", "Новое сообщение");
             if (!_notifications.ShowNotification(username, preview, username, 0, silent: false))
             {
                 ShowInAppToast(username, preview);
@@ -793,7 +802,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         else
         {
             ShowOfflineStatus(
-                "⚡ Офлайн-режим: сообщения сохраняются и отправятся после подключения.");
+                Loc.T("rs_188", "⚡ Офлайн-режим: сообщения сохраняются и отправятся после подключения."));
         }
     }
 

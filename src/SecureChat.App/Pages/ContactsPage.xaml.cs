@@ -69,7 +69,7 @@ public partial class ContactsPage : ContentPage
         var username = UsernameEntry.Text?.Trim() ?? string.Empty;
         if (username.Length < 3)
         {
-            await DisplayAlert("Контакты", "Введите имя пользователя.", "OK");
+            await DisplayAlert("Контакты", Loc.T("uc_005", "Введите имя пользователя."), "OK");
             return;
         }
 
@@ -84,7 +84,7 @@ public partial class ContactsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось добавить контакт", ex.Message, "OK");
+            await DisplayAlert(Loc.T("uc_026", "Не удалось добавить контакт"), ex.Message, "OK");
         }
         finally
         {

@@ -11,7 +11,7 @@
         <ScrollView MaximumHeightRequest="220">
             <VerticalStackLayout Spacing="6">
                 <Label x:Name="EmptyLabel"
-                       Text="Здесь появятся GIF из ваших переписок.\nОтправьте или получите анимацию — она попадёт на вкладку."
+                       Text="{DynamicResource s_ui_048}"
                        FontSize="12"
                        TextColor="{DynamicResource TextMuted}" />
                 <VerticalStackLayout x:Name="Container" Spacing="4" />

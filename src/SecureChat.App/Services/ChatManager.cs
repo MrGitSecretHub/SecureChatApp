@@ -1574,11 +1574,22 @@ public sealed class ChatManager
         {
             // Загрузку отменил пользователь — молча прерываем.
         }
+        catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // Файл удалён на сервере или ссылка из старой истории больше недействительна.
+            // Повторные попытки бесполезны — показываем понятную причину один раз.
+            if (_chatService.IsConnected)
+            {
+                Error?.Invoke(Loc.T("bug_media_missing", "Вложение больше недоступно на сервере."));
+            }
+        }
         catch (Exception ex)
         {
             if (_chatService.IsConnected)
             {
-                Error?.Invoke($"Не удалось загрузить вложение: {ex.Message}");
+                Error?.Invoke(string.Format(
+                    Loc.T("bug_media_failed", "Не удалось загрузить вложение: {0}"),
+                    ex.Message));
             }
         }
         finally

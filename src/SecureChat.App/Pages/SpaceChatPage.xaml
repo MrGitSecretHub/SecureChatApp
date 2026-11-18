@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:views="clr-namespace:SecureChat.App.Views"
              x:Class="SecureChat.App.Pages.SpaceChatPage"
-             Title="Пространство">
+             Title="{DynamicResource s_ui_136}">
     <ContentPage.Resources>
         <ResourceDictionary>
             <Style x:Key="SpaceActionButton" TargetType="Button">
@@ -81,7 +81,7 @@
                     Style="{DynamicResource IconButton}"
                     Clicked="OnTopicsClicked"
                     IsVisible="False"
-                    ToolTipProperties.Text="Темы форума" />
+                    ToolTipProperties.Text="{DynamicResource s_ui_162}" />
             <Button Grid.Column="3"
                     x:Name="MentionsButton"
                     Text="🎯"
@@ -89,27 +89,27 @@
                     Style="{DynamicResource IconButton}"
                     Clicked="OnMentionsClicked"
                     IsVisible="False"
-                    ToolTipProperties.Text="Перейти к упоминаниям и ответам вам" />
+                    ToolTipProperties.Text="{DynamicResource s_ui_112}" />
             <Button Grid.Column="4"
                     x:Name="MediaButton"
                     Text="🖼"
                     FontSize="16"
                     Style="{DynamicResource IconButton}"
                     Clicked="OnMediaClicked"
-                    ToolTipProperties.Text="Медиа и файлы пространства" />
+                    ToolTipProperties.Text="{DynamicResource s_ui_064}" />
             <Button Grid.Column="5"
                     Text="⚙️"
                     FontSize="16"
                     Style="{DynamicResource IconButton}"
                     Clicked="OnSettingsClicked"
-                    ToolTipProperties.Text="Настройки пространства" />
+                    ToolTipProperties.Text="{DynamicResource s_ui_079}" />
             <Button Grid.Column="6"
                     x:Name="MuteButton"
                     Text="🔔"
                     FontSize="16"
                     Style="{DynamicResource IconButton}"
                     Clicked="OnToggleMuteClicked"
-                    ToolTipProperties.Text="Звук и уведомления об упоминаниях в этом пространстве" />
+                    ToolTipProperties.Text="{DynamicResource s_ui_046}" />
         </Grid>
 
         <!-- Закреплённое сообщение -->
@@ -151,7 +151,7 @@
                         HeightRequest="32"
                         Padding="4"
                         Clicked="OnUnpinBannerClicked"
-                        ToolTipProperties.Text="Открепить" />
+                        ToolTipProperties.Text="{DynamicResource s_ui_096}" />
             </Grid>
         </Border>
 
@@ -204,7 +204,7 @@
                             TextColor="White"
                             CornerRadius="6"
                             Clicked="OnPinnedUpClicked"
-                            ToolTipProperties.Text="К первому закреплённому" />
+                            ToolTipProperties.Text="{DynamicResource s_ui_053}" />
                     <Button Grid.Column="3"
                             Text="↓"
                             FontSize="10"
@@ -214,7 +214,7 @@
                             TextColor="White"
                             CornerRadius="6"
                             Clicked="OnPinnedDownClicked"
-                            ToolTipProperties.Text="К последнему закреплённому" />
+                            ToolTipProperties.Text="{DynamicResource s_ui_054}" />
                 </Grid>
                 <CollectionView Grid.Row="1"
                                 x:Name="PinnedItemsViewInline"
@@ -275,7 +275,7 @@
                         WidthRequest="28"
                         HeightRequest="28"
                         Clicked="OnCancelActionClicked"
-                        ToolTipProperties.Text="Отменить" />
+                        ToolTipProperties.Text="{DynamicResource s_ui_104}" />
             </Grid>
         </Border>
 
@@ -358,7 +358,7 @@
                                        TextColor="{DynamicResource TextMuted}"
                                        Margin="0,0,0,2" />
 
-                                <Label Text="↪ Переслано"
+                                <Label Text="{DynamicResource s_ui_184}"
                                        IsVisible="{Binding IsForwarded}"
                                        FontSize="11"
                                        FontAttributes="Italic"
@@ -394,13 +394,13 @@
                                                MaximumWidthRequest="340"
                                                MaximumHeightRequest="240"
                                                HorizontalOptions="Start" />
-                                        <Label Text="Загрузка изображения…"
+                                        <Label Text="{DynamicResource s_ui_038}"
                                                IsVisible="{Binding IsImagePending}"
                                                FontSize="12"
                                                TextColor="{DynamicResource TextMuted}" />
                                     </Grid>
                                     <Button Grid.Row="1"
-                                            Text="Посмотреть"
+                                            Text="{DynamicResource s_ui_129}"
                                             IsVisible="{Binding IsImageReady}"
                                             Style="{DynamicResource GhostButton}"
                                             FontSize="12"
@@ -523,7 +523,7 @@
                                                TextColor="{DynamicResource TextMuted}" />
                                     </VerticalStackLayout>
                                     <Button Grid.Column="2"
-                                            Text="Открыть"
+                                            Text="{DynamicResource s_ui_097}"
                                             Style="{DynamicResource GhostButton}"
                                             FontSize="12"
                                             Padding="8,2"
@@ -744,7 +744,7 @@
                                         HorizontalOptions="Start"
                                         CommandParameter="{Binding .}"
                                         Clicked="OnOpenCommentsClicked"
-                                        ToolTipProperties.Text="Открыть комментарии" />
+                                        ToolTipProperties.Text="{DynamicResource s_ui_099}" />
 
                                 <!-- Контекстное меню actions -->
                                 <HorizontalStackLayout Spacing="6"
@@ -754,39 +754,39 @@
                                             Text="📋"
                                             CommandParameter="{Binding .}"
                                             Clicked="OnActionCopyClicked"
-                                            ToolTipProperties.Text="Копировать" />
+                                            ToolTipProperties.Text="{DynamicResource s_ui_060}" />
                                     <Button Style="{StaticResource SpaceActionButton}"
                                             Text="🔗"
                                             CommandParameter="{Binding .}"
                                             Clicked="OnActionCopyLinkClicked"
-                                            ToolTipProperties.Text="Ссылка на сообщение" />
+                                            ToolTipProperties.Text="{DynamicResource s_ui_159}" />
                                     <Button Style="{StaticResource SpaceActionButton}"
                                             Text="↩️"
                                             CommandParameter="{Binding .}"
                                             Clicked="OnActionReplyClicked"
-                                            ToolTipProperties.Text="Ответить" />
+                                            ToolTipProperties.Text="{DynamicResource s_ui_095}" />
                                     <Button Style="{StaticResource SpaceActionButton}"
                                             Text="😊"
                                             CommandParameter="{Binding .}"
                                             Clicked="OnActionReactionClicked"
-                                            ToolTipProperties.Text="Реакция" />
+                                            ToolTipProperties.Text="{DynamicResource s_ui_140}" />
                                     <Button Style="{StaticResource SpaceActionButton}"
                                             Text="↪️"
                                             CommandParameter="{Binding .}"
                                             Clicked="OnActionForwardClicked"
-                                            ToolTipProperties.Text="Переслать" />
+                                            ToolTipProperties.Text="{DynamicResource s_ui_113}" />
                                     <Button Style="{StaticResource SpaceActionButton}"
                                             Text="✏️"
                                             IsVisible="{Binding CanEdit}"
                                             CommandParameter="{Binding .}"
                                             Clicked="OnActionEditClicked"
-                                            ToolTipProperties.Text="Редактировать" />
+                                            ToolTipProperties.Text="{DynamicResource s_ui_141}" />
                                     <Button Style="{StaticResource SpaceActionButton}"
                                             Text="📌"
                                             IsVisible="{Binding CanPin}"
                                             CommandParameter="{Binding .}"
                                             Clicked="OnActionPinClicked"
-                                            ToolTipProperties.Text="Закрепить или открепить" />
+                                            ToolTipProperties.Text="{DynamicResource s_ui_039}" />
                                     <Button Style="{StaticResource SpaceActionButton}"
                                             Text="🗑️"
                                             TextColor="{DynamicResource Danger}"
@@ -882,7 +882,7 @@
                     </Border.StrokeShape>
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <Label x:Name="ReplyPreviewLabel"
-                               Text="↩ Ответ на «…»"
+                               Text="{DynamicResource s_ui_183}"
                                FontSize="13"
                                TextColor="{DynamicResource TextPrimary}"
                                LineBreakMode="TailTruncation"
@@ -891,7 +891,7 @@
                                 Text="✕"
                                 Style="{DynamicResource IconButton}"
                                 Clicked="OnCancelReplyClicked"
-                                ToolTipProperties.Text="Отменить ответ"
+                                ToolTipProperties.Text="{DynamicResource s_ui_105}"
                                 WidthRequest="34"
                                 HeightRequest="34"
                                 VerticalOptions="Center" />
@@ -907,19 +907,19 @@
                                 Style="{DynamicResource IconButton}"
                                 VerticalOptions="End"
                                 Clicked="OnAttachClicked"
-                                ToolTipProperties.Text="Прикрепить фото или файл" />
+                                ToolTipProperties.Text="{DynamicResource s_ui_133}" />
                         <Button x:Name="EmojiButton"
                                 Text="😊"
                                 Style="{DynamicResource IconButton}"
                                 VerticalOptions="End"
                                 Clicked="OnEmojiButtonClicked"
-                                ToolTipProperties.Text="Эмодзи" />
+                                ToolTipProperties.Text="{DynamicResource s_ui_175}" />
                         <Button x:Name="CustomPackButton"
                                 Text="🎨"
                                 Style="{DynamicResource IconButton}"
                                 VerticalOptions="End"
                                 Clicked="OnCustomPackButtonClicked"
-                                ToolTipProperties.Text="Свои GIF и стикеры" />
+                                ToolTipProperties.Text="{DynamicResource s_ui_146}" />
                         <Button x:Name="SilentButton"
                                 Text="🔕"
                                 Style="{DynamicResource IconButton}"
@@ -927,19 +927,19 @@
                                 IsVisible="False"
                                 BackgroundColor="Transparent"
                                 Clicked="OnSilentClicked"
-                                ToolTipProperties.Text="Тихий пост — следующий пост придёт без уведомлений у подписчиков" />
+                                ToolTipProperties.Text="{DynamicResource s_ui_163}" />
                         <Button x:Name="ScheduleButton"
                                 Text="⏰"
                                 Style="{DynamicResource IconButton}"
                                 VerticalOptions="End"
                                 IsVisible="False"
                                 Clicked="OnScheduleClicked"
-                                ToolTipProperties.Text="Отложить сообщение — выбрать время публикации" />
+                                ToolTipProperties.Text="{DynamicResource s_ui_103}" />
                     </HorizontalStackLayout>
                     <views:MentionEntryView Grid.Column="1"
                                             x:Name="MessageEntry"
                                             VerticalOptions="Center"
-                                            Placeholder="Сообщение в пространстве"
+                                            Placeholder="{DynamicResource s_ui_153}"
                                             Completed="OnSendClicked" />
                     <Button x:Name="SendButton"
                             Grid.Column="2"
@@ -979,7 +979,7 @@
                     </Border.GestureRecognizers>
                     <HorizontalStackLayout Spacing="12">
                         <Label Text="🖼" FontSize="15" VerticalOptions="Center" />
-                        <Label Text="Фото или видео"
+                        <Label Text="{DynamicResource s_ui_170}"
                                FontSize="14"
                                TextColor="{DynamicResource TextPrimary}"
                                VerticalOptions="Center" />
@@ -994,7 +994,7 @@
                     </Border.GestureRecognizers>
                     <HorizontalStackLayout Spacing="12">
                         <Label Text="📄" FontSize="15" VerticalOptions="Center" />
-                        <Label Text="Файл"
+                        <Label Text="{DynamicResource s_ui_169}"
                                FontSize="14"
                                TextColor="{DynamicResource TextPrimary}"
                                VerticalOptions="Center" />
@@ -1009,7 +1009,7 @@
                     </Border.GestureRecognizers>
                     <HorizontalStackLayout Spacing="12">
                         <Label Text="🎵" FontSize="15" VerticalOptions="Center" />
-                        <Label Text="Музыка"
+                        <Label Text="{DynamicResource s_ui_068}"
                                FontSize="14"
                                TextColor="{DynamicResource TextPrimary}"
                                VerticalOptions="Center" />
@@ -1024,7 +1024,7 @@
                     </Border.GestureRecognizers>
                     <HorizontalStackLayout Spacing="12">
                         <Label Text="🎤" FontSize="15" VerticalOptions="Center" />
-                        <Label Text="Голосовое сообщение"
+                        <Label Text="{DynamicResource s_ui_022}"
                                FontSize="14"
                                TextColor="{DynamicResource TextPrimary}"
                                VerticalOptions="Center" />
@@ -1039,7 +1039,7 @@
                     </Border.GestureRecognizers>
                     <HorizontalStackLayout Spacing="12">
                         <Label Text="📹" FontSize="15" VerticalOptions="Center" />
-                        <Label Text="Видеокружок"
+                        <Label Text="{DynamicResource s_ui_012}"
                                FontSize="14"
                                TextColor="{DynamicResource TextPrimary}"
                                VerticalOptions="Center" />
@@ -1064,7 +1064,7 @@
                 <Label Text="📢"
                        FontSize="15"
                        VerticalOptions="Center" />
-                <Label Text="Канал только для чтения. Пишут только администраторы."
+                <Label Text="{DynamicResource s_ui_055}"
                        FontSize="14"
                        TextColor="{DynamicResource TextPrimary}"
                        VerticalOptions="Center" />
@@ -1088,7 +1088,7 @@
                        FontSize="15"
                        VerticalOptions="Center" />
                 <Label x:Name="TopicClosedLabel"
-                       Text="Тема закрыта — писать в неё нельзя."
+                       Text="{DynamicResource s_ui_161}"
                        FontSize="14"
                        TextColor="{DynamicResource TextPrimary}"
                        VerticalOptions="Center" />
@@ -1112,7 +1112,7 @@
                        FontSize="15"
                        VerticalOptions="Center" />
                 <Label x:Name="OfflineBannerLabel"
-                       Text="Нет связи с сервером — сообщения сохранятся и уйдут после подключения."
+                       Text="{DynamicResource s_ui_084}"
                        FontSize="14"
                        TextColor="{DynamicResource TextPrimary}"
                        VerticalOptions="Center" />
@@ -1135,7 +1135,7 @@
                 <Label Text="🔑"
                        FontSize="15"
                        VerticalOptions="Center" />
-                <Label Text="История зашифрована: E2E-ключ передаст любой участник в сети — обычно это секунды. Перезагрузите чат, когда ключ придёт."
+                <Label Text="{DynamicResource s_ui_052}"
                        FontSize="14"
                        TextColor="{DynamicResource TextPrimary}"
                        LineBreakMode="WordWrap"

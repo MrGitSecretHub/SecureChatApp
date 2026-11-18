@@ -77,7 +77,7 @@ public partial class SpaceChatPage : ContentPage
             set { if (_progress != value) { _progress = value; Notify(); } }
         }
 
-        private string _status = "Отправка…";
+        private string _status = Loc.T("rs_116", "Отправка…");
         public string Status
         {
             get => _status;
@@ -335,7 +335,7 @@ public partial class SpaceChatPage : ContentPage
                 Composer.IsVisible = false;
                 ReadOnlyBanner.IsVisible = false;
                 KeyWaitBanner.IsVisible = true;
-                SpaceInfoLabel.Text = $"{members.Count} участников";
+                SpaceInfoLabel.Text = string.Format(Loc.T("uc_000"), members.Count);
                 return;
             }
 
@@ -365,7 +365,7 @@ public partial class SpaceChatPage : ContentPage
                     payload ?? new SpaceMessagePayload
                     {
                         Kind = "text",
-                        Text = "🔒 Сообщение не удалось расшифровать"
+                        Text = Loc.T("rs_216", "🔒 Сообщение не удалось расшифровать")
                     }));
             }
 
@@ -405,11 +405,11 @@ public partial class SpaceChatPage : ContentPage
             TopicClosedBanner.IsVisible = _currentTopicClosed && _canPost;
             TopicClosedLabel.Text = _topicTitle is null
                 ? "Тема закрыта — писать в неё нельзя."
-                : $"Тема «{_topicTitle}» закрыта — писать в неё нельзя.";
+                : string.Format(Loc.T("rs_156"), _topicTitle);
 
             SpaceInfoLabel.Text = _topicTitle is null
-                ? $"{members.Count} участников"
-                : $"Тема: {(_currentTopicClosed ? "🔒 " : string.Empty)}{_topicTitle} · {members.Count} участников";
+                ? string.Format(Loc.T("uc_000"), members.Count)
+                : string.Format(Loc.T("fx_001"), (_currentTopicClosed ? "🔒 " : string.Empty), _topicTitle, members.Count);
 
             UpdatePinnedBanner();
         }
@@ -451,7 +451,7 @@ public partial class SpaceChatPage : ContentPage
         if (_spaceType == SpaceTypes.Channel)
         {
             vm.AuthorText = _signMessages
-                ? $"{_spaceName} через @{vm.Sender}"
+                ? string.Format(Loc.T("rs_002"), _spaceName, vm.Sender)
                 : _spaceName;
         }
 
@@ -478,7 +478,7 @@ public partial class SpaceChatPage : ContentPage
             PinnedLabel.Text = string.IsNullOrEmpty(_pinnedMessage.ReplyToText)
                 ? _pinnedMessage.Text
                 : $"↪ {_pinnedMessage.ReplyToText}";
-            PinnedAuthorLabel.Text = $"от {_pinnedMessage.Sender}";
+            PinnedAuthorLabel.Text = string.Format(Loc.T("uc_070"), _pinnedMessage.Sender);
         }
 
         RefreshPinnedItems();
@@ -569,7 +569,7 @@ public partial class SpaceChatPage : ContentPage
                 payload ?? new SpaceMessagePayload
                 {
                     Kind = "text",
-                    Text = "🔒 Сообщение не удалось расшифровать"
+                    Text = Loc.T("rs_216", "🔒 Сообщение не удалось расшифровать")
                 });
             _messages.Add(vm);
             RefreshDateLabels();
@@ -585,14 +585,14 @@ public partial class SpaceChatPage : ContentPage
     {
         if (!_canPost)
         {
-            await DisplayAlert("Только чтение", "В этом канале сообщения могут публиковать только администраторы.", "OK");
+            await DisplayAlert(Loc.T("uc_066", "Только чтение"), Loc.T("uc_004", "В этом канале сообщения могут публиковать только администраторы."), "OK");
             return;
         }
 
         if (_currentTopicClosed)
         {
-            await DisplayAlert("Тема закрыта",
-                "В этой теме нельзя писать — её закрыл администратор.", "Ок");
+            await DisplayAlert(Loc.T("dg_069", "Тема закрыта"),
+                Loc.T("dg_011", "В этой теме нельзя писать — её закрыл администратор."), "Ок");
             return;
         }
 
@@ -673,7 +673,7 @@ public partial class SpaceChatPage : ContentPage
             }
             catch (Exception ex)
             {
-                await DisplayAlert("SecureChat", $"Не удалось открыть ссылку: {ex.Message}", "OK");
+                await DisplayAlert("SecureChat", string.Format(Loc.T("uc_035"), ex.Message), "OK");
             }
 
             return;
@@ -692,7 +692,7 @@ public partial class SpaceChatPage : ContentPage
             }
             catch (Exception ex)
             {
-                await DisplayAlert("SecureChat", $"Не удалось открыть ссылку: {ex.Message}", "OK");
+                await DisplayAlert("SecureChat", string.Format(Loc.T("uc_035"), ex.Message), "OK");
             }
         }
     }
@@ -766,12 +766,12 @@ public partial class SpaceChatPage : ContentPage
     {
         if (date == today)
         {
-            return "Сегодня";
+            return Loc.T("rs_142", "Сегодня");
         }
 
         if (date == today.AddDays(-1))
         {
-            return "Вчера";
+            return Loc.T("rs_027", "Вчера");
         }
 
         return date.ToString("d MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"));
@@ -823,7 +823,7 @@ public partial class SpaceChatPage : ContentPage
             ? (Color)Application.Current!.Resources["AccentText"]
             : (Color)Application.Current!.Resources["TextMuted"];
         ToolTipProperties.SetText(SilentButton, _silentPosting
-            ? "Тихий пост включён — следующий пост придёт без уведомлений"
+            ? Loc.T("rs_161", "Тихий пост включён — следующий пост придёт без уведомлений")
             : "Тихий пост — следующий пост придёт без уведомлений у подписчиков");
     }
     private void OnSpaceChip1Tapped(object? sender, EventArgs e) => OpenSlotSpaceLink(sender, 1, chip: true);
@@ -888,7 +888,7 @@ public partial class SpaceChatPage : ContentPage
         await _chat.SetSpaceMutedAsync(_spaceId, _isMuted);
         MuteButton.Text = _isMuted ? "🔕" : "🔔";
         ToolTipProperties.SetText(MuteButton, _isMuted
-            ? "Звук пространства выключен — включить"
+            ? Loc.T("rs_050", "Звук пространства выключен — включить")
             : "Звук и уведомления об упоминаниях в этом пространстве");
     }
 
@@ -953,8 +953,8 @@ public partial class SpaceChatPage : ContentPage
 
         if (posts.Count == 0)
         {
-            await DisplayAlert("Отложенные посты",
-                "В этом пространстве нет отложенных постов. Напишите текст и нажмите «⏰», чтобы отложить пост.",
+            await DisplayAlert(Loc.T("dg_038", "Отложенные посты"),
+                Loc.T("dg_012", "В этом пространстве нет отложенных постов. Напишите текст и нажмите «⏰», чтобы отложить пост."),
                 "Ок");
             return;
         }
@@ -963,12 +963,12 @@ public partial class SpaceChatPage : ContentPage
             $"{DateTimeOffset.FromUnixTimeMilliseconds(post.SendAtUnixMs).ToLocalTime():dd.MM HH:mm} — {post.Preview}").ToArray();
 
         var choice = await DisplayActionSheet(
-            "Отложенные посты",
-            "Закрыть",
+            Loc.T("dg_038", "Отложенные посты"),
+            Loc.T("common_close", "Закрыть"),
             null,
             labels);
 
-        if (string.IsNullOrWhiteSpace(choice) || choice == "Закрыть")
+        if (string.IsNullOrWhiteSpace(choice) || choice == Loc.T("common_close", "Закрыть"))
         {
             return;
         }
@@ -981,9 +981,9 @@ public partial class SpaceChatPage : ContentPage
 
         var target = posts[index];
         var cancel = await DisplayAlert(
-            "Отменить пост?",
-            $"Пост «{target.Preview}» будет удалён из очереди и не будет опубликован.",
-            "Отменить пост", "Оставить");
+            Loc.T("dg_040", "Отменить пост?"),
+            string.Format(Loc.T("dg_052"), target.Preview),
+            Loc.T("dg_039", "Отменить пост"), Loc.T("dg_036", "Оставить"));
 
         if (!cancel)
         {
@@ -991,7 +991,7 @@ public partial class SpaceChatPage : ContentPage
         }
 
         await local.RemoveScheduledSpacePostAsync(target.Id);
-        await DisplayAlert("Готово", "Пост удалён из очереди.", "Ок");
+        await DisplayAlert(Loc.T("set_036", "Готово"), Loc.T("uc_060", "Пост удалён из очереди."), "Ок");
     }
 
     private void OnPinnedBannerTapped(object sender, EventArgs e)
@@ -1131,7 +1131,7 @@ public partial class SpaceChatPage : ContentPage
         }
 
         _replyingTo = message;
-        ReplyPreviewLabel.Text = $"↩ Ответ на «{Shorten(message.ReplyToText, 70)}»";
+        ReplyPreviewLabel.Text = string.Format(Loc.T("uc_071"), Shorten(message.ReplyToText, 70));
         ReplyBar.IsVisible = true;
         MessageEntry.FocusInput();
     }
@@ -1154,11 +1154,11 @@ public partial class SpaceChatPage : ContentPage
         }
 
         var emoji = await DisplayActionSheet(
-            "Реакция:",
-            "Отмена",
+            Loc.T("uc_063", "Реакция:"),
+            Loc.T("common_cancel", "Отмена"),
             null,
             "👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🙏");
-        if (string.IsNullOrWhiteSpace(emoji) || emoji == "Отмена")
+        if (string.IsNullOrWhiteSpace(emoji) || emoji == Loc.T("common_cancel", "Отмена"))
         {
             return;
         }
@@ -1191,7 +1191,7 @@ public partial class SpaceChatPage : ContentPage
             return;
         }
 
-        ActionLabel.Text = $"Редактирование: {message.Text}";
+        ActionLabel.Text = string.Format(Loc.T("uc_064"), message.Text);
         ActionBar.IsVisible = true;
         MessageEntry.Text = message.Text;
         MessageEntry.FocusInput();
@@ -1222,10 +1222,10 @@ public partial class SpaceChatPage : ContentPage
         }
 
         var confirmed = await DisplayAlert(
-            "Удалить сообщение?",
-            "Сообщение будет удалено для всех участников.",
-            "Удалить",
-            "Отмена");
+            Loc.T("dg_078", "Удалить сообщение?"),
+            Loc.T("dg_063", "Сообщение будет удалено для всех участников."),
+            Loc.T("common_delete", "Удалить"),
+            Loc.T("common_cancel", "Отмена"));
         if (!confirmed)
         {
             return;
@@ -1273,7 +1273,7 @@ public partial class SpaceChatPage : ContentPage
             var page = Application.Current?.Windows.FirstOrDefault()?.Page;
             if (page is null)
             {
-                await DisplayAlert("Ошибка", "Вложение недоступно на этом устройстве.", "OK");
+                await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_008", "Вложение недоступно на этом устройстве."), "OK");
                 return;
             }
 
@@ -1327,7 +1327,7 @@ public partial class SpaceChatPage : ContentPage
         try
         {
             var player = CreateVoicePlayer()
-                ?? throw new InvalidOperationException("Воспроизведение не поддерживается на этой платформе.");
+                ?? throw new InvalidOperationException(Loc.T("rs_023", "Воспроизведение не поддерживается на этой платформе."));
 
             await player.OpenAsync(path);
             message.UpdatePlayback(0, player.DurationSeconds);
@@ -1344,11 +1344,11 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось воспроизвести голосовое: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_023"), ex.Message), "OK");
         }
 #else
         await Task.CompletedTask;
-        await DisplayAlert("Ошибка", "Воспроизведение голосовых на этой платформе недоступно.", "OK");
+        await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_009", "Воспроизведение голосовых на этой платформе недоступно."), "OK");
 #endif
     }
 
@@ -1479,7 +1479,7 @@ public partial class SpaceChatPage : ContentPage
             {
                 if (message.Media is null)
                 {
-                    await DisplayAlert("Ошибка", "Аудиофайл голосового сообщения не найден.", "OK");
+                    await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_003", "Аудиофайл голосового сообщения не найден."), "OK");
                     return;
                 }
 
@@ -1491,11 +1491,11 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось воспроизвести голосовое: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_023"), ex.Message), "OK");
         }
 #else
         await Task.CompletedTask;
-        await DisplayAlert("Ошибка", "Воспроизведение голосовых на этой платформе недоступно.", "OK");
+        await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_009", "Воспроизведение голосовых на этой платформе недоступно."), "OK");
 #endif
     }
 
@@ -1539,8 +1539,8 @@ public partial class SpaceChatPage : ContentPage
                 new PickOptions
                 {
                     PickerTitle = packKind == CustomPackService.GifPackKind
-                        ? "Выберите свои GIF"
-                        : "Выберите свои стикеры (PNG, WebP, JPG)",
+                        ? Loc.T("rs_031", "Выберите свои GIF")
+                        : Loc.T("rs_032", "Выберите свои стикеры (PNG, WebP, JPG)"),
                     FileTypes = FilePickerFileType.Images
                 })).ToList();
 
@@ -1575,14 +1575,14 @@ public partial class SpaceChatPage : ContentPage
                 }
                 catch (Exception ex)
                 {
-                    await DisplayAlert("Ошибка", $"Не удалось импортировать {file.FileName}: {ex.Message}", "OK");
+                    await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_032"), file.FileName, ex.Message), "OK");
                 }
             }
 
             if (imported > 0)
             {
                 await CustomPackPicker.ReloadAsync();
-                await DisplayAlert("Готово", $"Импортировано файлов: {imported}", "OK");
+                await DisplayAlert(Loc.T("set_036", "Готово"), string.Format(Loc.T("uc_013"), imported), "OK");
             }
         }
         catch
@@ -1617,7 +1617,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось отправить файл из пака: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_038"), ex.Message), "OK");
         }
         finally
         {
@@ -1662,7 +1662,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось отправить стикер: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_037"), ex.Message), "OK");
         }
     }
 
@@ -1716,21 +1716,21 @@ public partial class SpaceChatPage : ContentPage
             {
                 case "photo":
                     var mediaFiles = await FilePicker.Default.PickMultipleAsync(
-                        new PickOptions { PickerTitle = "Выберите фото или видео" });
+                        new PickOptions { PickerTitle = Loc.T("rs_036", "Выберите фото или видео") });
                     if (mediaFiles is null || !mediaFiles.Any()) return;
                     await SendAttachmentsAsync(mediaFiles, isPhoto: true);
                     break;
 
                 case "file":
                     var files = await FilePicker.Default.PickMultipleAsync(
-                        new PickOptions { PickerTitle = "Выберите файлы" });
+                        new PickOptions { PickerTitle = Loc.T("rs_035", "Выберите файлы") });
                     if (files is null || !files.Any()) return;
                     await SendAttachmentsAsync(files, isPhoto: false);
                     break;
 
                 case "music":
                     var audioFiles = await FilePicker.Default.PickMultipleAsync(
-                        new PickOptions { PickerTitle = "Выберите музыку" });
+                        new PickOptions { PickerTitle = Loc.T("rs_029", "Выберите музыку") });
                     if (audioFiles is null || !audioFiles.Any()) return;
                     await SendAttachmentsAsync(audioFiles, isPhoto: false);
                     break;
@@ -1817,7 +1817,7 @@ public partial class SpaceChatPage : ContentPage
                         cancellationToken: item.Cts.Token);
 
                     item.Progress = 100;
-                    item.Status = "Готово";
+                    item.Status = Loc.T("set_036", "Готово");
                     await Task.Delay(350);
                     _pendingMedia.Remove(item);
                 }
@@ -1827,9 +1827,9 @@ public partial class SpaceChatPage : ContentPage
                 }
                 catch (Exception ex)
                 {
-                    item.Status = "Ошибка";
+                    item.Status = Loc.T("common_error", "Ошибка");
                     MainThread.BeginInvokeOnMainThread(async () =>
-                        await DisplayAlert("Ошибка", $"Не удалось отправить «{item.FileName}»: {ex.Message}", "OK"));
+                        await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_036"), item.FileName, ex.Message), "OK"));
                     _pendingMedia.Remove(item);
                 }
 
@@ -1866,7 +1866,7 @@ public partial class SpaceChatPage : ContentPage
             var data = await ReadAttachmentAsync(file);
             if (data is null)
             {
-                await DisplayAlert("Ошибка", $"«{file.FileName}» слишком большой.", "OK");
+                await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_001"), file.FileName), "OK");
                 continue;
             }
 
@@ -1913,13 +1913,13 @@ public partial class SpaceChatPage : ContentPage
             var status = await Permissions.RequestAsync<Permissions.Microphone>();
             if (status != PermissionStatus.Granted)
             {
-                await DisplayAlert("Ошибка", "Нет права на запись аудио. Разрешите доступ к микрофону в настройках.", "OK");
+                await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_053", "Нет права на запись аудио. Разрешите доступ к микрофону в настройках."), "OK");
                 return null;
             }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось запросить право на микрофон: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_031"), ex.Message), "OK");
             return null;
         }
 #endif
@@ -1940,7 +1940,7 @@ public partial class SpaceChatPage : ContentPage
 
         var statusLabel = new Label
         {
-            Text = "Идёт запись",
+            Text = Loc.T("rs_053", "Идёт запись"),
             FontSize = 13,
             TextColor = Color.FromArgb("#B3FFFFFF"),
             VerticalOptions = LayoutOptions.Center
@@ -1957,7 +1957,7 @@ public partial class SpaceChatPage : ContentPage
 
         var sendButton = new Button
         {
-            Text = "Отправить",
+            Text = Loc.T("rs_114", "Отправить"),
             BackgroundColor = (Color)resources["Accent"],
             TextColor = Colors.White,
             CornerRadius = 18,
@@ -1968,7 +1968,7 @@ public partial class SpaceChatPage : ContentPage
 
         var cancelButton = new Button
         {
-            Text = "Отмена",
+            Text = Loc.T("common_cancel", "Отмена"),
             BackgroundColor = Colors.Transparent,
             TextColor = Color.FromArgb("#B3FFFFFF"),
             CornerRadius = 18,
@@ -2059,7 +2059,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex) when (send)
         {
-            await DisplayAlert("Ошибка", $"Ошибка записи голосового: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_057"), ex.Message), "OK");
         }
         catch
         {
@@ -2080,7 +2080,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось прочитать запись: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_040"), ex.Message), "OK");
             return null;
         }
     }
@@ -2116,13 +2116,13 @@ public partial class SpaceChatPage : ContentPage
             var status = await Permissions.RequestAsync<Permissions.Camera>();
             if (status != PermissionStatus.Granted)
             {
-                await DisplayAlert("Ошибка", "Нет права на камеру. Разрешите доступ к камере в настройках.", "OK");
+                await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_054", "Нет права на камеру. Разрешите доступ к камере в настройках."), "OK");
                 return null;
             }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось запросить право на камеру: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_030"), ex.Message), "OK");
             return null;
         }
 
@@ -2131,7 +2131,7 @@ public partial class SpaceChatPage : ContentPage
             // Системная камера показывает предпросмотр и даёт остановить/подтвердить запись.
             var captured = await MediaPicker.Default.CaptureVideoAsync(new MediaPickerOptions
             {
-                Title = "Запись видеокружка"
+                Title = Loc.T("rs_046", "Запись видеокружка")
             });
 
             if (captured is null)
@@ -2145,13 +2145,13 @@ public partial class SpaceChatPage : ContentPage
 
             if (buffer.Length == 0)
             {
-                await DisplayAlert("Ошибка", "Камера вернула пустой видеофайл.", "OK");
+                await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_016", "Камера вернула пустой видеофайл."), "OK");
                 return null;
             }
 
             if (buffer.Length > MediaLimits.MaxBytes)
             {
-                await DisplayAlert("Ошибка", $"Видео слишком большое. Максимум — {MediaLimits.MaxBytes / (1024 * 1024)} МБ.", "OK");
+                await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_006"), MediaLimits.MaxBytes / (1024 * 1024)), "OK");
                 return null;
             }
 
@@ -2164,7 +2164,7 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (FeatureNotSupportedException)
         {
-            await DisplayAlert("Ошибка", "На устройстве нет приложения камеры, поддерживающего запись видео.", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_017", "На устройстве нет приложения камеры, поддерживающего запись видео."), "OK");
             return null;
         }
         catch (OperationCanceledException)
@@ -2173,12 +2173,12 @@ public partial class SpaceChatPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось записать видео: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_029"), ex.Message), "OK");
             return null;
         }
 #else
         await Task.CompletedTask;
-        await DisplayAlert("Видеокружок", "Запись видеокружков на этой платформе недоступна.", "OK");
+        await DisplayAlert("Видеокружок", Loc.T("uc_011", "Запись видеокружков на этой платформе недоступна."), "OK");
         return null;
 #endif
     }
@@ -2234,9 +2234,9 @@ public partial class SpaceChatPage : ContentPage
         {
             var title = await DisplayPromptAsync(
                 "Новая тема",
-                "Введите название темы:",
-                "Создать",
-                "Отмена",
+                Loc.T("rs_018", "Введите название темы:"),
+                Loc.T("rs_149", "Создать"),
+                Loc.T("common_cancel", "Отмена"),
                 maxLength: 120,
                 keyboard: Keyboard.Text);
             if (string.IsNullOrWhiteSpace(title))
@@ -2255,48 +2255,48 @@ public partial class SpaceChatPage : ContentPage
             return;
         }
 
-        var options = new List<string> { "＋ Новая тема" };
+        var options = new List<string> { Loc.T("rs_195", "＋ Новая тема") };
         options.AddRange(topics.Select(TopicLabel));
         if (_canModerate)
         {
-            options.Add("✏️ Переименовать тему…");
-            options.Add("🔒 Закрыть или открыть тему…");
-            options.Add("⬆️ Переместить тему выше");
-            options.Add("⬇️ Переместить тему ниже");
-            options.Add("🗑 Удалить тему…");
+            options.Add(Loc.T("rs_189", "✏️ Переименовать тему…"));
+            options.Add(Loc.T("rs_215", "🔒 Закрыть или открыть тему…"));
+            options.Add(Loc.T("rs_193", "⬆️ Переместить тему выше"));
+            options.Add(Loc.T("rs_194", "⬇️ Переместить тему ниже"));
+            options.Add(Loc.T("rs_220", "🗑 Удалить тему…"));
         }
 
         var selected = await DisplayActionSheet(
             "Темы форума",
-            "Отмена",
+            Loc.T("common_cancel", "Отмена"),
             null,
             options.ToArray());
-        if (string.IsNullOrWhiteSpace(selected) || selected == "Отмена")
+        if (string.IsNullOrWhiteSpace(selected) || selected == Loc.T("common_cancel", "Отмена"))
         {
             return;
         }
 
-        if (selected == "✏️ Переименовать тему…")
+        if (selected == Loc.T("rs_189", "✏️ Переименовать тему…"))
         {
             await RenameTopicAsync(topics);
             return;
         }
 
-        if (selected == "🔒 Закрыть или открыть тему…")
+        if (selected == Loc.T("rs_215", "🔒 Закрыть или открыть тему…"))
         {
             await ToggleTopicClosedAsync(topics);
             return;
         }
 
-        if (selected == "⬆️ Переместить тему выше" || selected == "⬇️ Переместить тему ниже")
+        if (selected == Loc.T("rs_193", "⬆️ Переместить тему выше") || selected == Loc.T("rs_194", "⬇️ Переместить тему ниже"))
         {
-            await MoveTopicAsync(topics, selected == "⬆️ Переместить тему выше" ? -1 : 1);
+            await MoveTopicAsync(topics, selected == Loc.T("rs_193", "⬆️ Переместить тему выше") ? -1 : 1);
             return;
         }
 
-        if (selected == "🗑 Удалить тему…")
+        if (selected == Loc.T("rs_220", "🗑 Удалить тему…"))
         {
-            var target = await PickTopicAsync(topics, "Какую тему удалить? Все её сообщения будут стёрты.");
+            var target = await PickTopicAsync(topics, Loc.T("rs_064", "Какую тему удалить? Все её сообщения будут стёрты."));
             if (target is null)
             {
                 return;
@@ -2304,9 +2304,9 @@ public partial class SpaceChatPage : ContentPage
 
             var doomed = target;
             var confirmed = await DisplayAlert(
-                "Удалить тему",
-                $"Тема «{doomed.Title}» и все её сообщения исчезнут для всех участников.",
-                "Удалить", "Отмена");
+                Loc.T("dg_079", "Удалить тему"),
+                string.Format(Loc.T("dg_066"), doomed.Title),
+                Loc.T("common_delete", "Удалить"), Loc.T("common_cancel", "Отмена"));
             if (!confirmed)
             {
                 return;
@@ -2323,13 +2323,13 @@ public partial class SpaceChatPage : ContentPage
             return;
         }
 
-        if (selected == "＋ Новая тема")
+        if (selected == Loc.T("rs_195", "＋ Новая тема"))
         {
             var title = await DisplayPromptAsync(
                 "Новая тема",
-                "Введите название темы:",
-                "Создать",
-                "Отмена",
+                Loc.T("rs_018", "Введите название темы:"),
+                Loc.T("rs_149", "Создать"),
+                Loc.T("common_cancel", "Отмена"),
                 maxLength: 120,
                 keyboard: Keyboard.Text);
             if (!string.IsNullOrWhiteSpace(title))
@@ -2371,8 +2371,8 @@ public partial class SpaceChatPage : ContentPage
         }
 
         var labels = topics.Select(TopicLabel).ToArray();
-        var selected = await DisplayActionSheet(question, "Отмена", null, labels);
-        if (string.IsNullOrWhiteSpace(selected) || selected == "Отмена")
+        var selected = await DisplayActionSheet(question, Loc.T("common_cancel", "Отмена"), null, labels);
+        if (string.IsNullOrWhiteSpace(selected) || selected == Loc.T("common_cancel", "Отмена"))
         {
             return null;
         }
@@ -2384,17 +2384,17 @@ public partial class SpaceChatPage : ContentPage
     /// <summary>Переименование темы форума.</summary>
     private async Task RenameTopicAsync(IReadOnlyList<TopicDto> topics)
     {
-        var target = await PickTopicAsync(topics, "Какую тему переименовать?");
+        var target = await PickTopicAsync(topics, Loc.T("rs_062", "Какую тему переименовать?"));
         if (target is null)
         {
             return;
         }
 
         var title = await DisplayPromptAsync(
-            "Переименовать тему",
-            "Новое название темы:",
-            "Сохранить",
-            "Отмена",
+            Loc.T("rs_123", "Переименовать тему"),
+            Loc.T("rs_108", "Новое название темы:"),
+            Loc.T("common_save", "Сохранить"),
+            Loc.T("common_cancel", "Отмена"),
             maxLength: 120,
             initialValue: target.Title,
             keyboard: Keyboard.Text);
@@ -2406,7 +2406,7 @@ public partial class SpaceChatPage : ContentPage
         var updated = await _spaces.RenameTopicAsync(_spaceId, target.Id, title);
         if (updated is null)
         {
-            await DisplayAlert("Не удалось", "Не хватает прав или тема не найдена.", "Ок");
+            await DisplayAlert(Loc.T("uc_022", "Не удалось"), Loc.T("uc_047", "Не хватает прав или тема не найдена."), "Ок");
             return;
         }
 
@@ -2421,7 +2421,7 @@ public partial class SpaceChatPage : ContentPage
     /// <summary>Закрытие и открытие темы форума.</summary>
     private async Task ToggleTopicClosedAsync(IReadOnlyList<TopicDto> topics)
     {
-        var target = await PickTopicAsync(topics, "Какую тему закрыть или открыть?");
+        var target = await PickTopicAsync(topics, Loc.T("rs_061", "Какую тему закрыть или открыть?"));
         if (target is null)
         {
             return;
@@ -2430,7 +2430,7 @@ public partial class SpaceChatPage : ContentPage
         var updated = await _spaces.SetTopicClosedAsync(_spaceId, target.Id, !target.IsClosed);
         if (updated is null)
         {
-            await DisplayAlert("Не удалось", "Не хватает прав или тема не найдена.", "Ок");
+            await DisplayAlert(Loc.T("uc_022", "Не удалось"), Loc.T("uc_047", "Не хватает прав или тема не найдена."), "Ок");
             return;
         }
 
@@ -2445,7 +2445,7 @@ public partial class SpaceChatPage : ContentPage
     /// <summary>Перестановка темы в списке форума.</summary>
     private async Task MoveTopicAsync(IReadOnlyList<TopicDto> topics, int shift)
     {
-        var target = await PickTopicAsync(topics, "Какую тему переместить?");
+        var target = await PickTopicAsync(topics, Loc.T("rs_063", "Какую тему переместить?"));
         if (target is null)
         {
             return;
@@ -2464,7 +2464,7 @@ public partial class SpaceChatPage : ContentPage
         var updated = await _spaces.SetTopicPositionAsync(_spaceId, other.Id, target.Position);
         if (updated is null)
         {
-            await DisplayAlert("Не удалось", "Не хватает прав или тема не найдена.", "Ок");
+            await DisplayAlert(Loc.T("uc_022", "Не удалось"), Loc.T("uc_047", "Не хватает прав или тема не найдена."), "Ок");
             return;
         }
 

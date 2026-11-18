@@ -37,7 +37,7 @@ public partial class PostCommentsPage : ContentPage
 
         CommentsView.ItemsSource = _comments;
         PostPreviewLabel.Text =
-            $"К посту от {postAuthor}: {Shorten(postPreview, 160)}";
+            string.Format(Loc.T("uc_015"), postAuthor, Shorten(postPreview, 160));
     }
 
     protected override async void OnAppearing()
@@ -240,11 +240,11 @@ public partial class PostCommentsPage : ContentPage
         }
 
         var choice = await DisplayActionSheet(
-            "Удалить комментарий?",
-            "Отмена",
+            Loc.T("dg_076", "Удалить комментарий?"),
+            Loc.T("common_cancel", "Отмена"),
             null,
-            "Удалить");
-        if (choice != "Удалить")
+            Loc.T("common_delete", "Удалить"));
+        if (choice != Loc.T("common_delete", "Удалить"))
         {
             return;
         }
@@ -254,7 +254,7 @@ public partial class PostCommentsPage : ContentPage
             var deleted = await _spaces.DeleteMessageAsync(_spaceId, comment.Id);
             if (!deleted)
             {
-                await DisplayAlert("Ошибка", "Не удалось удалить комментарий.", "OK");
+                await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_046", "Не удалось удалить комментарий."), "OK");
             }
         }
         catch (Exception ex)
@@ -272,11 +272,11 @@ public partial class PostCommentsPage : ContentPage
         }
 
         var emoji = await DisplayActionSheet(
-            "Реакция:",
-            "Отмена",
+            Loc.T("uc_063", "Реакция:"),
+            Loc.T("common_cancel", "Отмена"),
             null,
             "👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🙏");
-        if (string.IsNullOrWhiteSpace(emoji) || emoji == "Отмена")
+        if (string.IsNullOrWhiteSpace(emoji) || emoji == Loc.T("common_cancel", "Отмена"))
         {
             return;
         }
@@ -342,7 +342,7 @@ public partial class PostCommentsPage : ContentPage
             }
             catch (Exception ex)
             {
-                await DisplayAlert("SecureChat", $"Не удалось открыть ссылку: {ex.Message}", "OK");
+                await DisplayAlert("SecureChat", string.Format(Loc.T("uc_035"), ex.Message), "OK");
             }
         }
     }
@@ -351,7 +351,7 @@ public partial class PostCommentsPage : ContentPage
     {
         if (string.IsNullOrEmpty(text))
         {
-            return "без текста";
+            return Loc.T("rs_176", "без текста");
         }
 
         return text.Length <= maxLength ? text : text[..maxLength] + "…";

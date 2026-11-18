@@ -1,6 +1,7 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
+using SecureChat.App.Services;
 
 namespace SecureChat.App.Views;
 
@@ -25,7 +26,7 @@ public partial class MentionEntryView : ContentView
             : Username.Length == 0 ? "?" : Username[..1].ToUpperInvariant();
 
         public string Subtitle => string.Equals(Username, "all", StringComparison.OrdinalIgnoreCase)
-            ? "упомянуть всех участников"
+            ? Loc.T("rs_182", "упомянуть всех участников")
             : "@" + Username;
     }
 
@@ -102,10 +103,21 @@ public partial class MentionEntryView : ContentView
         set => InnerEntry.CursorPosition = value;
     }
 
+    public static readonly BindableProperty PlaceholderProperty =
+        BindableProperty.Create(nameof(Placeholder), typeof(string),
+            typeof(MentionEntryView), string.Empty,
+            propertyChanged: (bindable, oldValue, newValue) =>
+            {
+                if (bindable is MentionEntryView view)
+                {
+                    view.InnerEntry.Placeholder = (string)newValue;
+                }
+            });
+
     public string Placeholder
     {
-        get => InnerEntry.Placeholder;
-        set => InnerEntry.Placeholder = value;
+        get => (string)GetValue(PlaceholderProperty);
+        set => SetValue(PlaceholderProperty, value);
     }
 
     public bool IsReadOnly

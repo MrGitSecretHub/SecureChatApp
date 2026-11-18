@@ -10,7 +10,7 @@
         </Border.StrokeShape>
         <VerticalStackLayout Spacing="6">
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                <Label Text="🎨 Свои пакеты"
+                <Label Text="{DynamicResource s_ui_194}"
                        FontSize="12"
                        FontAttributes="Bold"
                        TextColor="{DynamicResource TextPrimary}"
@@ -23,7 +23,7 @@
                         Style="{DynamicResource GhostButton}"
                         Clicked="OnImportGifClicked" />
                 <Button Grid.Column="2"
-                        Text="＋ Стикеры"
+                        Text="{DynamicResource s_ui_191}"
                         FontSize="11"
                         Padding="8,2"
                         HeightRequest="26"
@@ -32,7 +32,7 @@
             </Grid>
 
             <Label x:Name="EmptyLabel"
-                   Text="Своих пакетов пока нет — импортируйте GIF или картинки-стикеры с устройства."
+                   Text="{DynamicResource s_ui_147}"
                    FontSize="11"
                    TextColor="{DynamicResource TextMuted}"
                    IsVisible="False" />

@@ -4,13 +4,13 @@
              xmlns:views="clr-namespace:SecureChat.App.Views"
              xmlns:pages="clr-namespace:SecureChat.App.Pages"
              x:Class="SecureChat.App.Pages.SearchUsersPage"
-             Title="Поиск пользователей">
+             Title="{DynamicResource s_ui_122}">
     <Grid Padding="16" RowDefinitions="Auto,Auto,*" RowSpacing="12">
 
         <!-- Шапка -->
         <VerticalStackLayout Spacing="2">
-            <Label Text="Поиск пользователя" Style="{DynamicResource H1}" />
-            <Label Text="Введите @имя пользователя, чтобы найти его на сервере."
+            <Label Text="{DynamicResource s_ui_124}" Style="{DynamicResource H1}" />
+            <Label Text="{DynamicResource s_ui_008}"
                    Style="{DynamicResource Caption}" />
         </VerticalStackLayout>
 
@@ -18,12 +18,12 @@
         <Border Grid.Row="1" Style="{DynamicResource Card}" Padding="12">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <Entry x:Name="UsernameEntry"
-                       Placeholder="@имя пользователя"
+                       Placeholder="{DynamicResource s_ui_000}"
                        IsSpellCheckEnabled="False"
                        Completed="OnSearchClicked" />
                 <Button Grid.Column="1"
                         x:Name="SearchButton"
-                        Text="Найти"
+                        Text="{DynamicResource s_ui_074}"
                         Clicked="OnSearchClicked" />
             </Grid>
         </Border>
@@ -36,9 +36,9 @@
                 <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
                     <Label Text="🔍"
                            Style="{DynamicResource EmptyStateIcon}" />
-                    <Label Text="Результаты поиска появятся здесь"
+                    <Label Text="{DynamicResource s_ui_142}"
                            Style="{DynamicResource EmptyStateTitle}" />
-                    <Label Text="Введите @имя пользователя выше и нажмите «Найти»."
+                    <Label Text="{DynamicResource s_ui_007}"
                            Style="{DynamicResource EmptyStateCaption}" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
@@ -96,7 +96,7 @@
 
                             <!-- Кнопка -->
                             <Button Grid.Column="2"
-                                    Text="Добавить"
+                                    Text="{DynamicResource s_ui_031}"
                                     Style="{DynamicResource PrimaryButton}"
                                     Clicked="OnAddClicked"
                                     WidthRequest="90"

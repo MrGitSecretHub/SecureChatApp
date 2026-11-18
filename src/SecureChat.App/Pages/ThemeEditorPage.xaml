@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.ThemeEditorPage"
-             Title="Конструктор темы">
+             Title="{DynamicResource s_ui_058}">
     <ScrollView>
         <VerticalStackLayout Padding="16" Spacing="14">
 
@@ -10,7 +10,7 @@
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <VerticalStackLayout Grid.Column="0" Spacing="2">
                     <Label x:Name="EditorTitleLabel"
-                           Text="Новая тема"
+                           Text="{DynamicResource s_ui_088}"
                            Style="{DynamicResource H2}" />
                     <Label x:Name="EditorBaseLabel"
                            Style="{DynamicResource Caption}" />
@@ -32,7 +32,7 @@
                 <VerticalStackLayout Spacing="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                         <Label Grid.Column="0"
-                               Text="Предпросмотр"
+                               Text="{DynamicResource s_ui_131}"
                                Style="{DynamicResource H2}" />
                         <Label Grid.Column="1"
                                x:Name="PreviewBaseLabel"
@@ -62,11 +62,11 @@
                                     </Border.StrokeShape>
                                 </Border>
                                 <VerticalStackLayout Grid.Column="1" Spacing="0">
-                                    <Label Text="Собеседник"
+                                    <Label Text="{DynamicResource s_ui_150}"
                                            TextColor="{DynamicResource TextPrimary}"
                                            FontSize="13"
                                            FontAttributes="Bold" />
-                                    <Label Text="был(а) недавно"
+                                    <Label Text="{DynamicResource s_ui_177}"
                                            TextColor="{DynamicResource TextMuted}"
                                            FontSize="10" />
                                 </VerticalStackLayout>
@@ -86,13 +86,13 @@
                                     <RoundRectangle CornerRadius="8" />
                                 </Border.StrokeShape>
                                 <VerticalStackLayout Spacing="4">
-                                    <Label Text="Текст на панели"
+                                    <Label Text="{DynamicResource s_ui_160}"
                                            TextColor="{DynamicResource TextPrimary}"
                                            FontSize="12" />
-                                    <Label Text="второстепенный текст"
+                                    <Label Text="{DynamicResource s_ui_179}"
                                            TextColor="{DynamicResource TextSecondary}"
                                            FontSize="11" />
-                                    <Label Text="приглушённая подпись"
+                                    <Label Text="{DynamicResource s_ui_181}"
                                            TextColor="{DynamicResource TextMuted}"
                                            FontSize="10" />
                                 </VerticalStackLayout>
@@ -106,7 +106,7 @@
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>
-                                <Label Text="Сообщение собеседника"
+                                <Label Text="{DynamicResource s_ui_154}"
                                        TextColor="{DynamicResource MessageThemText}"
                                        FontSize="13" />
                             </Border>
@@ -119,20 +119,20 @@
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>
-                                <Label Text="Ваше сообщение"
+                                <Label Text="{DynamicResource s_ui_006}"
                                        TextColor="{DynamicResource AccentText}"
                                        FontSize="13" />
                             </Border>
 
                             <!-- Статусы -->
                             <HorizontalStackLayout Spacing="6">
-                                <Label Text="успех"
+                                <Label Text="{DynamicResource s_ui_182}"
                                        TextColor="{DynamicResource Success}"
                                        FontSize="11" />
-                                <Label Text="ошибка"
+                                <Label Text="{DynamicResource s_ui_180}"
                                        TextColor="{DynamicResource Danger}"
                                        FontSize="11" />
-                                <Label Text="внимание"
+                                <Label Text="{DynamicResource s_ui_178}"
                                        TextColor="{DynamicResource Warning}"
                                        FontSize="11" />
                             </HorizontalStackLayout>
@@ -147,7 +147,7 @@
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="14" />
                                     </Border.StrokeShape>
-                                    <Label Text="Поле ввода"
+                                    <Label Text="{DynamicResource s_ui_128}"
                                            TextColor="{DynamicResource TextMuted}"
                                            FontSize="12" />
                                 </Border>
@@ -164,7 +164,7 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <Label Text="Изменения видны сразу во всём приложении. Сохраните их как свою тему, чтобы вернуться к ним позже."
+                    <Label Text="{DynamicResource s_ui_050}"
                            Style="{DynamicResource Caption}" />
                 </VerticalStackLayout>
             </Border>
@@ -172,8 +172,8 @@
             <!-- Готовые палитры -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Готовые палитры" Style="{DynamicResource H2}" />
-                    <Label Text="Нажмите на палитру — все цвета темы сразу станут такими. Дальше можно править любой цвет вручную."
+                    <Label Text="{DynamicResource s_ui_023}" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_ui_070}"
                            Style="{DynamicResource Caption}" />
                     <VerticalStackLayout x:Name="PalettePresetsLayout" Spacing="8" />
                 </VerticalStackLayout>
@@ -184,14 +184,14 @@
                 <VerticalStackLayout Spacing="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                         <Label Grid.Column="0"
-                               Text="Цвета"
+                               Text="{DynamicResource s_ui_171}"
                                Style="{DynamicResource H2}" />
                         <Label Grid.Column="1"
                                x:Name="ChangedRolesLabel"
                                Style="{DynamicResource Caption}"
                                VerticalOptions="Center" />
                     </Grid>
-                    <Label Text="Нажмите на образец, чтобы выбрать цвет: палитра, HEX-код или сброс к теме."
+                    <Label Text="{DynamicResource s_ui_069}"
                            Style="{DynamicResource Caption}" />
                     <VerticalStackLayout x:Name="RolesLayout" Spacing="8" />
                 </VerticalStackLayout>
@@ -204,7 +204,7 @@
                        Style="{DynamicResource Caption}"
                        IsVisible="False" />
                 <Button x:Name="SaveThemeButton"
-                        Text="Сохранить как свою тему"
+                        Text="{DynamicResource s_ui_155}"
                         Style="{DynamicResource PrimaryButton}"
                         Clicked="OnSaveThemeClicked" />
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
@@ -213,22 +213,22 @@
                             Style="{DynamicResource SecondaryButton}"
                             Clicked="OnExportThemeClicked" />
                     <Button Grid.Column="1"
-                            Text="Вставить тему"
+                            Text="{DynamicResource s_ui_016}"
                             Style="{DynamicResource SecondaryButton}"
                             Clicked="OnImportThemeClicked" />
                 </Grid>
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                     <Button Grid.Column="0"
-                            Text="💾 Сохранить в файл"
+                            Text="{DynamicResource s_ui_198}"
                             Style="{DynamicResource GhostButton}"
                             Clicked="OnExportFileClicked" />
                     <Button Grid.Column="1"
-                            Text="📂 Открыть файл"
+                            Text="{DynamicResource s_ui_199}"
                             Style="{DynamicResource GhostButton}"
                             Clicked="OnImportFileClicked" />
                 </Grid>
                 <Button x:Name="ResetColorsButton"
-                        Text="Сбросить цвета к теме"
+                        Text="{DynamicResource s_ui_143}"
                         Style="{DynamicResource GhostButton}"
                         Clicked="OnResetColorsClicked" />
             </VerticalStackLayout>
@@ -236,10 +236,10 @@
             <!-- Мои темы -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Мои темы" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_ui_066}" Style="{DynamicResource H2}" />
                     <VerticalStackLayout x:Name="MyThemesLayout" Spacing="8" />
                     <Label x:Name="EmptyThemesLabel"
-                           Text="Сохранённых тем пока нет. Подберите цвета выше и нажмите «Сохранить как свою тему»."
+                           Text="{DynamicResource s_ui_157}"
                            Style="{DynamicResource Caption}"
                            IsVisible="False" />
                 </VerticalStackLayout>

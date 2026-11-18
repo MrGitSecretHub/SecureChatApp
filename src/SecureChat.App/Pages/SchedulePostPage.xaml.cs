@@ -52,7 +52,7 @@ public partial class SchedulePostPage : ContentPage
 
     private void UpdatePreview()
     {
-        PreviewLabel.Text = $"Пост будет опубликован {SendAt:dddd, dd MMMM yyyy HH:mm}";
+        PreviewLabel.Text = string.Format(Loc.T("uc_059"), SendAt);
     }
 
     private async void OnCancelClicked(object? sender, EventArgs e)
@@ -69,13 +69,13 @@ public partial class SchedulePostPage : ContentPage
             var post = await _spaces.ScheduleMessageAsync(_spaceId, _topicId, _text, sendAt);
             if (post is null)
             {
-                await DisplayAlert("Не удалось", "Не получилось отложить пост.", "Ок");
+                await DisplayAlert(Loc.T("uc_022", "Не удалось"), Loc.T("uc_021", "Не получилось отложить пост."), "Ок");
                 return;
             }
 
             await Navigation.PopAsync();
-            await DisplayAlert("Пост отложен",
-                $"Пост будет опубликован {sendAt:dd.MM.yyyy HH:mm}.",
+            await DisplayAlert(Loc.T("dg_054", "Пост отложен"),
+                string.Format(Loc.T("dg_053"), sendAt),
                 "Ок");
         }
         catch (Exception ex)

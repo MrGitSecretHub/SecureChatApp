@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:views="clr-namespace:SecureChat.App.Views"
              x:Class="SecureChat.App.Pages.SpacesPage"
-             Title="Группы и сообщества">
+             Title="{DynamicResource s_ui_024}">
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
 
         <!-- Шапка -->
@@ -69,7 +69,7 @@
                TextColor="{DynamicResource Warning}"
                LineBreakMode="WordWrap"
                IsVisible="False"
-               Text="⚡ Пространства недоступны в офлайн-режиме. Подключитесь к серверу, чтобы загрузить список. Нажмите, чтобы повторить.">
+               Text="{DynamicResource s_ui_189}">
             <Label.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnRetryTapped" />
             </Label.GestureRecognizers>
@@ -84,9 +84,9 @@
                 <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
                     <Label Text="📢"
                            Style="{DynamicResource EmptyStateIcon}" />
-                    <Label Text="Пространств пока нет"
+                    <Label Text="{DynamicResource s_ui_135}"
                            Style="{DynamicResource EmptyStateTitle}" />
-                    <Label Text="Создайте группу, канал или форум, чтобы общаться сообществом."
+                    <Label Text="{DynamicResource s_ui_151}"
                            Style="{DynamicResource EmptyStateCaption}" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
@@ -129,7 +129,7 @@
                                        FontSize="10"
                                        FontAttributes="Bold"
                                        TextColor="{DynamicResource Accent}" />
-                                <Label Text="🌐 публичное"
+                                <Label Text="{DynamicResource s_ui_192}"
                                        FontSize="10"
                                        TextColor="{DynamicResource TextDisabled}"
                                        HorizontalOptions="End"
@@ -145,7 +145,7 @@
         </CollectionView>
 
         <Button Grid.Row="5"
-                Text="Создать группу, канал или сообщество"
+                Text="{DynamicResource s_ui_152}"
                 Style="{DynamicResource PrimaryButton}"
                 Margin="16"
                 Clicked="OnCreateClicked" />

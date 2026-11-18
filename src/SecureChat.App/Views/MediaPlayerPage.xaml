@@ -19,7 +19,7 @@
                 VerticalOptions="Start"
                 Margin="12,12,64,0"
                 Clicked="OnSaveClicked"
-                ToolTipProperties.Text="Сохранить на устройство" />
+                ToolTipProperties.Text="{DynamicResource s_ui_156}" />
 
         <Button Text="✕"
                 Style="{DynamicResource SecondaryButton}"

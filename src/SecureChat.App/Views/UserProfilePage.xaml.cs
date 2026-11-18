@@ -39,7 +39,7 @@ public partial class UserProfilePage : ContentPage
             var session = AppServices.Get<AppSession>();
             if (string.IsNullOrWhiteSpace(session.Token))
             {
-                ErrorLabel.Text = "Нет подключения к серверу — данные профиля недоступны.";
+                ErrorLabel.Text = Loc.T("uc_052", "Нет подключения к серверу — данные профиля недоступны.");
                 ErrorLabel.IsVisible = true;
                 StartChatButton.IsEnabled = true;
                 return;
@@ -51,9 +51,9 @@ public partial class UserProfilePage : ContentPage
         catch (Exception ex)
         {
             // Профиль не загрузился (нет сети и т.п.) — чат всё равно доступен.
-            ErrorLabel.Text = $"Не удалось загрузить профиль: {ex.Message}";
+            ErrorLabel.Text = string.Format(Loc.T("uc_028"), ex.Message);
             ErrorLabel.IsVisible = true;
-            StatusLabel.Text = "Неизвестно";
+            StatusLabel.Text = Loc.T("uc_050", "Неизвестно");
             StatusDot.IsVisible = false;
         }
         finally

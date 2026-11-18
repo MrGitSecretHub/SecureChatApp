@@ -56,7 +56,7 @@
                             MinimumWidthRequest="28"
                             MinimumHeightRequest="28"
                             Clicked="OnProfileTapped"
-                            ToolTipProperties.Text="Профиль и настройки" />
+                            ToolTipProperties.Text="{DynamicResource s_ui_137}" />
                     <Button Grid.Column="2"
                             Text="💬"
                             Style="{DynamicResource IconButton}"
@@ -64,7 +64,7 @@
                             MinimumWidthRequest="28"
                             MinimumHeightRequest="28"
                             Clicked="OnNewChatClicked"
-                            ToolTipProperties.Text="Новый чат (Ctrl+N)" />
+                            ToolTipProperties.Text="{DynamicResource s_ui_090}" />
                     <Button Grid.Column="3"
                             Text="🔍"
                             Style="{DynamicResource IconButton}"
@@ -72,7 +72,7 @@
                             MinimumWidthRequest="28"
                             MinimumHeightRequest="28"
                             Clicked="OnSearchUsersClicked"
-                            ToolTipProperties.Text="Поиск пользователей по @username" />
+                            ToolTipProperties.Text="{DynamicResource s_ui_123}" />
                 </Grid>
             </Grid>
 
@@ -137,12 +137,12 @@
                   RowSpacing="8">
                 <Picker Grid.Row="0"
                         x:Name="StatusPicker"
-                        Title="Статус"
+                        Title="{DynamicResource s_vs_status}"
                         SelectedIndexChanged="OnStatusChanged"
                         TextColor="{DynamicResource TextPrimary}" />
                 <SearchBar Grid.Row="1"
                            x:Name="SearchEntry"
-                           Placeholder="Поиск по чатам (Enter — по сообщениям)"
+                           Placeholder="{DynamicResource s_ui_121}"
                            TextChanged="OnSearchTextChanged"
                            SearchButtonPressed="OnGlobalSearchPressed" />
                 <!-- Вкладки списка, как папки в Telegram. Полоса прокрутки — Automatic:
@@ -194,14 +194,14 @@
                                 HeightRequest="34"
                                 Padding="12,6"
                                 CornerRadius="17"
-                                ToolTipProperties.Text="Папки чатов: создать и настроить" />
+                                ToolTipProperties.Text="{DynamicResource s_ui_111}" />
                     </HorizontalStackLayout>
                 </ScrollView>
             </Grid>
 
             <!-- Список чатов -->
             <Label Grid.Row="3"
-                   Text="Закреплённые"
+                   Text="{DynamicResource s_ui_041}"
                    Style="{StaticResource SectionHeader}"
                    x:Name="PinnedSectionLabel"
                    IsVisible="False" />
@@ -299,7 +299,7 @@
                                         HorizontalOptions="End"
                                         VerticalOptions="Center"
                                         Clicked="OnConversationMenuClicked"
-                                        ToolTipProperties.Text="Действия с чатом" />
+                                        ToolTipProperties.Text="{DynamicResource s_ui_029}" />
                             </Grid>
                         </Border>
                     </DataTemplate>
@@ -321,7 +321,7 @@
                             Style="{DynamicResource IconButton}"
                             BackgroundColor="{DynamicResource SurfaceAlt}"
                             Clicked="OnNewChatClicked"
-                            ToolTipProperties.Text="Новый чат (Ctrl+N)" />
+                            ToolTipProperties.Text="{DynamicResource s_ui_090}" />
                     <Button Grid.Column="1"
                             Text="💬"
                             FontSize="16"
@@ -329,7 +329,7 @@
                             Style="{DynamicResource IconButton}"
                             BackgroundColor="{DynamicResource SurfaceAlt}"
                             Clicked="OnMyProfileClicked"
-                            ToolTipProperties.Text="Мой профиль" />
+                            ToolTipProperties.Text="{DynamicResource s_ui_067}" />
                     <Button Grid.Column="2"
                             Text="📢"
                             FontSize="16"
@@ -337,7 +337,7 @@
                             Style="{DynamicResource IconButton}"
                             BackgroundColor="{DynamicResource SurfaceAlt}"
                             Clicked="OnSpacesClicked"
-                            ToolTipProperties.Text="Группы, каналы и форумы" />
+                            ToolTipProperties.Text="{DynamicResource s_ui_025}" />
                     <Button Grid.Column="3"
                             Text="🌐"
                             FontSize="16"
@@ -345,15 +345,15 @@
                             Style="{DynamicResource IconButton}"
                             BackgroundColor="{DynamicResource SurfaceAlt}"
                             Clicked="OnBrowserClicked"
-                            ToolTipProperties.Text="Встроенный браузер" />
+                            ToolTipProperties.Text="{DynamicResource s_ui_017}" />
                 </Grid>
                 <Button Grid.Row="1"
-                        Text="Выйти из аккаунта"
+                        Text="{DynamicResource s_vs_logout}"
                         FontSize="13"
                         Style="{DynamicResource GhostButton}"
                         TextColor="{DynamicResource Danger}"
                         Clicked="OnLogoutClicked"
-                        ToolTipProperties.Text="Выйти из аккаунта" />
+                        ToolTipProperties.Text="{DynamicResource s_vs_logout}" />
             </Grid>
         </Grid>
 
@@ -384,16 +384,16 @@
                            HorizontalTextAlignment="Center"
                            VerticalTextAlignment="Center" />
                 </Border>
-                <Label Text="Выберите чат"
+                <Label Text="{DynamicResource s_ui_020}"
                        FontSize="22"
                        FontAttributes="Bold"
                        TextColor="{DynamicResource TextPrimary}"
                        HorizontalOptions="Center" />
-                <Label Text="Выберите переписку слева или начните новую"
+                <Label Text="{DynamicResource s_ui_018}"
                        FontSize="14"
                        TextColor="{DynamicResource TextMuted}"
                        HorizontalOptions="Center" />
-                <Button Text="Новый чат"
+                <Button Text="{DynamicResource s_ui_089}"
                         Style="{DynamicResource PrimaryButton}"
                         Clicked="OnNewChatClicked"
                         HorizontalOptions="Center"

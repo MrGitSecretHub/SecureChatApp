@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.ColorPickerPage"
-             Title="Выбор цвета">
+             Title="{DynamicResource s_ui_021}">
     <Grid Padding="16"
           RowDefinitions="Auto,Auto,Auto,Auto,*"
           RowSpacing="12"
@@ -12,7 +12,7 @@
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <Label Grid.Column="0"
                    x:Name="TitleLabel"
-                   Text="Выберите цвет"
+                   Text="{DynamicResource s_ui_019}"
                    Style="{DynamicResource H2}"
                    VerticalOptions="Center" />
             <Border Grid.Column="1"
@@ -96,19 +96,19 @@
             <!-- H, S, V -->
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                    <Label Text="Тон" Style="{DynamicResource Caption}" />
+                    <Label Text="{DynamicResource s_ui_164}" Style="{DynamicResource Caption}" />
                     <Entry x:Name="HueEntry"
                            Keyboard="Numeric"
                            TextChanged="OnHsvFieldChanged" />
                 </VerticalStackLayout>
                 <VerticalStackLayout Grid.Column="1" Spacing="2">
-                    <Label Text="Насыщ." Style="{DynamicResource Caption}" />
+                    <Label Text="{DynamicResource s_ui_080}" Style="{DynamicResource Caption}" />
                     <Entry x:Name="SaturationEntry"
                            Keyboard="Numeric"
                            TextChanged="OnHsvFieldChanged" />
                 </VerticalStackLayout>
                 <VerticalStackLayout Grid.Column="2" Spacing="2">
-                    <Label Text="Яркость" Style="{DynamicResource Caption}" />
+                    <Label Text="{DynamicResource s_ui_176}" Style="{DynamicResource Caption}" />
                     <Entry x:Name="ValueEntry"
                            Keyboard="Numeric"
                            TextChanged="OnHsvFieldChanged" />

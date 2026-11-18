@@ -70,7 +70,7 @@ public partial class SpaceMediaPage : ContentPage
 
             StatusLabel.Text = _items.Count == 0
                 ? string.Empty
-                : $"{_items.Count(item => item.IsItem)} вложений";
+                : string.Format(Loc.T("rs_000"), _items.Count(item => item.IsItem));
         }
         catch (Exception ex)
         {
@@ -88,12 +88,12 @@ public partial class SpaceMediaPage : ContentPage
         var today = DateTime.Now.Date;
         if (date == today)
         {
-            return "Сегодня";
+            return Loc.T("rs_142", "Сегодня");
         }
 
         if (date == today.AddDays(-1))
         {
-            return "Вчера";
+            return Loc.T("rs_027", "Вчера");
         }
 
         return date.ToString("d MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"));

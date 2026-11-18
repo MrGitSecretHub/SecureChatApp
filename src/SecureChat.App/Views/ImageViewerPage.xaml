@@ -31,7 +31,7 @@
                 VerticalOptions="Start"
                 Margin="12,12,64,0"
                 Clicked="OnSaveClicked"
-                ToolTipProperties.Text="Сохранить на устройство" />
+                ToolTipProperties.Text="{DynamicResource s_ui_156}" />
 
         <Button Text="✕"
                 Style="{DynamicResource SecondaryButton}"
@@ -61,7 +61,7 @@
         </Border>
 
         <Label x:Name="ZoomHint"
-               Text="Дважды коснитесь, чтобы приблизить"
+               Text="{DynamicResource s_ui_027}"
                FontSize="11"
                TextColor="#B3FFFFFF"
                HorizontalOptions="Center"

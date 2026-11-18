@@ -206,23 +206,23 @@ public partial class MediaPlayerPage : ContentPage
             <div class="disc">🎧</div>
             <div class="name">{{fileTitle}}</div>
         </div>
-        <button id="bigPlay" type="button" aria-label="Воспроизвести">▶</button>
+        <button id="bigPlay" type="button" aria-label=Loc.T("rs_024", "Воспроизвести")>▶</button>
         <div id="controls">
             <div class="row">
-                <button id="playBtn" type="button" aria-label="Пауза">▶</button>
-                <button id="backBtn" type="button" aria-label="Назад на 10 с">⏪</button>
+                <button id="playBtn" type="button" aria-label=Loc.T("rs_122", "Пауза")>▶</button>
+                <button id="backBtn" type="button" aria-label=Loc.T("rs_076", "Назад на 10 с")>⏪</button>
                 <span id="cur" class="time">0:00</span>
-                <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Перемотка">
+                <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label=Loc.T("rs_124", "Перемотка")>
                 <span id="dur" class="time">0:00</span>
-                <button id="fwdBtn" type="button" aria-label="Вперёд на 10 с">⏩</button>
-                <button id="muteBtn" type="button" aria-label="Звук">🔊</button>
-                <input id="vol" type="range" min="0" max="1" step="0.02" value="1" aria-label="Громкость">
+                <button id="fwdBtn" type="button" aria-label=Loc.T("rs_025", "Вперёд на 10 с")>⏩</button>
+                <button id="muteBtn" type="button" aria-label=Loc.T("rs_049", "Звук")>🔊</button>
+                <input id="vol" type="range" min="0" max="1" step="0.02" value="1" aria-label=Loc.T("rs_039", "Громкость")>
             </div>
             <div class="row extra">
-                <button id="speedBtn" type="button" aria-label="Скорость воспроизведения">1×</button>
-                <button id="loopBtn" type="button" class="{{loopClass}}" aria-label="Повтор">🔁</button>
-                <button id="pipBtn" type="button" class="{{pipClass}}" aria-label="Картинка в картинке">🖼</button>
-                <button id="fsBtn" type="button" class="{{fullscreenClass}}" aria-label="На весь экран">⛶</button>
+                <button id="speedBtn" type="button" aria-label=Loc.T("rs_147", "Скорость воспроизведения")>1×</button>
+                <button id="loopBtn" type="button" class="{{loopClass}}" aria-label=Loc.T("rs_128", "Повтор")>🔁</button>
+                <button id="pipBtn" type="button" class="{{pipClass}}" aria-label=Loc.T("rs_067", "Картинка в картинке")>🖼</button>
+                <button id="fsBtn" type="button" class="{{fullscreenClass}}" aria-label=Loc.T("rs_075", "На весь экран")>⛶</button>
             </div>
         </div>
         <div id="speedMenu" class="hidden">
@@ -580,13 +580,13 @@ public partial class MediaPlayerPage : ContentPage
             }
 
             await DisplayAlert(
-                result.StartsWith("Не удалось", StringComparison.Ordinal) ? "Ошибка" : "Сохранено",
+                result.StartsWith(Loc.T("uc_022", "Не удалось"), StringComparison.Ordinal) ? Loc.T("common_error", "Ошибка") : Loc.T("dg_064", "Сохранено"),
                 result,
                 "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось сохранить: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("common_error", "Ошибка"), string.Format(Loc.T("uc_045"), ex.Message), "OK");
         }
     }
 }

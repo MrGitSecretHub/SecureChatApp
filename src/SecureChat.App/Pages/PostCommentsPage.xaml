@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:views="clr-namespace:SecureChat.App.Views"
              x:Class="SecureChat.App.Pages.PostCommentsPage"
-             Title="Комментарии">
+             Title="{DynamicResource s_ui_056}">
     <Grid RowDefinitions="Auto,*,Auto"
           BackgroundColor="{DynamicResource PageBackground}">
 
@@ -12,11 +12,11 @@
                              Spacing="2"
                              Padding="14,10"
                              BackgroundColor="{DynamicResource Surface}">
-            <Label Text="💬 Обсуждение поста"
+            <Label Text="{DynamicResource s_ui_197}"
                    FontSize="15"
                    FontAttributes="Bold"
                    TextColor="{DynamicResource TextPrimary}" />
-            <Label Text="Комментарии видны всем участникам пространства"
+            <Label Text="{DynamicResource s_ui_057}"
                    FontSize="11"
                    TextColor="{DynamicResource TextMuted}"
                    LineBreakMode="TailTruncation" />
@@ -107,7 +107,7 @@
                                 <Button Text="😊"
                                         CommandParameter="{Binding .}"
                                         Clicked="OnCommentReactClicked"
-                                        ToolTipProperties.Text="Реакция">
+                                        ToolTipProperties.Text="{DynamicResource s_ui_140}">
                                     <Button.Style>
                                         <Style TargetType="Button">
                                             <Setter Property="BackgroundColor" Value="Transparent" />
@@ -125,7 +125,7 @@
                                         IsVisible="{Binding CanDelete}"
                                         CommandParameter="{Binding .}"
                                         Clicked="OnCommentDeleteClicked"
-                                        ToolTipProperties.Text="Удалить комментарий">
+                                        ToolTipProperties.Text="{DynamicResource s_ui_165}">
                                     <Button.Style>
                                         <Style TargetType="Button">
                                             <Setter Property="BackgroundColor" Value="Transparent" />
@@ -148,7 +148,7 @@
         <!-- Пусто: никто ещё не ответил -->
         <Label Grid.Row="1"
                x:Name="EmptyLabel"
-               Text="Пока нет комментариев. Станьте первым!"
+               Text="{DynamicResource s_ui_125}"
                FontSize="13"
                TextColor="{DynamicResource TextMuted}"
                HorizontalOptions="Center"
@@ -181,7 +181,7 @@
                 <views:MentionEntryView Grid.Column="0"
                                         x:Name="CommentEntry"
                                         VerticalOptions="Center"
-                                        Placeholder="Написать комментарий…"
+                                        Placeholder="{DynamicResource s_ui_075}"
                                         Completed="OnSendClicked" />
                 <Button Grid.Column="1"
                         Text="➤"
@@ -192,7 +192,7 @@
                         CornerRadius="22"
                         Padding="0"
                         VerticalOptions="End"
-                        ToolTipProperties.Text="Отправить комментарий" />
+                        ToolTipProperties.Text="{DynamicResource s_ui_109}" />
             </Grid>
         </VerticalStackLayout>
     </Grid>

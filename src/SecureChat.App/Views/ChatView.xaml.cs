@@ -100,7 +100,7 @@ public partial class ChatView : ContentView
             set { if (_progress != value) { _progress = value; Notify(); } }
         }
 
-        private string _status = "Отправка…";
+        private string _status = Loc.T("rs_116", "Отправка…");
         public string Status
         {
             get => _status;
@@ -234,8 +234,8 @@ public partial class ChatView : ContentView
                 new PickOptions
                 {
                     PickerTitle = packKind == CustomPackService.GifPackKind
-                        ? "Выберите свои GIF"
-                        : "Выберите свои стикеры (PNG, WebP, JPG)",
+                        ? Loc.T("rs_031", "Выберите свои GIF")
+                        : Loc.T("rs_032", "Выберите свои стикеры (PNG, WebP, JPG)"),
                     FileTypes = FilePickerFileType.Images
                 })).ToList();
 
@@ -270,14 +270,14 @@ public partial class ChatView : ContentView
                 }
                 catch (Exception ex)
                 {
-                    ShowHint($"Не удалось импортировать {file.FileName}: {ex.Message}", isError: true);
+                    ShowHint(string.Format(Loc.T("uc_032"), file.FileName, ex.Message), isError: true);
                 }
             }
 
             if (imported > 0)
             {
                 await PacksTabContent.ReloadAsync();
-                ShowHint($"Импортировано файлов: {imported}", isError: false);
+                ShowHint(string.Format(Loc.T("uc_013"), imported), isError: false);
             }
         }
         catch
@@ -319,7 +319,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось отправить файл из пака: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("uc_038"), ex.Message), isError: true);
         }
         finally
         {
@@ -366,7 +366,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось отправить стикер: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("uc_037"), ex.Message), isError: true);
         }
         finally
         {
@@ -406,7 +406,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось отправить GIF: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_087"), ex.Message), isError: true);
         }
         finally
         {
@@ -494,13 +494,13 @@ public partial class ChatView : ContentView
         {
             _elevatedWarningShown = true;
             ShowHint(
-                "Запущено от администратора: Windows не передаёт перетаскивание файлов из Проводника. Запустите приложение без прав администратора.",
+                Loc.T("rs_047", "Запущено от администратора: Windows не передаёт перетаскивание файлов из Проводника. Запустите приложение без прав администратора."),
                 isError: true);
         }
 #endif
 
         var stored = await _chatManager.GetConversationAsync(username)
-            ?? throw new InvalidOperationException("Контакт не найден.");
+            ?? throw new InvalidOperationException(Loc.T("rs_068", "Контакт не найден."));
 
         _username = stored.Username;
         Subscribe();
@@ -672,7 +672,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось открыть профиль: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_085"), ex.Message), isError: true);
         }
     }
 
@@ -776,12 +776,12 @@ public partial class ChatView : ContentView
         var today = DateTime.Today;
         if (date == today)
         {
-            return "Сегодня";
+            return Loc.T("rs_142", "Сегодня");
         }
 
         if (date == today.AddDays(-1))
         {
-            return "Вчера";
+            return Loc.T("rs_027", "Вчера");
         }
 
         return date.Year == today.Year
@@ -1016,7 +1016,7 @@ public partial class ChatView : ContentView
         {
             if (IsCurrent(username))
             {
-                ShowHint($"{username} печатает…", isError: false);
+                ShowHint(string.Format(Loc.T("rs_006"), username), isError: false);
             }
         });
 
@@ -1040,7 +1040,7 @@ public partial class ChatView : ContentView
         }
 
         OfflineBanner.IsVisible = offline;
-        ContactStatusLabel.Text = connected ? "Онлайн" : offline ? "Офлайн" : "Подключение…";
+        ContactStatusLabel.Text = connected ? "Онлайн" : offline ? Loc.T("uc_056", "Офлайн") : Loc.T("uc_058", "Подключение…");
         ContactStatusLabel.TextColor = Res(offline && !connected ? "Warning" : "TextMuted");
     }
 
@@ -1192,7 +1192,7 @@ public partial class ChatView : ContentView
 
             if (!_chatManager.IsOnline)
             {
-                ShowHint("Офлайн: сообщение сохранено и будет отправлено после подключения.", isError: false);
+                ShowHint(Loc.T("rs_118", "Офлайн: сообщение сохранено и будет отправлено после подключения."), isError: false);
             }
 
             ScrollToBottom();
@@ -1204,7 +1204,7 @@ public partial class ChatView : ContentView
                 MessageEntry.Text = text;
             }
 
-            ShowHint($"Не удалось отправить: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_088"), ex.Message), isError: true);
         }
         finally
         {
@@ -1327,19 +1327,19 @@ public partial class ChatView : ContentView
                 // Вид сообщения определяется по расширению в ResolveContentType:
                 // картинки сжимаются и уходят как фото, всё остальное — как файл.
                 var mediaFiles = await FilePicker.Default.PickMultipleAsync(
-                    PickerOptions("Выберите фото или видео", AttachMediaTypes));
+                    PickerOptions(Loc.T("rs_036", "Выберите фото или видео"), AttachMediaTypes));
                 await SendPickedFilesAsync(user, mediaFiles, messageKind: null);
                 break;
 
             case "file":
                 var files = await FilePicker.Default.PickMultipleAsync(
-                    new PickOptions { PickerTitle = "Выберите файлы" });
+                    new PickOptions { PickerTitle = Loc.T("rs_035", "Выберите файлы") });
                 await SendPickedFilesAsync(user, files, MessageKinds.File);
                 break;
 
             case "music":
                 var audioFiles = await FilePicker.Default.PickMultipleAsync(
-                    PickerOptions("Выберите музыку", AttachAudioTypes));
+                    PickerOptions(Loc.T("rs_029", "Выберите музыку"), AttachAudioTypes));
                 await SendPickedFilesAsync(user, audioFiles, MessageKinds.File);
                 break;
 
@@ -1387,7 +1387,7 @@ public partial class ChatView : ContentView
             if (data is null)
             {
                 ShowHint(
-                    $"«{file.FileName}» слишком большой. Максимум — {MediaLimits.MaxBytes / (1024 * 1024)} МБ.",
+                    string.Format(Loc.T("rs_007"), file.FileName, MediaLimits.MaxBytes / (1024 * 1024)),
                     isError: true);
                 continue;
             }
@@ -1523,7 +1523,7 @@ public partial class ChatView : ContentView
                         replyToSender: item.ReplyToSender);
 
                     item.Progress = 100;
-                    item.Status = "Готово";
+                    item.Status = Loc.T("set_036", "Готово");
                     await Task.Delay(350);
                     // Успех — убираем только из панели очереди, сообщение в чате остаётся.
                     await RemoveFromQueueAsync(item);
@@ -1534,9 +1534,9 @@ public partial class ChatView : ContentView
                 }
                 catch (Exception ex)
                 {
-                    item.Status = "Ошибка";
+                    item.Status = Loc.T("common_error", "Ошибка");
                     MainThread.BeginInvokeOnMainThread(() =>
-                        ShowHint($"Не удалось отправить «{item.FileName}»: {ex.Message}", isError: true));
+                        ShowHint(string.Format(Loc.T("uc_036"), item.FileName, ex.Message), isError: true));
                     await RemoveQueuedItemAsync(item);
                 }
             }
@@ -1607,7 +1607,7 @@ public partial class ChatView : ContentView
 
         if (_messages.Count == 0)
         {
-            ShowHint("Нет сообщений для экспорта.", isError: true);
+            ShowHint(Loc.T("rs_106", "Нет сообщений для экспорта."), isError: true);
             return;
         }
 
@@ -1619,11 +1619,11 @@ public partial class ChatView : ContentView
             await File.WriteAllTextAsync(path, html, System.Text.Encoding.UTF8);
 
             await Launcher.Default.OpenAsync(new OpenFileRequest(fileName, new ReadOnlyFile(path)));
-            ShowHint("Экспорт сохранён и открыт в браузере.", isError: false);
+            ShowHint(Loc.T("rs_173", "Экспорт сохранён и открыт в браузере."), isError: false);
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось экспортировать переписку: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_100"), ex.Message), isError: true);
         }
     }
 
@@ -1674,11 +1674,11 @@ public partial class ChatView : ContentView
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html>");
         sb.AppendLine("<html lang=\"ru\"><head><meta charset=\"utf-8\">");
-        sb.AppendLine($"<title>Переписка с {Escape(username)} — SecureChat</title>");
+        sb.AppendLine(string.Format(Loc.T("fx_002"), Escape(username)));
         sb.AppendLine($"<style>{css}</style></head><body>");
-        sb.AppendLine($"<h1>Переписка с {Escape(username)}</h1>");
+        sb.AppendLine(string.Format(Loc.T("fx_003"), Escape(username)));
         sb.AppendLine(
-            $"<div class=\"meta\">SecureChat · экспортировано {DateTime.Now:dd.MM.yyyy HH:mm} · сообщений: {messages.Count}</div>");
+            string.Format("<div class=\"meta\">{0}</div>", string.Format(Loc.T("fx_004"), DateTime.Now, messages.Count)));
 
         foreach (var message in messages)
         {
@@ -1708,7 +1708,7 @@ public partial class ChatView : ContentView
 
             if (message.IsEdited)
             {
-                flags += " <span class=\"tag\">(отредактировано)</span>";
+                flags += " <span class=\"tag\">" + Loc.T("fx_005") + "</span>";
             }
 
             var reactions = string.Empty;
@@ -1720,7 +1720,7 @@ public partial class ChatView : ContentView
                 reactions = $"<div class=\"reactions\"><span>{chips}</span></div>";
             }
 
-            var sender = message.IsMine ? "Вы" : message.SenderDisplay;
+            var sender = message.IsMine ? Loc.T("rs_028", "Вы") : message.SenderDisplay;
             sb.AppendLine(
                 $"<div class=\"msg {(message.IsMine ? "me" : "them")}\">" +
                 $"<div class=\"sender\">{Escape(sender)}</div>" +
@@ -1927,7 +1927,7 @@ public partial class ChatView : ContentView
 
             if (hasFiles)
             {
-                e.DragUIOverride.Caption = "Отправить как вложение";
+                e.DragUIOverride.Caption = Loc.T("rs_115", "Отправить как вложение");
             }
 
             e.Handled = true;
@@ -1992,7 +1992,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            target.ShowHint($"Не удалось принять файлы: {ex.Message}", isError: true);
+            target.ShowHint(string.Format(Loc.T("rs_092"), ex.Message), isError: true);
         }
 
         e.Handled = true;
@@ -2005,7 +2005,7 @@ public partial class ChatView : ContentView
         if (user is null || _sendingAttachment || !IsCurrent(user))
         {
             // Чат не открыт — подсказываем, куда бросить файлы.
-            ShowHint("Откройте чат, чтобы отправить вложения.", isError: true);
+            ShowHint(Loc.T("rs_112", "Откройте чат, чтобы отправить вложения."), isError: true);
             return;
         }
 
@@ -2019,7 +2019,7 @@ public partial class ChatView : ContentView
             }
             catch
             {
-                ShowHint($"Не удалось прочитать «{name}».", isError: true);
+                ShowHint(string.Format(Loc.T("rs_093"), name), isError: true);
                 continue;
             }
 
@@ -2031,7 +2031,7 @@ public partial class ChatView : ContentView
             if (data.Length > MediaLimits.MaxBytes)
             {
                 ShowHint(
-                    $"«{name}» слишком большой. Максимум — {MediaLimits.MaxBytes / (1024 * 1024)} МБ.",
+                    string.Format(Loc.T("rs_008"), name, MediaLimits.MaxBytes / (1024 * 1024)),
                     isError: true);
                 continue;
             }
@@ -2099,7 +2099,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось вставить из буфера: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_080"), ex.Message), isError: true);
         }
     }
 #endif
@@ -2208,21 +2208,21 @@ public partial class ChatView : ContentView
     {
         ContextMenuItems.Children.Clear();
 
-        AddMenuItem("👤 Профиль, медиа и закреплённые", () =>
+        AddMenuItem(Loc.T("rs_199", "👤 Профиль, медиа и закреплённые"), () =>
         {
             OnInfoPanelClicked(this, EventArgs.Empty);
             return Task.CompletedTask;
         });
 
-        AddMenuItem("🖼 Обои чата", SetWallpaperAsync);
+        AddMenuItem(Loc.T("rs_219", "🖼 Обои чата"), SetWallpaperAsync);
 
-        AddMenuItem("📤 Экспорт истории чата", () =>
+        AddMenuItem(Loc.T("rs_206", "📤 Экспорт истории чата"), () =>
         {
             OnExportChatClicked(this, EventArgs.Empty);
             return Task.CompletedTask;
         });
 
-        AddMenuItem("⚙ Настройки", () =>
+        AddMenuItem(Loc.T("rs_187", "⚙ Настройки"), () =>
         {
             SettingsRequested?.Invoke();
             return Task.CompletedTask;
@@ -2233,7 +2233,7 @@ public partial class ChatView : ContentView
         {
             AddMenuItem("🧽 Очистить историю", ClearChatHistoryAsync);
 
-            AddMenuItem("🗑 Удалить чат", DeleteChatAsync, isDanger: true);
+            AddMenuItem(Loc.T("rs_221", "🗑 Удалить чат"), DeleteChatAsync, isDanger: true);
         }
 
         // Панель открывается под кнопкой ⋮ в правом верхнем углу.
@@ -2259,7 +2259,7 @@ public partial class ChatView : ContentView
             applied = await walls.PickFromFileAsync();
         }
 
-        ShowHint(applied ? "Обои чата обновлены" : "Не удалось установить обои", isError: !applied);
+        ShowHint(applied ? Loc.T("rs_111", "Обои чата обновлены") : Loc.T("rs_099", "Не удалось установить обои"), isError: !applied);
     }
 
     /// <summary>Очистка истории чата: «для всех» или «только у себя».</summary>
@@ -2273,12 +2273,12 @@ public partial class ChatView : ContentView
         }
 
         var scope = await page.DisplayActionSheet(
-            "Очистить историю?",
-            "Отмена",
+            Loc.T("dg_042", "Очистить историю?"),
+            Loc.T("common_cancel", "Отмена"),
             null,
-            "Удалить для всех",
-            "Только у себя");
-        if (scope is null || scope == "Отмена")
+            Loc.T("dg_074", "Удалить для всех"),
+            Loc.T("dg_073", "Только у себя"));
+        if (scope is null || scope == Loc.T("common_cancel", "Отмена"))
         {
             return;
         }
@@ -2286,11 +2286,11 @@ public partial class ChatView : ContentView
         var forEveryone = string.Equals(scope, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
 
         var confirmed = await page.DisplayAlert(
-            "Очистить историю",
+            Loc.T("dg_041", "Очистить историю"),
             forEveryone
-                ? $"История переписки с {username} будет удалена у вас и у собеседника."
-                : $"История переписки с {username} будет удалена только у вас.",
-            "Удалить", "Отмена");
+                ? string.Format(Loc.T("dg_031"), username)
+                : string.Format(Loc.T("dg_030"), username),
+            Loc.T("common_delete", "Удалить"), Loc.T("common_cancel", "Отмена"));
         if (!confirmed)
         {
             return;
@@ -2298,8 +2298,8 @@ public partial class ChatView : ContentView
 
         var cleared = await _chatManager.ClearConversationAsync(username, forEveryone);
         ShowHint(cleared
-            ? forEveryone ? "История удалена у всех" : "История удалена только у вас"
-            : "Не удалось очистить историю", isError: !cleared);
+            ? forEveryone ? Loc.T("rs_058", "История удалена у всех") : Loc.T("rs_057", "История удалена только у вас")
+            : Loc.T("rs_089", "Не удалось очистить историю"), isError: !cleared);
     }
 
     /// <summary>Удаление чата: «для всех» или «только у себя».</summary>
@@ -2313,12 +2313,12 @@ public partial class ChatView : ContentView
         }
 
         var scope = await page.DisplayActionSheet(
-            "Удалить чат?",
-            "Отмена",
+            Loc.T("dg_081", "Удалить чат?"),
+            Loc.T("common_cancel", "Отмена"),
             null,
-            "Удалить для всех",
-            "Удалить для себя");
-        if (scope is null || scope == "Отмена")
+            Loc.T("dg_074", "Удалить для всех"),
+            Loc.T("dg_075", "Удалить для себя"));
+        if (scope is null || scope == Loc.T("common_cancel", "Отмена"))
         {
             return;
         }
@@ -2326,11 +2326,11 @@ public partial class ChatView : ContentView
         var forEveryone = string.Equals(scope, "Удалить для всех", StringComparison.OrdinalIgnoreCase);
 
         var confirmed = await page.DisplayAlert(
-            "Удалить чат",
+            Loc.T("dg_080", "Удалить чат"),
             forEveryone
-                ? $"Переписка с {username} будет удалена у вас и у собеседника."
-                : $"Чат с {username} будет удален только у вас. Собеседник увидит историю как раньше.",
-            "Удалить", "Отмена");
+                ? string.Format(Loc.T("dg_046"), username)
+                : string.Format(Loc.T("dg_085"), username),
+            Loc.T("common_delete", "Удалить"), Loc.T("common_cancel", "Отмена"));
         if (!confirmed)
         {
             return;
@@ -2338,8 +2338,8 @@ public partial class ChatView : ContentView
 
         var deleted = await _chatManager.DeleteConversationAsync(username, forEveryone);
         ShowHint(deleted
-            ? forEveryone ? "Чат удалён у всех" : "Чат удалён только у вас"
-            : "Не удалось удалить чат", isError: !deleted);
+            ? forEveryone ? Loc.T("rs_172", "Чат удалён у всех") : Loc.T("rs_171", "Чат удалён только у вас")
+            : Loc.T("rs_098", "Не удалось удалить чат"), isError: !deleted);
 
         if (deleted)
         {
@@ -2511,7 +2511,7 @@ public partial class ChatView : ContentView
             }
             catch (Exception ex)
             {
-                ShowHint($"Не удалось открыть ссылку: {ex.Message}", isError: true);
+                ShowHint(string.Format(Loc.T("uc_035"), ex.Message), isError: true);
             }
 
             return;
@@ -2536,7 +2536,7 @@ public partial class ChatView : ContentView
             }
             catch (Exception ex)
             {
-                ShowHint($"Не удалось открыть ссылку: {ex.Message}", isError: true);
+                ShowHint(string.Format(Loc.T("uc_035"), ex.Message), isError: true);
             }
         }
     }
@@ -2546,11 +2546,11 @@ public partial class ChatView : ContentView
         try
         {
             await Clipboard.Default.SetTextAsync(string.Join("\n", message.Urls));
-            ShowHint($"Ссылк{(message.Urls.Count > 1 ? "и" : "а")} скопированы.", isError: false);
+            ShowHint(Loc.T("fx_006"), isError: false);
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось скопировать: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_095"), ex.Message), isError: true);
         }
     }
 
@@ -2560,11 +2560,11 @@ public partial class ChatView : ContentView
         {
             var link = DeepLink.BuildMessageLink("11", _username!, message.Id);
             await Clipboard.Default.SetTextAsync(link);
-            ShowHint("Ссылка на сообщение скопирована.", isError: false);
+            ShowHint(Loc.T("rs_152", "Ссылка на сообщение скопирована."), isError: false);
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось скопировать ссылку: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_094"), ex.Message), isError: true);
         }
     }
 
@@ -2574,11 +2574,11 @@ public partial class ChatView : ContentView
         {
             await Clipboard.Default.SetTextAsync(
                 message.Kind is MessageKinds.Text or MessageKinds.Sticker ? message.Text : message.FileName);
-            ShowHint("Скопировано.", isError: false);
+            ShowHint(Loc.T("rs_146", "Скопировано."), isError: false);
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось скопировать: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_095"), ex.Message), isError: true);
         }
     }
 
@@ -2598,7 +2598,7 @@ public partial class ChatView : ContentView
             : string.Equals(author, _session.Username, StringComparison.OrdinalIgnoreCase)
                 ? " на ваше сообщение"
                 : $" на сообщение {author}";
-        ReplyPreviewLabel.Text = $"↩ Ответ{who}: «{Shorten(preview, 70)}»";
+        ReplyPreviewLabel.Text = string.Format(Loc.T("uc_072"), who, Shorten(preview, 70));
         ReplyBar.IsVisible = true;
         MessageEntry.FocusInput();
     }
@@ -2639,14 +2639,14 @@ public partial class ChatView : ContentView
     {
         if (message.Kind != MessageKinds.Text)
         {
-            ShowHint("Редактирование доступно только для текстовых сообщений.", isError: true);
+            ShowHint(Loc.T("rs_141", "Редактирование доступно только для текстовых сообщений."), isError: true);
             return;
         }
 
         _editingMessageId = message.Id;
         _replyingTo = null;
         ReplyBar.IsVisible = false;
-        EditPreviewLabel.Text = $"✏️ Редактирование · {message.TimeText}";
+        EditPreviewLabel.Text = string.Format(Loc.T("uc_075"), message.TimeText);
         EditBar.IsVisible = true;
         MessageEntry.Text = message.Text;
         MessageEntry.FocusInput();
@@ -2672,8 +2672,8 @@ public partial class ChatView : ContentView
             return;
         }
 
-        var choice = await page.DisplayActionSheet("Реакция:", "Отмена", null, ReactionEmojis);
-        if (string.IsNullOrEmpty(choice) || choice == "Отмена")
+        var choice = await page.DisplayActionSheet(Loc.T("uc_063", "Реакция:"), Loc.T("common_cancel", "Отмена"), null, ReactionEmojis);
+        if (string.IsNullOrEmpty(choice) || choice == Loc.T("common_cancel", "Отмена"))
         {
             return;
         }
@@ -2684,7 +2684,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Ошибка реакции: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_119"), ex.Message), isError: true);
         }
     }
 
@@ -2701,13 +2701,13 @@ public partial class ChatView : ContentView
             .ToList();
         if (targets.Count == 0)
         {
-            ShowHint("Нет других чатов для пересылки.", isError: false);
+            ShowHint(Loc.T("rs_101", "Нет других чатов для пересылки."), isError: false);
             return;
         }
 
         var choice = await page.DisplayActionSheet(
-            "Переслать в:",
-            "Отмена",
+            Loc.T("dg_047", "Переслать в:"),
+            Loc.T("common_cancel", "Отмена"),
             null,
             targets.Select(item => item.Username).ToArray());
         var target = targets.FirstOrDefault(item => string.Equals(item.Username, choice, StringComparison.Ordinal));
@@ -2742,7 +2742,7 @@ public partial class ChatView : ContentView
                 var bytes = await _chatManager.GetLocalMediaAsync(message.Id);
                 if (bytes is null)
                 {
-                    ShowHint("Вложение ещё не загружено на устройство.", isError: true);
+                    ShowHint(Loc.T("rs_022", "Вложение ещё не загружено на устройство."), isError: true);
                     return;
                 }
 
@@ -2756,11 +2756,11 @@ public partial class ChatView : ContentView
                     forwardedFrom: origin);
             }
 
-            ShowHint($"Переслано в {target.Username}.", isError: false);
+            ShowHint(string.Format(Loc.T("rs_125"), target.Username), isError: false);
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось переслать: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_090"), ex.Message), isError: true);
         }
     }
 
@@ -2772,7 +2772,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось закрепить: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_082"), ex.Message), isError: true);
         }
     }
 
@@ -2788,10 +2788,10 @@ public partial class ChatView : ContentView
         {
             // Не своё сообщение — можно только скрыть у себя.
             var confirmed = await page.DisplayAlert(
-                "Удалить сообщение?",
-                "Сообщение будет скрыто только у вас. Собеседник увидит его как раньше.",
-                "Скрыть у себя",
-                "Отмена");
+                Loc.T("dg_078", "Удалить сообщение?"),
+                Loc.T("dg_062", "Сообщение будет скрыто только у вас. Собеседник увидит его как раньше."),
+                Loc.T("dg_060", "Скрыть у себя"),
+                Loc.T("common_cancel", "Отмена"));
             if (!confirmed)
             {
                 return;
@@ -2803,20 +2803,20 @@ public partial class ChatView : ContentView
             }
             catch (Exception ex)
             {
-                ShowHint($"Не удалось скрыть сообщение: {ex.Message}", isError: true);
+                ShowHint(string.Format(Loc.T("rs_096"), ex.Message), isError: true);
             }
             return;
         }
 
         // Своё сообщение — можно удалить для себя или для всех.
         var choice = await page.DisplayActionSheet(
-            "Удалить сообщение?",
-            "Отмена",
+            Loc.T("dg_078", "Удалить сообщение?"),
+            Loc.T("common_cancel", "Отмена"),
             null,
-            "Удалить для всех",
-            "Удалить для себя");
+            Loc.T("dg_074", "Удалить для всех"),
+            Loc.T("dg_075", "Удалить для себя"));
 
-        if (choice == "Отмена" || choice is null)
+        if (choice == Loc.T("common_cancel", "Отмена") || choice is null)
         {
             return;
         }
@@ -2829,7 +2829,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось удалить сообщение: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_097"), ex.Message), isError: true);
         }
     }
 
@@ -2892,7 +2892,7 @@ public partial class ChatView : ContentView
             {
                 if (!_chatManager.IsOnline)
                 {
-                    ShowHint("Нет подключения: фото загрузится, когда связь восстановится.", isError: true);
+                    ShowHint(Loc.T("rs_105", "Нет подключения: фото загрузится, когда связь восстановится."), isError: true);
                     return;
                 }
 
@@ -2902,7 +2902,7 @@ public partial class ChatView : ContentView
 
             if (bytes is null)
             {
-                ShowHint("Изображение ещё не загружено.", isError: true);
+                ShowHint(Loc.T("rs_056", "Изображение ещё не загружено."), isError: true);
                 return;
             }
 
@@ -2917,7 +2917,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось открыть фото: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_086"), ex.Message), isError: true);
         }
     }
 
@@ -2942,7 +2942,7 @@ public partial class ChatView : ContentView
             {
                 if (!_chatManager.IsOnline)
                 {
-                    ShowHint("Нет подключения: вложение загрузится, когда связь восстановится.", isError: true);
+                    ShowHint(Loc.T("rs_103", "Нет подключения: вложение загрузится, когда связь восстановится."), isError: true);
                     return;
                 }
 
@@ -2953,7 +2953,7 @@ public partial class ChatView : ContentView
             var page = HostPage;
             if (bytes is null || page is null)
             {
-                ShowHint("Вложение недоступно на этом устройстве.", isError: true);
+                ShowHint(Loc.T("uc_008", "Вложение недоступно на этом устройстве."), isError: true);
                 return;
             }
 
@@ -2981,7 +2981,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось открыть вложение: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_084"), ex.Message), isError: true);
         }
     }
 
@@ -3020,7 +3020,7 @@ public partial class ChatView : ContentView
             {
                 if (!_chatManager.IsOnline)
                 {
-                    ShowHint("Нет подключения: голосовое загрузится, когда связь восстановится.", isError: true);
+                    ShowHint(Loc.T("rs_104", "Нет подключения: голосовое загрузится, когда связь восстановится."), isError: true);
                     return;
                 }
 
@@ -3030,7 +3030,7 @@ public partial class ChatView : ContentView
             var bytes = await _chatManager.GetLocalMediaAsync(message.Id);
             if (bytes is null)
             {
-                ShowHint("Голосовое недоступно на этом устройстве.", isError: true);
+                ShowHint(Loc.T("rs_037", "Голосовое недоступно на этом устройстве."), isError: true);
                 return;
             }
 
@@ -3038,7 +3038,7 @@ public partial class ChatView : ContentView
             await File.WriteAllBytesAsync(path, bytes);
 
             var player = CreateVoicePlayer()
-                ?? throw new InvalidOperationException("Воспроизведение не поддерживается на этой платформе.");
+                ?? throw new InvalidOperationException(Loc.T("rs_023", "Воспроизведение не поддерживается на этой платформе."));
 
             await player.OpenAsync(path);
             message.UpdatePlayback(0, player.DurationSeconds);
@@ -3055,11 +3055,11 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось воспроизвести голосовое: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("uc_023"), ex.Message), isError: true);
         }
 #else
         await Task.CompletedTask;
-        ShowHint("Воспроизведение голосовых на этой платформе недоступно.", isError: true);
+        ShowHint(Loc.T("uc_009", "Воспроизведение голосовых на этой платформе недоступно."), isError: true);
 #endif
     }
 
@@ -3151,7 +3151,7 @@ public partial class ChatView : ContentView
             {
                 if (!_chatManager.IsOnline)
                 {
-                    ShowHint("Нет подключения: видеокружок загрузится, когда связь восстановится.", isError: true);
+                    ShowHint(Loc.T("rs_102", "Нет подключения: видеокружок загрузится, когда связь восстановится."), isError: true);
                     return;
                 }
 
@@ -3162,7 +3162,7 @@ public partial class ChatView : ContentView
             var page = HostPage;
             if (bytes is null || page is null)
             {
-                ShowHint("Видеокружок недоступен на этом устройстве.", isError: true);
+                ShowHint(Loc.T("rs_020", "Видеокружок недоступен на этом устройстве."), isError: true);
                 return;
             }
 
@@ -3179,7 +3179,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось открыть видеокружок: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("rs_083"), ex.Message), isError: true);
         }
     }
 
@@ -3283,19 +3283,19 @@ public partial class ChatView : ContentView
     private void ShowContextMenu(MessageVm message)
     {
         ContextMenuItems.Children.Clear();
-        AddMenuItem("📋 Копировать", () => CopyMessageAsync(message));
-        AddMenuItem("↩ Ответить", () => { ReplyTo(message); return Task.CompletedTask; });
-        AddMenuItem("😊 Реакция", () => PickReactionAsync(message));
-        AddMenuItem("🔄 Переслать", () => ForwardAsync(message));
-        AddMenuItem(message.IsPinned ? "📌 Открепить" : "📌 Закрепить", () => TogglePinAsync(message));
+        AddMenuItem(Loc.T("rs_201", "📋 Копировать"), () => CopyMessageAsync(message));
+        AddMenuItem(Loc.T("rs_185", "↩ Ответить"), () => { ReplyTo(message); return Task.CompletedTask; });
+        AddMenuItem(Loc.T("rs_223", "😊 Реакция"), () => PickReactionAsync(message));
+        AddMenuItem(Loc.T("rs_210", "🔄 Переслать"), () => ForwardAsync(message));
+        AddMenuItem(message.IsPinned ? Loc.T("rs_204", "📌 Открепить") : Loc.T("rs_203", "📌 Закрепить"), () => TogglePinAsync(message));
         if (message.IsMine)
         {
             if (message.Kind == MessageKinds.Text)
             {
-                AddMenuItem("✏️ Редактировать", () => { StartEdit(message); return Task.CompletedTask; });
+                AddMenuItem(Loc.T("rs_192", "✏️ Редактировать"), () => { StartEdit(message); return Task.CompletedTask; });
             }
 
-            AddMenuItem("🗑️ Удалить", () => DeleteAsync(message));
+            AddMenuItem(Loc.T("rs_222", "🗑️ Удалить"), () => DeleteAsync(message));
         }
         if (message.HasUrls)
         {
@@ -3304,19 +3304,19 @@ public partial class ChatView : ContentView
                 var u = url;
                 AddMenuItem($"🔗 {Shorten(u, 38)}", () => OpenUrlAsync(u));
             }
-            AddMenuItem("📋 Копировать ссылку", () => CopyUrlsAsync(message));
+            AddMenuItem(Loc.T("rs_202", "📋 Копировать ссылку"), () => CopyUrlsAsync(message));
         }
-        AddMenuItem("🔗 Ссылка на сообщение", () => CopyMessageLinkAsync(message));
+        AddMenuItem(Loc.T("rs_218", "🔗 Ссылка на сообщение"), () => CopyMessageLinkAsync(message));
         if (message.Kind is not MessageKinds.Text and not MessageKinds.Sticker)
         {
-            AddMenuItem("💾 Сохранить на устройство", () => SaveMessageMediaAsync(message));
+            AddMenuItem(Loc.T("rs_200", "💾 Сохранить на устройство"), () => SaveMessageMediaAsync(message));
         }
         if (!string.Equals(_username, ChatManager.SelfChatUsername, StringComparison.OrdinalIgnoreCase))
         {
-            AddMenuItem(message.IsArchived ? "📤 Разархивировать" : "📦 Архивировать",
+            AddMenuItem(message.IsArchived ? Loc.T("rs_205", "📤 Разархивировать") : Loc.T("rs_207", "📦 Архивировать"),
                 () => ToggleArchiveAsync(message));
         }
-        AddMenuItem("ℹ️ Информация", () => ShowMessageInfo(message));
+        AddMenuItem(Loc.T("rs_184", "ℹ️ Информация"), () => ShowMessageInfo(message));
 
         ClampContextMenuPosition();
         ContextMenuOverlay.IsVisible = true;
@@ -3338,7 +3338,7 @@ public partial class ChatView : ContentView
             {
                 if (!_chatManager.IsOnline)
                 {
-                    ShowHint("Нет подключения: вложение загрузится, когда связь восстановится.", isError: true);
+                    ShowHint(Loc.T("rs_103", "Нет подключения: вложение загрузится, когда связь восстановится."), isError: true);
                     return;
                 }
 
@@ -3348,7 +3348,7 @@ public partial class ChatView : ContentView
 
             if (bytes is null)
             {
-                ShowHint("Вложение недоступно на этом устройстве.", isError: true);
+                ShowHint(Loc.T("uc_008", "Вложение недоступно на этом устройстве."), isError: true);
                 return;
             }
 
@@ -3362,14 +3362,14 @@ public partial class ChatView : ContentView
             }
 
             ShowHint(
-                result.StartsWith("Не удалось", StringComparison.Ordinal)
+                result.StartsWith(Loc.T("uc_022", "Не удалось"), StringComparison.Ordinal)
                     ? result
-                    : $"Сохранено: {result}",
-                isError: result.StartsWith("Не удалось", StringComparison.Ordinal));
+                    : string.Format(Loc.T("rs_151"), result),
+                isError: result.StartsWith(Loc.T("uc_022", "Не удалось"), StringComparison.Ordinal));
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось сохранить: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("uc_045"), ex.Message), isError: true);
         }
     }
 
@@ -3385,7 +3385,7 @@ public partial class ChatView : ContentView
             if (HostPage is not null)
             {
                 await HostPage.DisplayAlert("Избранное",
-                    "Это служебный чат для сохранения сообщений. Его нельзя заархивировать.", "OK");
+                    Loc.T("dg_089", "Это служебный чат для сохранения сообщений. Его нельзя заархивировать."), "OK");
             }
             return;
         }
@@ -3426,27 +3426,27 @@ public partial class ChatView : ContentView
         };
 
         var text = new StringBuilder();
-        text.AppendLine($"Тип: {kindLabel}");
-        text.AppendLine($"Отправитель: {message.SenderDisplay}");
-        text.AppendLine($"Время: {message.TimeText} {message.LocalDate:dd.MM.yyyy}");
-        text.AppendLine($"Статус: {message.DeliveryStatus}");
+        text.AppendLine(string.Format(Loc.T("rs_160"), kindLabel));
+        text.AppendLine(string.Format(Loc.T("rs_113"), message.SenderDisplay));
+        text.AppendLine(string.Format(Loc.T("rs_026"), message.TimeText, message.LocalDate));
+        text.AppendLine(string.Format(Loc.T("rs_153"), message.DeliveryStatus));
         if (!string.IsNullOrEmpty(message.FileName))
         {
-            text.AppendLine($"Файл: {message.FileName} ({message.FileSizeText})");
+            text.AppendLine(string.Format(Loc.T("rs_164"), message.FileName, message.FileSizeText));
         }
         if (message.IsForwarded)
         {
             text.AppendLine(string.IsNullOrWhiteSpace(message.ForwardedFrom)
-                ? "Переслано: да"
-                : $"Переслано от: {message.ForwardedFrom}");
+                ? Loc.T("rs_127", "Переслано: да")
+                : string.Format(Loc.T("rs_126"), message.ForwardedFrom));
         }
         if (message.IsEdited)
         {
-            text.AppendLine("Отредактировано: да");
+            text.AppendLine(Loc.T("rs_117", "Отредактировано: да"));
         }
-        text.AppendLine($"Идентификатор: {message.Id}");
+        text.AppendLine(string.Format(Loc.T("rs_052"), message.Id));
 
-        await page.DisplayAlert("Информация о сообщении", text.ToString(), "OK");
+        await page.DisplayAlert(Loc.T("uc_014", "Информация о сообщении"), text.ToString(), "OK");
     }
 
     private void AddMenuItem(string text, Func<Task> action, bool isDanger = false)
@@ -3573,12 +3573,12 @@ public partial class ChatView : ContentView
     {
         if (date == today)
         {
-            return "Сегодня";
+            return Loc.T("rs_142", "Сегодня");
         }
 
         if (date == today.AddDays(-1))
         {
-            return "Вчера";
+            return Loc.T("rs_027", "Вчера");
         }
 
         return date.ToString("d MMMM yyyy", RuCulture);
@@ -3601,13 +3601,13 @@ public partial class ChatView : ContentView
             var status = await Permissions.RequestAsync<Permissions.Microphone>();
             if (status != PermissionStatus.Granted)
             {
-                ShowHint("Нет права на запись аудио. Разрешите доступ к микрофону в настройках.", isError: true);
+                ShowHint(Loc.T("uc_053", "Нет права на запись аудио. Разрешите доступ к микрофону в настройках."), isError: true);
                 return null;
             }
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось запросить право на микрофон: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("uc_031"), ex.Message), isError: true);
             return null;
         }
 #endif
@@ -3627,7 +3627,7 @@ public partial class ChatView : ContentView
 
         var statusLabel = new Label
         {
-            Text = "Идёт запись",
+            Text = Loc.T("rs_053", "Идёт запись"),
             FontSize = 13,
             TextColor = Color.FromArgb("#B3FFFFFF"),
             VerticalOptions = LayoutOptions.Center
@@ -3644,7 +3644,7 @@ public partial class ChatView : ContentView
 
         var sendButton = new Button
         {
-            Text = "Отправить",
+            Text = Loc.T("rs_114", "Отправить"),
             BackgroundColor = Res("Accent"),
             TextColor = Colors.White,
             CornerRadius = 18,
@@ -3655,7 +3655,7 @@ public partial class ChatView : ContentView
 
         var cancelButton = new Button
         {
-            Text = "Отмена",
+            Text = Loc.T("common_cancel", "Отмена"),
             BackgroundColor = Colors.Transparent,
             TextColor = Color.FromArgb("#B3FFFFFF"),
             CornerRadius = 18,
@@ -3746,7 +3746,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex) when (send)
         {
-            ShowHint($"Ошибка записи голосового: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("uc_057"), ex.Message), isError: true);
         }
         catch
         {
@@ -3767,7 +3767,7 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось прочитать запись: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("uc_040"), ex.Message), isError: true);
             return null;
         }
     }
@@ -3803,13 +3803,13 @@ public partial class ChatView : ContentView
             var status = await Permissions.RequestAsync<Permissions.Camera>();
             if (status != PermissionStatus.Granted)
             {
-                ShowHint("Нет права на камеру. Разрешите доступ к камере в настройках.", isError: true);
+                ShowHint(Loc.T("uc_054", "Нет права на камеру. Разрешите доступ к камере в настройках."), isError: true);
                 return null;
             }
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось запросить право на камеру: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("uc_030"), ex.Message), isError: true);
             return null;
         }
 
@@ -3819,7 +3819,7 @@ public partial class ChatView : ContentView
             // остановка и подтверждение — пользователь видит, что записывает.
             var captured = await MediaPicker.Default.CaptureVideoAsync(new MediaPickerOptions
             {
-                Title = "Запись видеокружка"
+                Title = Loc.T("rs_046", "Запись видеокружка")
             });
 
             if (captured is null)
@@ -3833,13 +3833,13 @@ public partial class ChatView : ContentView
 
             if (buffer.Length == 0)
             {
-                ShowHint("Камера вернула пустой видеофайл.", isError: true);
+                ShowHint(Loc.T("uc_016", "Камера вернула пустой видеофайл."), isError: true);
                 return null;
             }
 
             if (buffer.Length > MediaLimits.MaxBytes)
             {
-                ShowHint($"Видео слишком большое. Максимум — {MediaLimits.MaxBytes / (1024 * 1024)} МБ.", isError: true);
+                ShowHint(string.Format(Loc.T("uc_006"), MediaLimits.MaxBytes / (1024 * 1024)), isError: true);
                 return null;
             }
 
@@ -3852,7 +3852,7 @@ public partial class ChatView : ContentView
         }
         catch (FeatureNotSupportedException)
         {
-            ShowHint("На устройстве нет приложения камеры, поддерживающего запись видео.", isError: true);
+            ShowHint(Loc.T("uc_017", "На устройстве нет приложения камеры, поддерживающего запись видео."), isError: true);
             return null;
         }
         catch (OperationCanceledException)
@@ -3861,14 +3861,44 @@ public partial class ChatView : ContentView
         }
         catch (Exception ex)
         {
-            ShowHint($"Не удалось записать видео: {ex.Message}", isError: true);
+            ShowHint(string.Format(Loc.T("uc_029"), ex.Message), isError: true);
             return null;
         }
 #else
         await Task.CompletedTask;
-        ShowHint("Запись видеокружков на этой платформе недоступна.", isError: true);
+        ShowHint(Loc.T("uc_011", "Запись видеокружков на этой платформе недоступна."), isError: true);
         return null;
 #endif
     }
+
+    /// <summary>Подтверждение смены ключа после сверки отпечатка с собеседником.</summary>
+    private async void OnKeyWarningTapped(object? sender, EventArgs e)
+    {
+        if (_conversation is null)
+        {
+            return;
+        }
+
+        var page = HostPage;
+        if (page is null)
+        {
+            return;
+        }
+
+        var confirmed = await page.DisplayAlert(
+            Loc.T("bug_key_title", "Проверка ключа"),
+            string.Format(Loc.T("bug_key_msg", "Отпечаток ключа {0}\n\nСверьте его с собеседником по другому каналу. Если совпадает — подтвердите."),
+                _conversation.Fingerprint),
+            Loc.T("bug_key_yes", "Подтверждён"),
+            Loc.T("bug_key_no", "Отмена"));
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await AppServices.Get<LocalStore>().ClearKeysChangedAsync(_conversation.Username);
+        KeyWarningLabel.IsVisible = false;
+    }
+
 }
 

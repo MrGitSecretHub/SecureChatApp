@@ -44,8 +44,8 @@ public partial class SpacesPage : ContentPage
 
             if (approved)
             {
-                await DisplayAlert("Заявка принята",
-                    $"Вы вступили в «{spaceName}». Если ключ ещё не дошёл — переоткройте чат чуть позже.",
+                await DisplayAlert(Loc.T("dg_029", "Заявка принята"),
+                    string.Format(Loc.T("dg_016"), spaceName),
                     "Ок");
             }
         });
@@ -69,7 +69,7 @@ public partial class SpacesPage : ContentPage
         }
         catch (Exception ex)
         {
-            OfflineLabel.Text = $"Не удалось загрузить пространства: {ex.Message}. Нажмите, чтобы повторить.";
+            OfflineLabel.Text = string.Format(Loc.T("uc_027"), ex.Message);
             OfflineLabel.IsVisible = true;
         }
     }
@@ -129,8 +129,8 @@ public partial class SpacesPage : ContentPage
         {
             var join = await DisplayAlert(
                 item.Name,
-                "Публичное пространство. Историей владеют только участники: общий E2E-ключ передаст вам любой участник, как только будет в сети — обычно это секунды.",
-                "Вступить", "Отмена");
+                Loc.T("dg_056", "Публичное пространство. Историей владеют только участники: общий E2E-ключ передаст вам любой участник, как только будет в сети — обычно это секунды."),
+                Loc.T("dg_014", "Вступить"), Loc.T("common_cancel", "Отмена"));
             if (!join)
             {
                 return;
@@ -141,12 +141,12 @@ public partial class SpacesPage : ContentPage
                 if (await _spaces.JoinAsync(item.Id))
                 {
                     await DisplayAlert(item.Name,
-                        "Вы в пространстве. Если ключ ещё не дошёл — переоткройте чат чуть позже.",
-                        "Хорошо");
+                        Loc.T("dg_015", "Вы в пространстве. Если ключ ещё не дошёл — переоткройте чат чуть позже."),
+                        Loc.T("dg_084", "Хорошо"));
                 }
                 else
                 {
-                    await DisplayAlert("Ошибка", "Не удалось вступить.", "OK");
+                    await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_024", "Не удалось вступить."), "OK");
                 }
 
                 await LoadAsync();
@@ -157,7 +157,7 @@ public partial class SpacesPage : ContentPage
                 // про офлайн-режим.
                 if (ConnectionErrors.IsConnectionProblem(ex.Message))
                 {
-                    OfflineLabel.Text = $"⚡ {ex.Message}. Нажмите, чтобы повторить.";
+                    OfflineLabel.Text = string.Format(Loc.T("uc_073"), ex.Message);
                     OfflineLabel.IsVisible = true;
                     return;
                 }
@@ -173,18 +173,18 @@ public partial class SpacesPage : ContentPage
         {
             var ask = await DisplayAlert(
                 item.Name,
-                "Приватное пространство. Отправить заявку на вступление? Её рассмотрит владелец или администратор.",
-                "Подать заявку", "Отмена");
+                Loc.T("dg_055", "Приватное пространство. Отправить заявку на вступление? Её рассмотрит владелец или администратор."),
+                Loc.T("dg_048", "Подать заявку"), Loc.T("common_cancel", "Отмена"));
             if (!ask)
             {
                 return;
             }
 
             var message = await DisplayPromptAsync(
-                "Заявка на вступление",
-                "Коротко о себе (необязательно):",
-                "Отправить",
-                "Отмена",
+                Loc.T("rs_048", "Заявка на вступление"),
+                Loc.T("rs_070", "Коротко о себе (необязательно):"),
+                Loc.T("rs_114", "Отправить"),
+                Loc.T("common_cancel", "Отмена"),
                 maxLength: 200,
                 keyboard: Keyboard.Text);
             if (message is null)
@@ -196,10 +196,10 @@ public partial class SpacesPage : ContentPage
             {
                 var sent = await _spaces.RequestToJoinAsync(item.Id, message ?? string.Empty);
                 await DisplayAlert(
-                    sent ? "Заявка отправлена" : "Не удалось",
+                    sent ? Loc.T("dg_027", "Заявка отправлена") : Loc.T("uc_022", "Не удалось"),
                     sent
-                        ? "Заявка отправлена. Когда её примут, пространство появится в вашем списке."
-                        : "Не удалось отправить заявку.",
+                        ? Loc.T("dg_028", "Заявка отправлена. Когда её примут, пространство появится в вашем списке.")
+                        : Loc.T("dg_032", "Не удалось отправить заявку."),
                     "Ок");
             }
             catch (Exception ex)
@@ -238,7 +238,7 @@ public partial class SpacesPage : ContentPage
 
         if (requests.Count == 0)
         {
-            await DisplayAlert("Заявки на вступление", "Новых заявок нет.", "Ок");
+            await DisplayAlert("Заявки на вступление", Loc.T("uc_055", "Новых заявок нет."), "Ок");
             return;
         }
 
@@ -250,11 +250,11 @@ public partial class SpacesPage : ContentPage
 
             var choice = await DisplayActionSheet(
                 "Заявки на вступление",
-                "Закрыть",
+                Loc.T("common_close", "Закрыть"),
                 null,
                 labels);
 
-            if (string.IsNullOrWhiteSpace(choice) || choice == "Закрыть")
+            if (string.IsNullOrWhiteSpace(choice) || choice == Loc.T("common_close", "Закрыть"))
             {
                 return;
             }
@@ -267,11 +267,11 @@ public partial class SpacesPage : ContentPage
 
             var target = requests[index];
             var decision = await DisplayActionSheet(
-                $"Заявка от {target.Username}",
-                "Отмена",
+                string.Format(Loc.T("dg_026"), target.Username),
+                Loc.T("common_cancel", "Отмена"),
                 null,
-                "✅ Принять",
-                "❌ Отклонить");
+                Loc.T("dg_091", "✅ Принять"),
+                Loc.T("dg_092", "❌ Отклонить"));
 
             if (decision is not ("✅ Принять" or "❌ Отклонить"))
             {
@@ -283,7 +283,7 @@ public partial class SpacesPage : ContentPage
                 var ok = await _spaces.ResolveJoinRequestAsync(target.Id, decision == "✅ Принять");
                 if (!ok)
                 {
-                    await DisplayAlert("Не удалось", "Заявка уже обработана.", "Ок");
+                    await DisplayAlert(Loc.T("uc_022", "Не удалось"), Loc.T("uc_012", "Заявка уже обработана."), "Ок");
                     requests.RemoveAt(index);
                     continue;
                 }
@@ -297,7 +297,7 @@ public partial class SpacesPage : ContentPage
             requests.RemoveAt(index);
             if (requests.Count == 0)
             {
-                await DisplayAlert("Готово", "Все заявки рассмотрены.", "Ок");
+                await DisplayAlert(Loc.T("set_036", "Готово"), Loc.T("uc_010", "Все заявки рассмотрены."), "Ок");
                 return;
             }
         }
@@ -306,10 +306,10 @@ public partial class SpacesPage : ContentPage
     private async void OnCreateClicked(object sender, EventArgs e)
     {
         var name = await DisplayPromptAsync(
-            "Новое пространство",
-            "Введите название:",
-            "Создать",
-            "Отмена",
+            Loc.T("rs_109", "Новое пространство"),
+            Loc.T("rs_019", "Введите название:"),
+            Loc.T("rs_149", "Создать"),
+            Loc.T("common_cancel", "Отмена"),
             maxLength: 64,
             keyboard: Keyboard.Text);
         if (string.IsNullOrWhiteSpace(name))
@@ -318,14 +318,14 @@ public partial class SpacesPage : ContentPage
         }
 
         var typeChoice = await DisplayActionSheet(
-            "Тип пространства:",
-            "Отмена",
+            Loc.T("dg_072", "Тип пространства:"),
+            Loc.T("common_cancel", "Отмена"),
             null,
-            "👥 Группа — общий чат, пишут все участники",
-            "📢 Канал — объявления, пишут только админы",
-            "🧵 Форум — темы с обсуждениями",
-            "🌐 Сообщество — публичная площадка с каналами");
-        if (string.IsNullOrWhiteSpace(typeChoice) || typeChoice == "Отмена")
+            Loc.T("dg_094", "👥 Группа — общий чат, пишут все участники"),
+            Loc.T("dg_095", "📢 Канал — объявления, пишут только админы"),
+            Loc.T("dg_096", "🧵 Форум — темы с обсуждениями"),
+            Loc.T("dg_093", "🌐 Сообщество — публичная площадка с каналами"));
+        if (string.IsNullOrWhiteSpace(typeChoice) || typeChoice == Loc.T("common_cancel", "Отмена"))
         {
             return;
         }
@@ -340,9 +340,9 @@ public partial class SpacesPage : ContentPage
 
         var description = await DisplayPromptAsync(
             "Описание",
-            "Коротко о пространстве (необязательно):",
+            Loc.T("rs_069", "Коротко о пространстве (необязательно):"),
             "Далее",
-            "Пропустить",
+            Loc.T("rs_139", "Пропустить"),
             maxLength: 200,
             keyboard: Keyboard.Text);
 
@@ -358,7 +358,7 @@ public partial class SpacesPage : ContentPage
             if (created is not null)
             {
                 await LoadAsync();
-                await DisplayAlert("Готово", $"Пространство «{created.Name}» создано.", "OK");
+                await DisplayAlert(Loc.T("set_036", "Готово"), string.Format(Loc.T("uc_061"), created.Name), "OK");
             }
         }
         catch (Exception ex)

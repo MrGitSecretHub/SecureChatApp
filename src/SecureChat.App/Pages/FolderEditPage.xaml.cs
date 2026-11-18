@@ -10,7 +10,7 @@ namespace SecureChat.App.Pages;
 /// </summary>
 public partial class FolderEditPage : ContentPage
 {
-    private const string CreateItem = "＋ Создать папку";
+    private static readonly string CreateItem = Loc.T("rs_196", "＋ Создать папку");
 
     private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
     private readonly StoredChatFolder? _existing;
@@ -30,7 +30,7 @@ public partial class FolderEditPage : ContentPage
         }
         else
         {
-            Title = "Новая папка";
+            Title = Loc.T("rs_107", "Новая папка");
         }
     }
 
@@ -58,13 +58,13 @@ public partial class FolderEditPage : ContentPage
         var name = NameEntry.Text?.Trim() ?? string.Empty;
         if (name.Length == 0)
         {
-            ShowError("Введите название папки.");
+            ShowError(Loc.T("rs_017", "Введите название папки."));
             return;
         }
 
         if (ChatFolders.IsReserved(name))
         {
-            ShowError("Это имя занято служебной вкладкой, выберите другое.");
+            ShowError(Loc.T("rs_174", "Это имя занято служебной вкладкой, выберите другое."));
             return;
         }
 
@@ -75,7 +75,7 @@ public partial class FolderEditPage : ContentPage
         var saved = await _chatManager.SaveChatFolderAsync(_existing?.Name, name, usernames);
         if (!saved)
         {
-            ShowError("Папка с таким именем уже есть.");
+            ShowError(Loc.T("rs_120", "Папка с таким именем уже есть."));
             return;
         }
 
@@ -91,8 +91,8 @@ public partial class FolderEditPage : ContentPage
 
         var confirmed = await DisplayAlert(
             "Удалить папку",
-            $"Папка «{_existing.Name}» исчезнет из панели вкладок. Сами чаты останутся во вкладке «Все».",
-            "Удалить", "Отмена");
+            string.Format(Loc.T("dg_044"), _existing.Name),
+            Loc.T("common_delete", "Удалить"), Loc.T("common_cancel", "Отмена"));
         if (!confirmed)
         {
             return;

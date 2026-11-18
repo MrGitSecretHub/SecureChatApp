@@ -78,8 +78,8 @@ public partial class GlobalSearchPage : ContentPage
         var items = results.Select(SearchResultVm.From).ToList();
         ResultsView.ItemsSource = items;
         HintLabel.Text = items.Count == 0
-            ? "Совпадений нет."
-            : $"Найдено сообщений: {items.Count}";
+            ? Loc.T("rs_148", "Совпадений нет.")
+            : string.Format(Loc.T("rs_078"), items.Count);
     }
 
     private async void OnResultSelected(object sender, SelectionChangedEventArgs e)

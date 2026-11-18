@@ -75,7 +75,7 @@ public partial class SearchUsersPage : ContentPage
         var username = (UsernameEntry.Text ?? string.Empty).Trim();
         if (username.Length < 1)
         {
-            await DisplayAlert("Поиск", "Введите имя пользователя.", "OK");
+            await DisplayAlert("Поиск", Loc.T("uc_005", "Введите имя пользователя."), "OK");
             return;
         }
 
@@ -133,7 +133,7 @@ public partial class SearchUsersPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось добавить контакт", ex.Message, "OK");
+            await DisplayAlert(Loc.T("uc_026", "Не удалось добавить контакт"), ex.Message, "OK");
         }
     }
 }

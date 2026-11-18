@@ -37,7 +37,7 @@ public partial class SpaceProfilePage : ContentPage
             var dto = spaces.FirstOrDefault(item => item.Id == _spaceId);
             if (dto is null)
             {
-                await DisplayAlert("Ошибка", "Пространство не найдено.", "OK");
+                await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_062", "Пространство не найдено."), "OK");
                 await Navigation.PopAsync();
                 return;
             }
@@ -48,18 +48,18 @@ public partial class SpaceProfilePage : ContentPage
 
             (SpaceIconLabel.Text, SpaceTypeLabel.Text) = dto.Type switch
             {
-                SpaceTypes.Channel => ("📢", "Канал"),
-                SpaceTypes.Forum => ("🧵", "Форум"),
-                SpaceTypes.Community => ("🌐", "Сообщество"),
-                _ => ("👥", "Группа"),
+                SpaceTypes.Channel => ("📢", Loc.T("rs_065", "Канал")),
+                SpaceTypes.Forum => ("🧵", Loc.T("rs_165", "Форум")),
+                SpaceTypes.Community => ("🌐", Loc.T("rs_150", "Сообщество")),
+                _ => ("👥", Loc.T("rs_040", "Группа")),
             };
 
             DescriptionLabel.Text = string.IsNullOrWhiteSpace(dto.Description)
-                ? "Без описания."
+                ? Loc.T("rs_014", "Без описания.")
                 : dto.Description;
 
             var members = await _spaces.GetMembersAsync(_spaceId);
-            var stats = $"{members.Count} участников";
+            var stats = string.Format(Loc.T("uc_000"), members.Count);
             if (dto.TopicCount > 0)
             {
                 stats += $" · {dto.TopicCount} тем";
@@ -74,7 +74,7 @@ public partial class SpaceProfilePage : ContentPage
 
             var owner = members.FirstOrDefault(item =>
                 string.Equals(item.Role, SpaceRoles.Owner, StringComparison.OrdinalIgnoreCase));
-            OwnerLabel.Text = "Владелец: " + (owner?.Username ?? dto.OwnerUsername);
+            OwnerLabel.Text = Loc.T("uc_007", "Владелец: ") + (owner?.Username ?? dto.OwnerUsername);
 
             var isModerator = dto.MyRole is SpaceRoles.Owner or SpaceRoles.Admin;
             SettingsButton.IsVisible = isModerator;
@@ -132,9 +132,9 @@ public partial class SpaceProfilePage : ContentPage
     private async void OnLeaveClicked(object sender, EventArgs e)
     {
         var confirmed = await DisplayAlert(
-            "Выйти из пространства?",
-            "Вы перестанете получать его сообщения. Вернуться сможет только администратор по приглашению.",
-            "Выйти", "Отмена");
+            Loc.T("dg_021", "Выйти из пространства?"),
+            Loc.T("dg_017", "Вы перестанете получать его сообщения. Вернуться сможет только администратор по приглашению."),
+            Loc.T("dg_019", "Выйти"), Loc.T("common_cancel", "Отмена"));
         if (!confirmed)
         {
             return;
@@ -145,7 +145,7 @@ public partial class SpaceProfilePage : ContentPage
             var left = await _spaces.LeaveAsync(_spaceId);
             if (!left)
             {
-                await DisplayAlert("Ошибка", "Не удалось выйти из пространства.", "OK");
+                await DisplayAlert(Loc.T("common_error", "Ошибка"), Loc.T("uc_025", "Не удалось выйти из пространства."), "OK");
                 return;
             }
 

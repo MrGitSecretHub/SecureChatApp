@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.SpaceProfilePage"
-             Title="Пространство">
+             Title="{DynamicResource s_ui_136}">
     <ScrollView BackgroundColor="{DynamicResource PageBackground}">
         <VerticalStackLayout Padding="16"
                              Spacing="14"
@@ -59,8 +59,8 @@
                 <VerticalStackLayout Spacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                            <Label Text="Звук и уведомления" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Звук упоминаний в этом пространстве (настройки — у владельца и админов)"
+                            <Label Text="{DynamicResource s_ui_045}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_ui_047}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="MuteSwitch"
@@ -70,12 +70,12 @@
                     </Grid>
 
                     <Button x:Name="SettingsButton"
-                            Text="⚙️ Настройки пространства"
+                            Text="{DynamicResource s_ui_185}"
                             Style="{DynamicResource SecondaryButton}"
                             IsVisible="False"
                             Clicked="OnSettingsClicked" />
                     <Button x:Name="LeaveButton"
-                            Text="🚪 Выйти из пространства"
+                            Text="{DynamicResource s_ui_203}"
                             Style="{DynamicResource GhostButton}"
                             TextColor="{DynamicResource Danger}"
                             Clicked="OnLeaveClicked" />

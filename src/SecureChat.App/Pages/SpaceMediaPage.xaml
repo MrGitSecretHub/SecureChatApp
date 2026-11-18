@@ -3,13 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:views="clr-namespace:SecureChat.App.Views"
              x:Class="SecureChat.App.Pages.SpaceMediaPage"
-             Title="Медиа">
+             Title="{DynamicResource s_ui_062}">
     <Grid RowDefinitions="Auto,Auto,*"
           BackgroundColor="{DynamicResource PageBackground}">
 
         <Label Grid.Row="0"
                x:Name="TitleLabel"
-               Text="Медиа"
+               Text="{DynamicResource s_ui_062}"
                Style="{DynamicResource H2}"
                Margin="16,12,16,4" />
 
@@ -22,7 +22,7 @@
                         x:Name="ItemsView"
                         SelectionMode="None">
             <CollectionView.EmptyView>
-                <Label Text="В этом пространстве пока нет вложений."
+                <Label Text="{DynamicResource s_ui_005}"
                        Style="{DynamicResource Caption}"
                        Margin="24"
                        HorizontalOptions="Center" />

@@ -2,13 +2,13 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.ContactsPage"
-             Title="Контакты">
+             Title="{DynamicResource s_ui_059}">
     <Grid Padding="16" RowDefinitions="Auto,Auto,*" RowSpacing="12">
 
         <!-- Шапка -->
         <VerticalStackLayout Spacing="2">
-            <Label Text="Контакты" Style="{DynamicResource H1}" />
-            <Label Text="Сверьте отпечаток ключа с собеседником по другому каналу."
+            <Label Text="{DynamicResource s_ui_059}" Style="{DynamicResource H1}" />
+            <Label Text="{DynamicResource s_ui_145}"
                    Style="{DynamicResource Caption}" />
         </VerticalStackLayout>
 
@@ -16,12 +16,12 @@
         <Border Grid.Row="1" Style="{DynamicResource Card}" Padding="12">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <Entry x:Name="UsernameEntry"
-                       Placeholder="Имя пользователя, например bob"
+                       Placeholder="{DynamicResource s_ui_051}"
                        IsSpellCheckEnabled="False"
                        Completed="OnAddClicked" />
                 <Button Grid.Column="1"
                         x:Name="AddButton"
-                        Text="Добавить"
+                        Text="{DynamicResource s_ui_031}"
                         Clicked="OnAddClicked" />
             </Grid>
         </Border>
@@ -35,9 +35,9 @@
                 <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
                     <Label Text="👥"
                            Style="{DynamicResource EmptyStateIcon}" />
-                    <Label Text="Список контактов пуст"
+                    <Label Text="{DynamicResource s_ui_158}"
                            Style="{DynamicResource EmptyStateTitle}" />
-                    <Label Text="Добавьте собеседника по имени пользователя."
+                    <Label Text="{DynamicResource s_ui_035}"
                            Style="{DynamicResource EmptyStateCaption}" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
@@ -72,7 +72,7 @@
                                        Style="{DynamicResource Caption}"
                                        FontFamily="{DynamicResource FontFamilyMono}"
                                        LineBreakMode="CharacterWrap" />
-                                <Label Text="⚠ Ключ контакта изменился — проверьте отпечаток!"
+                                <Label Text="{DynamicResource s_ui_186}"
                                        FontSize="11"
                                        TextColor="{DynamicResource Danger}"
                                        IsVisible="{Binding KeysChanged}" />

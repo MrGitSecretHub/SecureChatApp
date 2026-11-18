@@ -87,8 +87,8 @@ public partial class ThemeEditorPage : ContentPage
         var theme = _session.CustomThemes.FirstOrDefault(item => item.Id == _editingThemeId);
         EditorTitleLabel.Text = theme is null ? "Новая тема" : theme.Name;
         EditorBaseLabel.Text = theme is null
-            ? "Подберите цвета — тема сохранится на этом устройстве"
-            : $"основа: {theme.BaseTheme} · правка сохранённой темы";
+            ? Loc.T("rs_129", "Подберите цвета — тема сохранится на этом устройстве")
+            : string.Format(Loc.T("rs_181"), theme.BaseTheme);
     }
 
     protected override void OnDisappearing()
@@ -129,9 +129,9 @@ public partial class ThemeEditorPage : ContentPage
     private async Task ConfirmLeaveAsync()
     {
         var confirmed = await DisplayAlert(
-            "Выйти без сохранения?",
-            "Подобранные цвета не сохранены — они пропадут. Сохранённая тема останется как была.",
-            "Выйти", "Остаться");
+            Loc.T("dg_020", "Выйти без сохранения?"),
+            Loc.T("dg_049", "Подобранные цвета не сохранены — они пропадут. Сохранённая тема останется как была."),
+            Loc.T("dg_019", "Выйти"), Loc.T("dg_037", "Остаться"));
 
         if (!confirmed)
         {
@@ -146,7 +146,7 @@ public partial class ThemeEditorPage : ContentPage
     private void UpdateUnsavedHint()
     {
         UnsavedHint.Text = HasUnsavedChanges
-            ? "Есть несохранённые изменения — нажмите «Сохранить как свою тему»."
+            ? Loc.T("rs_043", "Есть несохранённые изменения — нажмите «Сохранить как свою тему».")
             : string.Empty;
 
         UnsavedHint.IsVisible = HasUnsavedChanges;
@@ -198,7 +198,7 @@ public partial class ThemeEditorPage : ContentPage
 
         ChangedRolesLabel.Text = _draft.Count == 0
             ? string.Empty
-            : $"изменено ролей: {_draft.Count}";
+            : string.Format(Loc.T("rs_177"), _draft.Count);
     }
 
     /// <summary>Строит плитки готовых палитр: образцы цветов и название.</summary>
@@ -327,8 +327,8 @@ public partial class ThemeEditorPage : ContentPage
         ApplyPreview();
         BuildRoles();
 
-        await DisplayAlert("Палитра применена",
-            $"«{palette.Name}» — цвета применены ко всем ролям. Их можно править по отдельности ниже.",
+        await DisplayAlert(Loc.T("dg_043", "Палитра применена"),
+            string.Format(Loc.T("dg_005"), palette.Name),
             "Ок");
     }
 
@@ -345,7 +345,7 @@ public partial class ThemeEditorPage : ContentPage
 
         var hint = new Label
         {
-            Text = isChanged ? $"{role.Description} · изменено" : role.Description,
+            Text = isChanged ? string.Format(Loc.T("rs_004"), role.Description) : role.Description,
             Style = (Style)Application.Current.Resources["Caption"],
             TextColor = isChanged
                 ? (Color)Application.Current.Resources["Accent"]
@@ -465,7 +465,7 @@ public partial class ThemeEditorPage : ContentPage
 
         var applyButton = new Button
         {
-            Text = "Применить",
+            Text = Loc.T("rs_137", "Применить"),
             Style = (Style)Application.Current.Resources["SecondaryButton"],
             CommandParameter = role.Key
         };
@@ -548,7 +548,7 @@ public partial class ThemeEditorPage : ContentPage
         var text = entry.Text?.Trim() ?? string.Empty;
         if (!ThemeColor.TryParse(text, out var color))
         {
-            _ = DisplayAlert("Некорректный цвет", "Укажите цвет в формате #RRGGBB, например #5865F2.", "Ок");
+            _ = DisplayAlert(Loc.T("uc_051", "Некорректный цвет"), Loc.T("uc_067", "Укажите цвет в формате #RRGGBB, например #5865F2."), "Ок");
             return;
         }
 
@@ -583,7 +583,7 @@ public partial class ThemeEditorPage : ContentPage
             ? _session.CustomThemes.FirstOrDefault(item => item.Id == _editingThemeId)?.BaseTheme
             : _session.Theme;
 
-        PreviewBaseLabel.Text = $"основа: {baseTheme}";
+        PreviewBaseLabel.Text = string.Format(Loc.T("uc_069"), baseTheme);
 
         App.ApplyAppearance(_draft, baseTheme);
         _session.NotifyAppearanceChanged();
@@ -608,20 +608,20 @@ public partial class ThemeEditorPage : ContentPage
     {
         if (_draft.Count == 0)
         {
-            await DisplayAlert("Нет изменений",
-                "Сначала поменяйте хотя бы один цвет в разделе «Цвета».", "Ок");
+            await DisplayAlert(Loc.T("dg_033", "Нет изменений"),
+                Loc.T("dg_061", "Сначала поменяйте хотя бы один цвет в разделе «Цвета»."), "Ок");
             return;
         }
 
         var defaultName = string.IsNullOrEmpty(_editingThemeId)
-            ? $"Моя тема {DateTime.Now:dd.MM HH:mm}"
-            : _session.CustomThemes.FirstOrDefault(item => item.Id == _editingThemeId)?.Name ?? "Моя тема";
+            ? string.Format(Loc.T("rs_074"), DateTime.Now)
+            : _session.CustomThemes.FirstOrDefault(item => item.Id == _editingThemeId)?.Name ?? Loc.T("rs_073", "Моя тема");
 
         var name = await DisplayPromptAsync(
-            "Название темы",
-            "Как назвать вашу тему?",
-            "Сохранить",
-            "Отмена",
+            Loc.T("rs_077", "Название темы"),
+            Loc.T("rs_059", "Как назвать вашу тему?"),
+            Loc.T("common_save", "Сохранить"),
+            Loc.T("common_cancel", "Отмена"),
             maxLength: 32,
             initialValue: defaultName);
 
@@ -660,7 +660,7 @@ public partial class ThemeEditorPage : ContentPage
         BuildMyThemes();
         _savedFingerprint = Fingerprint();
         UpdateUnsavedHint();
-        await DisplayAlert("Тема сохранена", $"«{name}» применена и сохранена на этом устройстве.", "Ок");
+        await DisplayAlert(Loc.T("uc_065", "Тема сохранена"), string.Format(Loc.T("uc_002"), name), "Ок");
     }
 
     /// <summary>Копирует текущую палитру в буфер обмена — можно передать её
@@ -669,8 +669,8 @@ public partial class ThemeEditorPage : ContentPage
     {
         if (_draft.Count == 0)
         {
-            await DisplayAlert("Нечего копировать",
-                "Сначала поменяйте хотя бы один цвет в разделе «Цвета».", "Ок");
+            await DisplayAlert(Loc.T("dg_034", "Нечего копировать"),
+                Loc.T("dg_061", "Сначала поменяйте хотя бы один цвет в разделе «Цвета»."), "Ок");
             return;
         }
 
@@ -679,13 +679,13 @@ public partial class ThemeEditorPage : ContentPage
         try
         {
             await Clipboard.Default.SetTextAsync(transfer.ToJson());
-            await DisplayAlert("Тема скопирована",
-                "Текст темы в буфере обмена — вставьте его в чат, чтобы передать другим, или в поле «Вставить тему» на другом устройстве.",
+            await DisplayAlert(Loc.T("dg_070", "Тема скопирована"),
+                Loc.T("dg_065", "Текст темы в буфере обмена — вставьте его в чат, чтобы передать другим, или в поле «Вставить тему» на другом устройстве."),
                 "Ок");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось скопировать", ex.Message, "Ок");
+            await DisplayAlert(Loc.T("uc_042", "Не удалось скопировать"), ex.Message, "Ок");
         }
     }
 
@@ -693,7 +693,7 @@ public partial class ThemeEditorPage : ContentPage
     private ThemeTransfer BuildTransfer()
     {
         var name = _session.CustomThemes.FirstOrDefault(item => item.Id == _editingThemeId)?.Name
-            ?? $"Моя тема {DateTime.Now:dd.MM HH:mm}";
+            ?? string.Format(Loc.T("rs_074"), DateTime.Now);
 
         return new ThemeTransfer
         {
@@ -709,8 +709,8 @@ public partial class ThemeEditorPage : ContentPage
     {
         if (_draft.Count == 0)
         {
-            await DisplayAlert("Нечего сохранять",
-                "Сначала поменяйте хотя бы один цвет в разделе «Цвета».", "Ок");
+            await DisplayAlert(Loc.T("dg_035", "Нечего сохранять"),
+                Loc.T("dg_061", "Сначала поменяйте хотя бы один цвет в разделе «Цвета»."), "Ок");
             return;
         }
 
@@ -724,7 +724,7 @@ public partial class ThemeEditorPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось сохранить файл", ex.Message, "Ок");
+            await DisplayAlert(Loc.T("uc_044", "Не удалось сохранить файл"), ex.Message, "Ок");
             return;
         }
 
@@ -732,14 +732,14 @@ public partial class ThemeEditorPage : ContentPage
         {
             await Share.Default.RequestAsync(new ShareFileRequest
             {
-                Title = $"Тема «{transfer.Name}»",
+                Title = string.Format(Loc.T("rs_157"), transfer.Name),
                 File = new ShareFile(path)
             });
         }
         catch (Exception ex)
         {
             // Системное меню может быть недоступно — показываем путь к файлу.
-            await DisplayAlert("Файл создан",
+            await DisplayAlert(Loc.T("dg_083", "Файл создан"),
                 $"Тема сохранена в файл:\n{path}\n\nПередать файл не удалось: {ex.Message}",
                 "Ок");
         }
@@ -758,7 +758,7 @@ public partial class ThemeEditorPage : ContentPage
     {
         var file = await FilePicker.Default.PickAsync(new PickOptions
         {
-            PickerTitle = "Выберите файл темы"
+            PickerTitle = Loc.T("rs_034", "Выберите файл темы")
         });
 
         if (file is null)
@@ -775,11 +775,11 @@ public partial class ThemeEditorPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось прочитать файл", ex.Message, "Ок");
+            await DisplayAlert(Loc.T("uc_041", "Не удалось прочитать файл"), ex.Message, "Ок");
             return;
         }
 
-        await ApplyImportedTheme(text, "файла");
+        await ApplyImportedTheme(text, Loc.T("rs_183", "файла"));
     }
 
     /// <summary>Вставляет тему из буфера обмена.</summary>
@@ -792,15 +792,15 @@ public partial class ThemeEditorPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось прочитать буфер", ex.Message, "Ок");
+            await DisplayAlert(Loc.T("uc_039", "Не удалось прочитать буфер"), ex.Message, "Ок");
             return;
         }
 
         var transfer = ThemeTransfer.Parse(text);
         if (transfer is null)
         {
-            await DisplayAlert("Это не тема",
-                "В буфере обмена нет текста темы. Скопируйте тему на другом устройстве и попробуйте снова.",
+            await DisplayAlert(Loc.T("dg_088", "Это не тема"),
+                Loc.T("dg_010", "В буфере обмена нет текста темы. Скопируйте тему на другом устройстве и попробуйте снова."),
                 "Ок");
             return;
         }
@@ -828,8 +828,8 @@ public partial class ThemeEditorPage : ContentPage
         BuildRoles();
         BuildMyThemes();
 
-        await DisplayAlert("Тема загружена",
-            $"«{transfer.Name}» загружена в редактор. Нажмите «Сохранить как свою тему», чтобы оставить её на этом устройстве.",
+        await DisplayAlert(Loc.T("dg_068", "Тема загружена"),
+            string.Format(Loc.T("dg_006"), transfer.Name),
             "Ок");
     }
 
@@ -839,8 +839,8 @@ public partial class ThemeEditorPage : ContentPage
         var transfer = ThemeTransfer.Parse(text);
         if (transfer is null)
         {
-            await DisplayAlert("Это не тема",
-                $"В {source} нет текста темы. Проверьте, что файл создан в приложении.",
+            await DisplayAlert(Loc.T("dg_088", "Это не тема"),
+                string.Format(Loc.T("dg_009"), source),
                 "Ок");
             return;
         }
@@ -856,9 +856,9 @@ public partial class ThemeEditorPage : ContentPage
         }
 
         var confirmed = await DisplayAlert(
-            "Сбросить цвета",
-            "Все подобранные цвета будут сброшены к выбранной теме. Сама сохранённая тема не изменится.",
-            "Сбросить", "Отмена");
+            Loc.T("dg_059", "Сбросить цвета"),
+            Loc.T("dg_013", "Все подобранные цвета будут сброшены к выбранной теме. Сама сохранённая тема не изменится."),
+            Loc.T("dg_058", "Сбросить"), Loc.T("common_cancel", "Отмена"));
 
         if (!confirmed)
         {
@@ -877,7 +877,7 @@ public partial class ThemeEditorPage : ContentPage
         MyThemesLayout.Children.Clear();
 
         var themes = _session.CustomThemes
-            .OrderByDescending(item => item.Name.StartsWith("Моя тема", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(item => item.Name.StartsWith(Loc.T("rs_073", "Моя тема"), StringComparison.OrdinalIgnoreCase))
             .ThenBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
@@ -895,7 +895,7 @@ public partial class ThemeEditorPage : ContentPage
 
         var name = new Label
         {
-            Text = isActive ? $"{theme.Name}  (применена)" : theme.Name,
+            Text = isActive ? string.Format(Loc.T("rs_005"), theme.Name) : theme.Name,
             Style = (Style)Application.Current!.Resources["SectionTitle"]
         };
 
@@ -921,7 +921,7 @@ public partial class ThemeEditorPage : ContentPage
 
         var applyButton = new Button
         {
-            Text = "Применить",
+            Text = Loc.T("rs_137", "Применить"),
             Style = (Style)Application.Current.Resources["SecondaryButton"],
             IsEnabled = !isActive,
             CommandParameter = theme.Id
@@ -930,7 +930,7 @@ public partial class ThemeEditorPage : ContentPage
 
         var editButton = new Button
         {
-            Text = "Править",
+            Text = Loc.T("rs_132", "Править"),
             Style = (Style)Application.Current.Resources["SecondaryButton"],
             CommandParameter = theme.Id
         };
@@ -948,7 +948,7 @@ public partial class ThemeEditorPage : ContentPage
 
         var deleteButton = new Button
         {
-            Text = "Удалить",
+            Text = Loc.T("common_delete", "Удалить"),
             Style = (Style)Application.Current.Resources["GhostButton"],
             TextColor = (Color)Application.Current.Resources["Danger"],
             CommandParameter = theme.Id
@@ -1025,10 +1025,10 @@ public partial class ThemeEditorPage : ContentPage
         }
 
         var name = await DisplayPromptAsync(
-            "Переименовать тему",
-            "Как назвать тему?",
-            "Сохранить",
-            "Отмена",
+            Loc.T("rs_123", "Переименовать тему"),
+            Loc.T("rs_060", "Как назвать тему?"),
+            Loc.T("common_save", "Сохранить"),
+            Loc.T("common_cancel", "Отмена"),
             maxLength: 32,
             initialValue: theme.Name);
 
@@ -1096,9 +1096,9 @@ public partial class ThemeEditorPage : ContentPage
         }
 
         var confirmed = await DisplayAlert(
-            "Удалить тему",
-            $"Тема «{theme.Name}» будет удалена с этого устройства.",
-            "Удалить", "Отмена");
+            Loc.T("dg_079", "Удалить тему"),
+            string.Format(Loc.T("dg_067"), theme.Name),
+            Loc.T("common_delete", "Удалить"), Loc.T("common_cancel", "Отмена"));
 
         if (!confirmed)
         {

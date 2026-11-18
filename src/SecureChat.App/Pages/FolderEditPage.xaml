@@ -3,22 +3,22 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:views="clr-namespace:SecureChat.App.Views"
              x:Class="SecureChat.App.Pages.FolderEditPage"
-             Title="Папка чатов">
+             Title="{DynamicResource s_ui_110}">
     <Grid Padding="16"
           RowDefinitions="Auto,Auto,Auto,*,Auto"
           RowSpacing="10"
           BackgroundColor="{DynamicResource PageBackground}">
 
         <VerticalStackLayout Spacing="2">
-            <Label Text="Название папки" Style="{DynamicResource Caption}" />
+            <Label Text="{DynamicResource s_ui_073}" Style="{DynamicResource Caption}" />
             <Entry x:Name="NameEntry"
-                   Placeholder="Например: Работа"
+                   Placeholder="{DynamicResource s_ui_078}"
                    MaxLength="32"
                    Completed="OnSaveClicked" />
         </VerticalStackLayout>
 
         <Label Grid.Row="1"
-               Text="Чаты в папке"
+               Text="{DynamicResource s_ui_173}"
                Style="{DynamicResource Caption}" />
 
         <Label Grid.Row="2"
@@ -32,7 +32,7 @@
                         x:Name="ChatsView"
                         SelectionMode="None">
             <CollectionView.EmptyView>
-                <Label Text="Нет чатов — добавьте контакт, затем вернитесь сюда."
+                <Label Text="{DynamicResource s_ui_086}"
                        Style="{DynamicResource Caption}"
                        Margin="0,24"
                        HorizontalOptions="Center" />
@@ -61,7 +61,7 @@
                     Style="{DynamicResource SecondaryButton}"
                     Clicked="OnSaveClicked" />
             <Button x:Name="DeleteButton"
-                    Text="Удалить папку"
+                    Text="{DynamicResource s_ui_166}"
                     Style="{DynamicResource GhostButton}"
                     TextColor="{DynamicResource Danger}"
                     IsVisible="False"

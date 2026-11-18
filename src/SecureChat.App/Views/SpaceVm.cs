@@ -1,4 +1,5 @@
 using SecureChat.Core.Contracts;
+using SecureChat.App.Services;
 
 namespace SecureChat.App.Views;
 
@@ -10,7 +11,7 @@ public sealed class SpaceVm
     public required string Type { get; init; }
     public string Description { get; init; } = string.Empty;
     public string Icon { get; init; } = "👥";
-    public string TypeBadge { get; init; } = "Группа";
+    public string TypeBadge { get; init; } = Loc.T("rs_040", "Группа");
     public string MembersText { get; init; } = string.Empty;
     public string TimeText { get; init; } = string.Empty;
 
