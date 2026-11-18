@@ -377,7 +377,7 @@ public sealed class MessageVm : INotifyPropertyChanged
             color,
             href => LinkTapped?.Invoke(this, href),
             name => MentionTapped?.Invoke(this, name),
-            Res("Accent"),
+            color,
             tag => HashtagTapped?.Invoke(this, tag));
 
         _textFormatted = formatted;

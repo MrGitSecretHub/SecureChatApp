@@ -164,7 +164,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             ResolveMentionColor(),
             href => LinkTapped?.Invoke(this, href),
             name => MentionTapped?.Invoke(this, name),
-            ResolveAccentColorForHashtag(),
+            IsMine ? ResolveAccentText() : ResolveAccent(),
             tag => HashtagTapped?.Invoke(this, tag));
 
         // Текст пространства всегда рисуется через FormattedText: если стилизовать
@@ -352,8 +352,6 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         (Application.Current?.Resources["AccentText"] as Color) ?? Colors.White;
 
     /// <summary>Цвет упоминания: в своём пузыре (акцентный фон) — светлый, в чужом — акцент.</summary>
-    private Color ResolveAccentColorForHashtag() => ResolveAccent();
-
     private Color ResolveMentionColor()
     {
         if (IsMine)
