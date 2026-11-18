@@ -112,6 +112,9 @@ public sealed class LocalizationService
         foreach (var pair in LoadRaw(Language))
         {
             _strings[pair.Key] = pair.Value;
+            // XAML обращается к переводам как к {DynamicResource s_...},
+            // поэтому тот же текст доступен и под s_-префиксом.
+            _strings["s_" + pair.Key] = pair.Value;
         }
 
         var app = Application.Current;
