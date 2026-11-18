@@ -3896,8 +3896,17 @@ public partial class ChatView : ContentView
             return;
         }
 
-        await _chatManager.AcceptNewKeysAsync(_conversation.Username);
-        KeyWarningLabel.IsVisible = false;
+        try
+        {
+            await _chatManager.AcceptNewKeysAsync(_conversation.Username);
+            KeyWarningLabel.IsVisible = false;
+        }
+        catch (Exception ex)
+        {
+            ShowHint(string.Format(
+                Loc.T("bug_key_failed", "Не удалось подтвердить ключ: {0}"), ex.Message),
+                isError: true);
+        }
     }
 
 }

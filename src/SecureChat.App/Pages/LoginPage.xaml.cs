@@ -76,8 +76,9 @@ public partial class LoginPage : ContentPage
 
         try
         {
+        var normalizedServer = AppSession.NormalizeServerUrl(server);
         if (!InsecureHttpCheck.IsChecked &&
-            server.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+            normalizedServer.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
         {
             ShowStatus(Loc.T("login_insecure_warn",
                 "HTTP передаёт пароль и токен открытым текстом. Используйте HTTPS или поставьте галочку «Разрешить HTTP»."));
@@ -119,8 +120,9 @@ public partial class LoginPage : ContentPage
 
         try
         {
+        var normalizedServer = AppSession.NormalizeServerUrl(server);
         if (!InsecureHttpCheck.IsChecked &&
-            server.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+            normalizedServer.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
         {
             ShowStatus(Loc.T("login_insecure_warn",
                 "HTTP передаёт пароль и токен открытым текстом. Используйте HTTPS или поставьте галочку «Разрешить HTTP»."));
