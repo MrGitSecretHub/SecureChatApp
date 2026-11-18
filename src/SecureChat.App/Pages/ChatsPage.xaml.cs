@@ -354,7 +354,7 @@ public partial class ChatsPage : ContentPage
 
     private async void OnMyProfileClicked(object sender, EventArgs e)
     {
-        await Navigation.PushAsync(new SettingsHubPage());
+        await Navigation.PushAsync(AppServices.Get<SettingsPage>());
     }
 
     private async void OnSpacesClicked(object sender, EventArgs e)
