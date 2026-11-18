@@ -1079,20 +1079,6 @@
                 </Border.StrokeShape>
                 <VerticalStackLayout>
                     <!-- Фото или видео -->
-                    <Border StyleId="poll"
-                            BackgroundColor="{DynamicResource SurfaceAlt}"
-                            Padding="16,10">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
-                        </Border.GestureRecognizers>
-                        <HorizontalStackLayout Spacing="12">
-                            <Label Text="📊" FontSize="15" VerticalOptions="Center" />
-                            <Label Text="Опрос"
-                                   FontSize="14"
-                                   TextColor="{DynamicResource TextPrimary}"
-                                   VerticalOptions="Center" />
-                        </HorizontalStackLayout>
-                    </Border>
                     <Border StyleId="photo"
                             BackgroundColor="{DynamicResource SurfaceAlt}"
                             Padding="16,10">
@@ -1345,6 +1331,12 @@
                                     VerticalOptions="End"
                                     Clicked="OnAttachClicked"
                                     ToolTipProperties.Text="{DynamicResource s_ui_133}" />
+                            <Button x:Name="PollButton"
+                                    Text="📊"
+                                    Style="{DynamicResource IconButton}"
+                                    VerticalOptions="End"
+                                    Clicked="OnCreatePollClicked"
+                                    ToolTipProperties.Text="Опрос" />
                             <Button x:Name="EmojiButton"
                                     Text="😊"
                                     Style="{DynamicResource IconButton}"

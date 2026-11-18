@@ -1327,10 +1327,6 @@ public partial class ChatView : ContentView
         var action = (sender as Element)?.StyleId;
         switch (action)
         {
-            case "poll":
-                OnCreatePollClicked();
-                break;
-
             case "photo":
                 // Вид сообщения определяется по расширению в ResolveContentType:
                 // картинки сжимаются и уходят как фото, всё остальное — как файл.
@@ -3926,7 +3922,7 @@ public partial class ChatView : ContentView
         }
     }
 
-    private async void OnCreatePollClicked()
+    private async void OnCreatePollClicked(object? sender, EventArgs e)
     {
         var user = _username;
         var page = HostPage;
