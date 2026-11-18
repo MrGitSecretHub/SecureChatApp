@@ -456,6 +456,7 @@ public partial class SpaceChatPage : ContentPage
         }
 
         vm.MentionTapped += OnMessageMentionTapped;
+        vm.HashtagTapped += OnSpaceHashtagTapped;
         vm.LinkTapped += OnMessageLinkTapped;
         return vm;
     }
@@ -2496,6 +2497,14 @@ public partial class SpaceChatPage : ContentPage
             buffer.Write(chunk, 0, read);
         }
         return buffer.ToArray();
+    }
+
+    private void OnSpaceHashtagTapped(object sender, string tag)
+    {
+        if (!string.IsNullOrWhiteSpace(tag))
+        {
+            _ = Navigation.PushAsync(new GlobalSearchPage("#" + tag));
+        }
     }
 }
 

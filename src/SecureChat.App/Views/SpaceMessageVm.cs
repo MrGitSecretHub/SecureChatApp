@@ -163,7 +163,9 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             IsMine ? ResolveAccentText() : ResolveAccent(),
             ResolveMentionColor(),
             href => LinkTapped?.Invoke(this, href),
-            name => MentionTapped?.Invoke(this, name));
+            name => MentionTapped?.Invoke(this, name),
+            ResolveAccentColorForHashtag(),
+            tag => HashtagTapped?.Invoke(this, tag));
 
         // Текст пространства всегда рисуется через FormattedText: если стилизовать
         // нечего (ни ссылок, ни упоминаний), возвращаемся к одному обычному спану.
@@ -350,6 +352,8 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         (Application.Current?.Resources["AccentText"] as Color) ?? Colors.White;
 
     /// <summary>Цвет упоминания: в своём пузыре (акцентный фон) — светлый, в чужом — акцент.</summary>
+    private Color ResolveAccentColorForHashtag() => ResolveAccent();
+
     private Color ResolveMentionColor()
     {
         if (IsMine)
@@ -485,6 +489,9 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
     /// <summary>Нажали на упоминание в тексте: (сообщение, логин упомянутого).</summary>
     public event Action<SpaceMessageVm, string>? MentionTapped;
+
+    /// <summary>Тап по #хештегу в тексте сообщения.</summary>
+    public event Action<SpaceMessageVm, string>? HashtagTapped;
 
     /// <summary>Нажали на ссылку в тексте: (сообщение, адрес для открытия).</summary>
     public event Action<SpaceMessageVm, string>? LinkTapped;

@@ -63,6 +63,9 @@ public sealed class MessageVm : INotifyPropertyChanged
     /// <summary>Нажали на @упоминание в тексте: второй аргумент — логин упомянутого.</summary>
     public event Action<MessageVm, string>? MentionTapped;
 
+    /// <summary>Тап по #хештегу в тексте сообщения.</summary>
+    public event Action<MessageVm, string>? HashtagTapped;
+
     /// <summary>Нажали на ссылку в тексте: второй аргумент — адрес для открытия.</summary>
     public event Action<MessageVm, string>? LinkTapped;
 
@@ -373,7 +376,9 @@ public sealed class MessageVm : INotifyPropertyChanged
             color,
             color,
             href => LinkTapped?.Invoke(this, href),
-            name => MentionTapped?.Invoke(this, name));
+            name => MentionTapped?.Invoke(this, name),
+            Res("Accent"),
+            tag => HashtagTapped?.Invoke(this, tag));
 
         _textFormatted = formatted;
         Notify(nameof(TextFormatted));

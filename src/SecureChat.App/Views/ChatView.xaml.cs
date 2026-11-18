@@ -645,6 +645,7 @@ public partial class ChatView : ContentView
     {
         var vm = new MessageVm(stored, _session.Username, peer);
         vm.MentionTapped += OnMessageMentionTapped;
+        vm.HashtagTapped += OnMessageHashtagTapped;
         vm.LinkTapped += OnMessageLinkTapped;
         return vm;
     }
@@ -3909,5 +3910,13 @@ public partial class ChatView : ContentView
         }
     }
 
+
+    private void OnMessageHashtagTapped(object sender, string tag)
+    {
+        if (!string.IsNullOrWhiteSpace(tag))
+        {
+            _ = Navigation.PushAsync(new GlobalSearchPage("#" + tag));
+        }
+    }
 }
 

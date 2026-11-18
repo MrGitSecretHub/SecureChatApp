@@ -135,6 +135,7 @@ public partial class PostCommentsPage : ContentPage
         var vm = SpaceMessageVm.From(message, payload, _myUserId, _canModerate,
             myUsername: AppServices.Get<AppSession>().User?.Username);
         vm.MentionTapped += OnMentionTapped;
+        vm.HashtagTapped += OnCommentHashtagTapped;
         vm.LinkTapped += OnLinkTapped;
         return vm;
     }
@@ -355,5 +356,13 @@ public partial class PostCommentsPage : ContentPage
         }
 
         return text.Length <= maxLength ? text : text[..maxLength] + "…";
+    }
+
+    private void OnCommentHashtagTapped(object sender, string tag)
+    {
+        if (!string.IsNullOrWhiteSpace(tag))
+        {
+            _ = Navigation.PushAsync(new GlobalSearchPage("#" + tag));
+        }
     }
 }
