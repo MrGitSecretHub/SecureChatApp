@@ -51,5 +51,5 @@ public partial class ChatPage : ContentPage
     }
 
     private async void OnSettingsRequested() =>
-        await Navigation.PushAsync(AppServices.Get<SettingsPage>());
+        await Navigation.PushAsync(new SettingsHubPage());
 }

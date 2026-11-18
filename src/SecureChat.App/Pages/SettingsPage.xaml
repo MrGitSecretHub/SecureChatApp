@@ -82,7 +82,7 @@
             <!-- ============================================================
                  ПРОФИЛЬ
                  ============================================================ -->
-            <Border Style="{DynamicResource Card}">
+            <Border x:Name="SectionProfile" Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="12">
 
                     <Label Text="{DynamicResource s_settings_profile}" Style="{DynamicResource H2}" />
@@ -198,7 +198,7 @@
             <!-- ============================================================
                  БЕЗОПАСНОСТЬ И ПРИВАТНОСТЬ
                  ============================================================ -->
-            <Border Style="{DynamicResource Card}">
+            <Border x:Name="SectionPrivacy" Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="{DynamicResource s_settings_privacy}" Style="{DynamicResource H2}" />
 
@@ -381,7 +381,7 @@
             <!-- ============================================================
                  СЕРВЕР
                  ============================================================ -->
-            <Border Style="{DynamicResource Card}">
+            <Border x:Name="SectionServer" Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="{DynamicResource s_settings_server}" Style="{DynamicResource H2}" />
                     <Label Text="Адрес задаётся при входе. Проверьте доступность сервера."
@@ -396,7 +396,7 @@
             <!-- ============================================================
                  УПРАВЛЕНИЕ АККАУНТОМ
                  ============================================================ -->
-            <Border Style="{DynamicResource Card}">
+            <Border x:Name="SectionAccount" Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="Аккаунт" Style="{DynamicResource H2}" />
                     <Button Text="Сменить пароль аккаунта"
@@ -414,7 +414,7 @@
             <!-- ============================================================
                  ОФОРМЛЕНИЕ
                  ============================================================ -->
-            <Border Style="{DynamicResource Card}">
+            <Border x:Name="SectionAppearance" Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="14">
 
                     <Label Text="{DynamicResource s_settings_appearance}" Style="{DynamicResource H2}" />
@@ -582,7 +582,7 @@
             <!-- ============================================================
                  ОБОИ ЧАТА
                  ============================================================ -->
-            <Border Style="{DynamicResource Card}">
+            <Border x:Name="SectionWallpaper" Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
 
                     <Label Text="Обои чата" Style="{DynamicResource H2}" />
@@ -639,7 +639,7 @@
             <!-- ============================================================
                  МЕДИА И ПАМЯТЬ
                  ============================================================ -->
-            <Border Style="{DynamicResource Card}">
+            <Border x:Name="SectionMedia" Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
 
                     <Label Text="Медиа и память" Style="{DynamicResource H2}" />

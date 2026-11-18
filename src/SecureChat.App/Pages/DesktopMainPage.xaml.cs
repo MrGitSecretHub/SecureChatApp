@@ -681,18 +681,18 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     private void OnCloseChatClicked(object sender, EventArgs e) => CloseChat();
 
     private async void OnSettingsClicked(object sender, EventArgs e) =>
-        await Navigation.PushAsync(AppServices.Get<SettingsPage>());
+        await Navigation.PushAsync(new SettingsHubPage());
 
     private async void OnMyProfileClicked(object sender, EventArgs e) =>
-        await Navigation.PushAsync(AppServices.Get<SettingsPage>());
+        await Navigation.PushAsync(new SettingsHubPage());
 
     /// <summary>Клик по карточке профиля в сайдбаре — открывает профиль и настройки.</summary>
     private async void OnProfileTapped(object sender, EventArgs e) =>
-        await Navigation.PushAsync(AppServices.Get<SettingsPage>());
+        await Navigation.PushAsync(new SettingsHubPage());
 
     /// <summary>Кнопка «⚙» в шапке чата — открывает профиль и настройки.</summary>
     private async void OnChatSettingsRequested() =>
-        await Navigation.PushAsync(AppServices.Get<SettingsPage>());
+        await Navigation.PushAsync(new SettingsHubPage());
 
     private async void OnLogoutClicked(object sender, EventArgs e)
     {

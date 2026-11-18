@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Pages.SettingsHubPage"
+             Title="Настройки">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="12" MaximumWidthRequest="820"
+                             BackgroundColor="{DynamicResource PageBackground}">
+
+            <Label Text="Настройки" Style="{DynamicResource H1}" />
+            <Label Text="Выберите раздел"
+                   Style="{DynamicResource Caption}" />
+
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Button Text="👤  Профиль"
+                            Style="{DynamicResource GhostButton}"
+                            HorizontalOptions="Start"
+                            Clicked="OnProfile" />
+                    <Label Text="Имя, аватар, статус, био, ключ"
+                           Style="{DynamicResource Caption}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Button Text="🔐  Безопасность и приватность"
+                            Style="{DynamicResource GhostButton}"
+                            HorizontalOptions="Start"
+                            Clicked="OnPrivacy" />
+                    <Label Text="Статус, уведомления, блокировка, код-пароль, история"
+                           Style="{DynamicResource Caption}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Button Text="🎨  Оформление"
+                            Style="{DynamicResource GhostButton}"
+                            HorizontalOptions="Start"
+                            Clicked="OnAppearance" />
+                    <Label Text="Тема, язык, шрифты, размер текста, плотность"
+                           Style="{DynamicResource Caption}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Button Text="🖼  Обои чата"
+                            Style="{DynamicResource GhostButton}"
+                            HorizontalOptions="Start"
+                            Clicked="OnWallpaper" />
+                    <Label Text="Картинка под перепиской и затемнение"
+                           Style="{DynamicResource Caption}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Button Text="🌐  Сервер и подключение"
+                            Style="{DynamicResource GhostButton}"
+                            HorizontalOptions="Start"
+                            Clicked="OnServer" />
+                    <Label Text="Проверка сервера, транспорт, TCP-туннель"
+                           Style="{DynamicResource Caption}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Button Text="💾  Медиа и память"
+                            Style="{DynamicResource GhostButton}"
+                            HorizontalOptions="Start"
+                            Clicked="OnMedia" />
+                    <Label Text="Автозагрузка, кэш, экспорт истории"
+                           Style="{DynamicResource Caption}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{DynamicResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Button Text="👤  Аккаунт"
+                            Style="{DynamicResource GhostButton}"
+                            HorizontalOptions="Start"
+                            Clicked="OnAccount" />
+                    <Label Text="Смена пароля, выход, удаление аккаунта"
+                           Style="{DynamicResource Caption}" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
