@@ -1,3 +1,4 @@
+using SecureChat.App.Pages;
 using SecureChat.Core.Net;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -24,6 +25,7 @@ public partial class SpaceChatPage : ContentPage
 {
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
     private readonly ChatService _chatService = AppServices.Get<ChatService>();
+    private readonly Dictionary<string, PollVoteData> _spaceVotes = new();
     private readonly ChatManager _chat = AppServices.Get<ChatManager>();
     private readonly SecureChat.App.Scheduling.ScheduledPostService _scheduledPosts =
         AppServices.Get<SecureChat.App.Scheduling.ScheduledPostService>();
@@ -345,6 +347,7 @@ public partial class SpaceChatPage : ContentPage
 
             var commentCounts = new Dictionary<string, int>(StringComparer.Ordinal);
             var feed = new List<SpaceMessageVm>();
+            _spaceVotes.Clear();
 
             foreach (var message in messages)
             {
@@ -375,6 +378,7 @@ public partial class SpaceChatPage : ContentPage
                 _messages.Add(item);
             }
 
+            ApplySpacePollVotes();
             RefreshDateLabels();
             RefreshMentionJump();
             if (AppServices.Get<AppSession>().LinkPreviewEnabled)
@@ -458,6 +462,11 @@ public partial class SpaceChatPage : ContentPage
         vm.MentionTapped += OnMessageMentionTapped;
         vm.HashtagTapped += OnSpaceHashtagTapped;
         vm.LinkTapped += OnMessageLinkTapped;
+        vm.PollVoteRequested += OnSpacePollVoteRequested;
+        if (payload.Kind == MessageKinds.PollVote && payload.PollVote is not null)
+        {
+            _spaceVotes[message.Id] = payload.PollVote;
+        }
         return vm;
     }
 
@@ -2504,6 +2513,66 @@ public partial class SpaceChatPage : ContentPage
         if (!string.IsNullOrWhiteSpace(tag))
         {
             _ = Navigation.PushAsync(new GlobalSearchPage("#" + tag));
+        }
+    }
+
+    private async void OnCreatePollClicked(object? sender, EventArgs e)
+    {
+        if (!_canPost) return;
+        var createPage = new PollCreatePage();
+        createPage.PollCreated += async (_, poll) =>
+        {
+            var payload = new SpaceMessagePayload
+            {
+                Kind = MessageKinds.Poll,
+                Text = string.Empty,
+                Poll = poll
+            };
+            var sent = await _spaces.SendPayloadAsync(_spaceId, _topicId, payload);
+            if (sent is not null && !_messages.Any(m => m.Id == sent.Id))
+            {
+                _messages.Add(CreateVm(sent, payload));
+            }
+        };
+        await Navigation.PushAsync(createPage);
+    }
+
+    private void ApplySpacePollVotes()
+    {
+        var polls = _messages.Where(m => m.Poll is not null)
+            .ToDictionary(m => m.Poll!.Id, m => m.Poll!);
+        foreach (var vote in _spaceVotes.Values)
+        {
+            if (polls.TryGetValue(vote.PollId, out var poll))
+            {
+                poll.ApplyVote(vote.OptionIndex, mine: false);
+            }
+        }
+    }
+
+    private async void OnSpacePollVoteRequested(SpaceMessageVm message, int optionIndex)
+    {
+        var poll = message.Poll;
+        if (poll is null) return;
+        var voteData = new PollVoteData { PollId = poll.Id, OptionIndex = optionIndex };
+        poll.ApplyVote(optionIndex, mine: true);
+        var payload = new SpaceMessagePayload
+        {
+            Kind = MessageKinds.PollVote,
+            Text = string.Empty,
+            PollVote = voteData
+        };
+        try
+        {
+            var sent = await _spaces.SendPayloadAsync(_spaceId, _topicId, payload);
+            if (sent is not null)
+            {
+                _spaceVotes[sent.Id] = voteData;
+            }
+        }
+        catch (Exception ex)
+        {
+            await this.ShowErrorAsync(ex);
         }
     }
 }

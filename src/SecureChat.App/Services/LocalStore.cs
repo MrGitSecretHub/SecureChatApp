@@ -1161,7 +1161,7 @@ public sealed class LocalStore
 
             if (message.SentAtUnixMs >= conversation.LastMessageAtUnixMs)
             {
-                conversation.LastMessage = message.Text;
+                conversation.LastMessage = PreviewFor(message);
                 conversation.LastMessageAtUnixMs = message.SentAtUnixMs;
             }
 
@@ -2238,4 +2238,28 @@ public sealed class LocalStore
         AlbumIndex = source.AlbumIndex,
         AlbumCount = source.AlbumCount
     };
+
+    /// <summary>Подпись сообщения в списке чатов: для опросов — читаемый текст, не JSON.</summary>
+    private static string PreviewFor(StoredMessage message)
+    {
+        if (message.Kind != SecureChat.Core.Contracts.MessageKinds.Poll &&
+            message.Kind != SecureChat.Core.Contracts.MessageKinds.PollVote)
+        {
+            return message.Text;
+        }
+
+        try
+        {
+            if (message.Kind == SecureChat.Core.Contracts.MessageKinds.Poll)
+            {
+                var poll = System.Text.Json.JsonSerializer.Deserialize<SecureChat.Core.Contracts.PollData>(message.Text);
+                return poll is null ? Loc.T("poll_preview", "📊 Опрос") : "📊 " + poll.Question;
+            }
+            return Loc.T("poll_vote_preview", "🗳 Голос в опросе");
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return Loc.T("poll_preview", "📊 Опрос");
+        }
+    }
 }

@@ -46,6 +46,13 @@ public sealed class SpaceMessagePayload
 
     /// <summary>Тихий пост: без уведомлений и звука у подписчиков канала.</summary>
     public bool Silent { get; set; }
+
+    /// <summary>Опрос داخل сообщения пространства (Kind = "poll").</summary>
+    public PollData? Poll { get; set; }
+
+    /// <summary>Голос в опросе пространства (Kind = "pollvote").</summary>
+    public PollVoteData? PollVote { get; set; }
+
 }
 
 /// <summary>Разбор упоминаний @username внутри текста сообщения пространства.</summary>

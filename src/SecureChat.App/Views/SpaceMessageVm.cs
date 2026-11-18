@@ -491,6 +491,13 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     /// <summary>Тап по #хештегу в тексте сообщения.</summary>
     public event Action<SpaceMessageVm, string>? HashtagTapped;
 
+    /// <summary>Голос за вариант опроса: второй аргумент — индекс варианта.</summary>
+    public event Action<SpaceMessageVm, int>? PollVoteRequested;
+
+    /// <summary>Опрос в сообщении пространства.</summary>
+    public PollVm? Poll { get; private set; }
+    public bool HasPoll => Poll is not null;
+
     /// <summary>Нажали на ссылку в тексте: (сообщение, адрес для открытия).</summary>
     public event Action<SpaceMessageVm, string>? LinkTapped;
 
@@ -647,6 +654,17 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
             MetaColor = mine ? Color.FromArgb("#BFDBFE") : Color.FromArgb("#94A3B8")
         };
 
+        if (payload.Kind == SecureChat.Core.Contracts.MessageKinds.Poll)
+        {
+            var data = payload.Poll ?? TryParsePoll(payload.Text);
+            if (data is not null && data.Options.Count > 0)
+            {
+                var vmForVote = vm;
+                vm.Poll = new PollVm(data.Id, data.Question, data.Options,
+                    index => vm.PollVoteRequested?.Invoke(vmForVote, index));
+            }
+        }
+
         vm.SenderNameColor = ResolveSenderNameColor(mine);
         vm._text = payload.Text;
         vm._isEdited = source.EditedAtUnixMs > 0;
@@ -766,5 +784,11 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         field = value;
         OnPropertyChanged(propertyName);
         return true;
+    }
+
+    private static PollData? TryParsePoll(string text)
+    {
+        try { return JsonSerializer.Deserialize<PollData>(text); }
+        catch (JsonException) { return null; }
     }
 }

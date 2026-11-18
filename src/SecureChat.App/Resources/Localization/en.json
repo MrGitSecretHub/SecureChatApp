@@ -902,5 +902,7 @@
   "browser_external": "Open in system browser",
   "login_insecure_check": "Allow HTTP (insecure)",
   "login_insecure_warn": "HTTP sends your password and token in clear text. Use HTTPS, or tick \"Allow HTTP\" to continue anyway.",
-  "bug_key_failed": "Could not verify the key: {0}"
+  "bug_key_failed": "Could not verify the key: {0}",
+  "poll_preview": "\ud83d\udcca Poll",
+  "poll_vote_preview": "\ud83d\uddf3 Poll vote"
 }

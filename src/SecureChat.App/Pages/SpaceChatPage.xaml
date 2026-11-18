@@ -534,6 +534,9 @@
                                 </Grid>
 
                                 <!-- Текст или подпись (упоминания @ подсвечиваются) -->
+                                <views:PollView Poll="{Binding Poll}"
+                                                    IsVisible="{Binding HasPoll}" />
+
                                 <Label FormattedText="{Binding TextFormatted}"
                                        Style="{Binding TextStyle}"
                                        LineBreakMode="WordWrap"
@@ -908,6 +911,13 @@
                                 VerticalOptions="End"
                                 Clicked="OnAttachClicked"
                                 ToolTipProperties.Text="{DynamicResource s_ui_133}" />
+
+                        <Button x:Name="PollButton"
+                                Text="📊"
+                                Style="{DynamicResource IconButton}"
+                                VerticalOptions="End"
+                                Clicked="OnCreatePollClicked"
+                                ToolTipProperties.Text="Опрос" />
                         <Button x:Name="EmojiButton"
                                 Text="😊"
                                 Style="{DynamicResource IconButton}"

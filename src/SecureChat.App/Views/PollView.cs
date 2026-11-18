@@ -89,7 +89,7 @@ public sealed class PollView : ContentView
         var poll = Poll;
         if (poll is null) return;
 
-        var root = new VerticalStackLayout { Spacing = 6 };
+        var root = new VerticalStackLayout { Spacing = 6, HorizontalOptions = LayoutOptions.Fill, MinimumWidthRequest = 240 };
         root.Add(new Label
         {
             Text = poll.Question,
@@ -104,11 +104,12 @@ public sealed class PollView : ContentView
             {
                 ProgressColor = (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue,
                 BackgroundColor = (Color?)Application.Current?.Resources["SurfaceAlt"] ?? Colors.Gray,
+                HorizontalOptions = LayoutOptions.Fill,
                 Progress = 0
             };
             bar.SetBinding(ProgressBar.ProgressProperty, new Binding(nameof(PollOptionVm.Percent), converter: new PercentToDoubleConverter()));
 
-            var row = new Grid { RowDefinitions = new RowDefinitionCollection { new(), new() }, Padding = 8, RowSpacing = 2 };
+            var row = new Grid { RowDefinitions = new RowDefinitionCollection { new(), new() }, Padding = 8, RowSpacing = 2, HorizontalOptions = LayoutOptions.Fill };
             row.Add(new Label
             {
                 Text = option.Text,
@@ -134,6 +135,8 @@ public sealed class PollView : ContentView
                 StrokeThickness = 1,
                 BackgroundColor = Colors.Transparent,
                 Padding = 0,
+                HorizontalOptions = LayoutOptions.Fill,
+                MinimumWidthRequest = 220,
                 Content = row,
                 GestureRecognizers = { new TapGestureRecognizer { Command = option.VoteCommand } }
             };
