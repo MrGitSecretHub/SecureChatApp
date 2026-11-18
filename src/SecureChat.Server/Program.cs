@@ -13,7 +13,11 @@ using SecureChat.Server.Data;
 using SecureChat.Server.Hubs;
 using SecureChat.Server.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    WebRootPath = ResolveProjectWebRoot()
+});
 
 // Cлушаем на всех сетевых интерфейсах, чтобы клиенты из LAN (Android/LDPlayer) могли подключиться.
 builder.WebHost.UseUrls("http://0.0.0.0:5080", "https://0.0.0.0:5443");
@@ -109,17 +113,20 @@ builder.WebHost.ConfigureKestrel(options =>
     }
 });
 
-// Статические файлы искать в wwwRoot каталога проекта — при запуске exe из
-// bin\Release рабочий каталог другой, и редактор БД не находился бы.
-var projectRoot = Directory.GetCurrentDirectory();
-while (!string.IsNullOrEmpty(projectRoot) &&
-       !File.Exists(Path.Combine(projectRoot, "SecureChat.Server.csproj")))
+// Статические файлы (редактор БД) ищем в wwwroot каталога проекта — при запуске
+// exe из bin\Release рабочий каталог другой, и файл не находился бы.
+static string ResolveProjectWebRoot()
 {
-    projectRoot = Directory.GetParent(projectRoot)?.FullName ?? string.Empty;
-}
-if (!string.IsNullOrEmpty(projectRoot))
-{
-    builder.WebHost.UseWebRoot(Path.Combine(projectRoot, "wwwroot"));
+    var current = Directory.GetCurrentDirectory();
+    while (!string.IsNullOrEmpty(current) &&
+           !File.Exists(Path.Combine(current, "SecureChat.Server.csproj")))
+    {
+        current = Directory.GetParent(current)?.FullName ?? string.Empty;
+    }
+
+    return string.IsNullOrEmpty(current)
+        ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+        : Path.Combine(current, "wwwroot");
 }
 
 var app = builder.Build();
