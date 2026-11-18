@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -633,6 +634,7 @@ public partial class ChatView : ContentView
             _messages.Add(CreateMessageVm(stored, _username));
         }
 
+        ApplyPollVotes();
         RefreshDerived();
         _ = LoadImagesAsync(_messages.ToList(), _username);
         if (_session.LinkPreviewEnabled)
@@ -647,6 +649,7 @@ public partial class ChatView : ContentView
         vm.MentionTapped += OnMessageMentionTapped;
         vm.HashtagTapped += OnMessageHashtagTapped;
         vm.LinkTapped += OnMessageLinkTapped;
+        vm.PollVoteRequested += OnPollVoteRequested;
         return vm;
     }
 
@@ -1324,6 +1327,10 @@ public partial class ChatView : ContentView
         var action = (sender as Element)?.StyleId;
         switch (action)
         {
+            case "poll":
+                OnCreatePollClicked();
+                break;
+
             case "photo":
                 // Вид сообщения определяется по расширению в ResolveContentType:
                 // картинки сжимаются и уходят как фото, всё остальное — как файл.
@@ -3916,6 +3923,55 @@ public partial class ChatView : ContentView
         if (!string.IsNullOrWhiteSpace(tag))
         {
             _ = Navigation.PushAsync(new GlobalSearchPage("#" + tag));
+        }
+    }
+
+    private async void OnCreatePollClicked()
+    {
+        var user = _username;
+        var page = HostPage;
+        if (user is null || page is null) return;
+
+        var createPage = new PollCreatePage();
+        createPage.PollCreated += async (_, poll) =>
+        {
+            var json = JsonSerializer.Serialize(poll);
+            await _chatManager.SendMessageAsync(user, json, kind: MessageKinds.Poll);
+        };
+        await page.Navigation.PushAsync(createPage);
+    }
+
+    private void ApplyPollVotes()
+    {
+        var polls = _messages.Where(m => m.Poll is not null)
+            .ToDictionary(m => m.Poll!.Id, m => m.Poll!);
+        foreach (var vote in _messages.Where(m => m.Kind == MessageKinds.PollVote))
+        {
+            try
+            {
+                var data = JsonSerializer.Deserialize<PollVoteData>(vote.Text);
+                if (data is null || !polls.TryGetValue(data.PollId, out var poll)) continue;
+                poll.ApplyVote(data.OptionIndex, vote.IsMine);
+            }
+            catch (JsonException) { }
+        }
+    }
+
+    private async void OnPollVoteRequested(MessageVm message, int optionIndex)
+    {
+        var user = _username;
+        var poll = message.Poll;
+        if (user is null || poll is null) return;
+
+        var data = new PollVoteData { PollId = poll.Id, OptionIndex = optionIndex };
+        poll.ApplyVote(optionIndex, mine: true);
+        try
+        {
+            await _chatManager.SendMessageAsync(user, JsonSerializer.Serialize(data), kind: MessageKinds.PollVote);
+        }
+        catch (Exception ex)
+        {
+            ShowHint(ex.Message, isError: true);
         }
     }
 }

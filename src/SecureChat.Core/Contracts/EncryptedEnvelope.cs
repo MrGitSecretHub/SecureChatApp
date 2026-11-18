@@ -84,6 +84,12 @@ public static class MessageKinds
     /// <summary>Стикер: текст сообщения — эмодзи, отображается крупно без пузыря.</summary>
     public const string Sticker = "sticker";
 
+    /// <summary>Опрос: текст сообщения — JSON с PollData.</summary>
+    public const string Poll = "poll";
+
+    /// <summary>Голос в опросе: текст сообщения — JSON с PollVoteData.</summary>
+    public const string PollVote = "pollvote";
+
 }
 
 /// <summary>

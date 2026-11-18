@@ -396,6 +396,9 @@
                                                TextColor="{DynamicResource Warning}" />
 
                                         <!-- Текст сообщения (или с подсветкой @упоминаний) -->
+                                        <views:PollView Poll="{Binding Poll}"
+                                                        IsVisible="{Binding HasPoll}" />
+
                                         <Label Text="{Binding DisplayText}"
                                                Style="{Binding TextStyle}"
                                                LineBreakMode="WordWrap"
@@ -1076,6 +1079,20 @@
                 </Border.StrokeShape>
                 <VerticalStackLayout>
                     <!-- Фото или видео -->
+                    <Border StyleId="poll"
+                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                            Padding="16,10">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnAttachMenuItemTapped" />
+                        </Border.GestureRecognizers>
+                        <HorizontalStackLayout Spacing="12">
+                            <Label Text="📊" FontSize="15" VerticalOptions="Center" />
+                            <Label Text="Опрос"
+                                   FontSize="14"
+                                   TextColor="{DynamicResource TextPrimary}"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </Border>
                     <Border StyleId="photo"
                             BackgroundColor="{DynamicResource SurfaceAlt}"
                             Padding="16,10">

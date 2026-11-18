@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -55,6 +56,22 @@ public sealed class MessageVm : INotifyPropertyChanged
         IsMine = message.IsMine;
         SentAtUnixMs = message.SentAtUnixMs;
         IsOnce = message.IsOnce;
+        if (Kind == MessageKinds.Poll)
+        {
+            try
+            {
+                var poll = JsonSerializer.Deserialize<PollData>(message.Text);
+                if (poll is not null && poll.Options.Count > 0)
+                {
+                    Poll = new PollVm(poll.Id, poll.Question, poll.Options,
+                        index => PollVoteRequested?.Invoke(this, index));
+                }
+            }
+            catch (JsonException)
+            {
+                // некорректный опрос — показываем как обычное сообщение
+            }
+        }
         Update(message, ownName, peerName);
     }
 
@@ -68,6 +85,12 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     /// <summary>Нажали на ссылку в тексте: второй аргумент — адрес для открытия.</summary>
     public event Action<MessageVm, string>? LinkTapped;
+    /// <summary>Голос за вариант опроса: второй аргумент — индекс варианта.</summary>
+    public event Action<MessageVm, int>? PollVoteRequested;
+
+    /// <summary>Опрос в этом сообщении (Kind=Poll).</summary>
+    public PollVm? Poll { get; private set; }
+    public bool HasPoll => Poll is not null;
 
     public string Id { get; }
     public string Kind { get; }
