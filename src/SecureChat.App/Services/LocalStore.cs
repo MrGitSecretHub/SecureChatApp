@@ -1308,6 +1308,28 @@ public sealed class LocalStore
         }
     }
 
+    /// <summary>Отметить смену ключей, НЕ принимая новые ключи до подтверждения.</summary>
+    public async Task MarkKeysChangedAsync(string username)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var conversation = Find(username);
+            if (conversation is null || conversation.KeysChanged)
+            {
+                return;
+            }
+
+            conversation.KeysChanged = true;
+            await SaveAsync();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     public async Task ClearKeysChangedAsync(string username)
     {
         await _lock.WaitAsync();

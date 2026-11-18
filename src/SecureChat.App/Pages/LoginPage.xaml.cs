@@ -76,6 +76,14 @@ public partial class LoginPage : ContentPage
 
         try
         {
+        if (!InsecureHttpCheck.IsChecked &&
+            server.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowStatus(Loc.T("login_insecure_warn",
+                "HTTP передаёт пароль и токен открытым текстом. Используйте HTTPS или поставьте галочку «Разрешить HTTP»."));
+            return;
+        }
+
             AccountService.Validate(server, username, password);
         }
         catch (ArgumentException ex)
@@ -111,6 +119,14 @@ public partial class LoginPage : ContentPage
 
         try
         {
+        if (!InsecureHttpCheck.IsChecked &&
+            server.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowStatus(Loc.T("login_insecure_warn",
+                "HTTP передаёт пароль и токен открытым текстом. Используйте HTTPS или поставьте галочку «Разрешить HTTP»."));
+            return;
+        }
+
             AccountService.Validate(server, username, password);
             if (!string.Equals(password, confirm, StringComparison.Ordinal))
             {

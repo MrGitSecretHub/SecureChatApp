@@ -107,6 +107,17 @@ public sealed class ChatManager
 
     /// <summary>Приложение работает без сервера: показана локальная история.</summary>
     public bool IsOffline { get; private set; }
+    /// <summary>Пользователь сверил отпечаток: принимаем новые ключи и снимаем флаг.</summary>
+    public async Task AcceptNewKeysAsync(string username)
+    {
+        var profile = await _apiClient.GetUserAsync(
+            _session.ServerUrl,
+            _session.Token!,
+            username);
+        await _localStore.AddOrUpdateContactAsync(profile);
+        await _localStore.ClearKeysChangedAsync(username);
+    }
+
 
     public async Task StartAsync()
     {
@@ -1784,43 +1795,69 @@ public sealed class ChatManager
 
             fetchedProfile = profile;
 
-            var signingKey = fetchedProfile?.SigningPublicKey ?? conversation!.SigningPublicKey;
+            // TOFU: подпись проверяется ЗАКРЕПЛЁННЫМ локально ключом.
+            // Ключ из свежего профиля сервера не имеет права заменять его молча.
+            var pinnedKey = conversation?.SigningPublicKey ?? string.Empty;
             MessagePayload payload;
             try
             {
                 payload = MessageCrypto.DecryptPayload(
                     envelope,
                     identity.EncryptionPrivateKey,
-                    signingKey);
+                    pinnedKey);
             }
             catch (CryptographicException)
             {
-                // fetchedProfile уже загружен выше — ключ отправителя мог измениться.
-                if (fetchedProfile is null)
+                var newKey = fetchedProfile.SigningPublicKey;
+
+                // Первый контакт: закреплённого ключа ещё нет — принимаем ключ сервера.
+                if (string.IsNullOrEmpty(pinnedKey))
                 {
+                    try
+                    {
+                        payload = MessageCrypto.DecryptPayload(
+                            envelope,
+                            identity.EncryptionPrivateKey,
+                            newKey);
+                    }
+                    catch (CryptographicException)
+                    {
+                        Error?.Invoke(
+                            "Не удалось проверить подпись входящего сообщения. Сообщение отклонено.");
+                        return;
+                    }
+                }
+                else
+                {
+                    // Сообщение должно быть подписано НОВЫМ ключом, иначе это подмена.
+                    var signedByNewKey = true;
+                    try
+                    {
+                        MessageCrypto.DecryptPayload(
+                            envelope,
+                            identity.EncryptionPrivateKey,
+                            newKey);
+                    }
+                    catch (CryptographicException)
+                    {
+                        signedByNewKey = false;
+                    }
+
+                    if (!signedByNewKey)
+                    {
+                        Error?.Invoke(
+                            "Не удалось проверить подпись входящего сообщения. Сообщение отклонено.");
+                        return;
+                    }
+
+                    // Ключ действительно сменился. Помечаем и НЕ сохраняем сообщение,
+                    // НЕ шлём ACK — конверт останется на сервере до подтверждения.
+                    await _localStore.MarkKeysChangedAsync(envelope.SenderUsername);
                     Error?.Invoke(
-                        "Не удалось проверить подпись входящего сообщения. " +
-                        "Сообщение отклонено.");
+                        "Ключ контакта изменился. Сверьте отпечаток с собеседником, " +
+                        "затем подтвердите его в чате. Сообщение пока не показывается.");
                     return;
                 }
-
-                if (string.Equals(
-                        fetchedProfile.SigningPublicKey,
-                        signingKey,
-                        StringComparison.Ordinal))
-                {
-                    Error?.Invoke(
-                        "Не удалось проверить подпись входящего сообщения. " +
-                        "Сообщение отклонено.");
-                    return;
-                }
-
-                signingKey = fetchedProfile.SigningPublicKey;
-
-                payload = MessageCrypto.DecryptPayload(
-                    envelope,
-                    identity.EncryptionPrivateKey,
-                    signingKey);
             }
 
             var kind = payload.Kind switch

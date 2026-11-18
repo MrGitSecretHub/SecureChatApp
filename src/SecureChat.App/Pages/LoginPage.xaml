@@ -38,6 +38,12 @@
                                 <TapGestureRecognizer Tapped="OnServerHintTapped" />
                             </Label.GestureRecognizers>
                         </Label>
+                        <HorizontalStackLayout Spacing="8">
+                            <CheckBox x:Name="InsecureHttpCheck" VerticalOptions="Center" />
+                            <Label Text="{DynamicResource s_login_insecure_check}"
+                                   Style="{DynamicResource Caption}"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
 
                         <Label Text="{DynamicResource s_login_username}" Style="{DynamicResource FieldLabel}" />
                         <Entry x:Name="UsernameEntry"

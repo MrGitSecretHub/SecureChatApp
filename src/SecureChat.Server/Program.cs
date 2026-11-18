@@ -65,21 +65,6 @@ builder.Services
             NameClaimType = ClaimTypes.Name
         };
 
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                // Токен для SignalR можно передать в query string.
-                var accessToken = context.Request.Query["access_token"];
-                if (!string.IsNullOrEmpty(accessToken) &&
-                    context.HttpContext.Request.Path.StartsWithSegments("/hubs/chat"))
-                {
-                    context.Token = accessToken;
-                }
-
-                return Task.CompletedTask;
-            }
-        };
     });
 
 builder.Services.AddAuthorization();
@@ -87,6 +72,18 @@ builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Общий лимит на все эндпоинты: 600 запросов в минуту с одного IP.
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 600,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
     options.AddPolicy("auth", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",

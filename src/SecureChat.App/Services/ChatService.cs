@@ -93,19 +93,14 @@ public sealed class ChatService : IDisposable
             }
 
             var mode = _session.TransportMode;
+
+            // TCP не шифрует трафик и передаёт JWT открытым текстом.
+            // Автоматический откат на него недопустим — только явный выбор пользователя.
             if (!string.Equals(mode, "TCP", StringComparison.OrdinalIgnoreCase))
             {
-                try
-                {
-                    await ConnectSignalRAsync(cancellationToken);
-                    _usingTcp = false;
-                    return;
-                }
-                catch (Exception ex) when (
-                    !string.Equals(mode, "SignalR", StringComparison.OrdinalIgnoreCase))
-                {
-                    ConnectionError?.Invoke($"WebSocket недоступен, переключаюсь на TCP: {ex.Message}");
-                }
+                await ConnectSignalRAsync(cancellationToken);
+                _usingTcp = false;
+                return;
             }
 
             await ConnectTcpAsync(cancellationToken);

@@ -3896,7 +3896,7 @@ public partial class ChatView : ContentView
             return;
         }
 
-        await AppServices.Get<LocalStore>().ClearKeysChangedAsync(_conversation.Username);
+        await _chatManager.AcceptNewKeysAsync(_conversation.Username);
         KeyWarningLabel.IsVisible = false;
     }
 

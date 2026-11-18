@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
@@ -38,7 +40,14 @@ public sealed class AdminDbController : ControllerBase
         }
 
         var provided = Request.Headers["X-Admin-Password"].ToString();
-        return string.Equals(provided, expected, StringComparison.Ordinal);
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+        var providedBytes = Encoding.UTF8.GetBytes(provided);
+        // Выравниваем длины, чтобы не утекать информацию через время сравнения.
+        if (providedBytes.Length != expectedBytes.Length)
+        {
+            return false;
+        }
+        return CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
     }
 
     private string DatabasePath =>
@@ -135,9 +144,10 @@ public sealed class AdminDbController : ControllerBase
         }
 
         var firstWord = sql.Split(' ', 2)[0].ToUpperInvariant();
-        if (firstWord != "SELECT" && firstWord != "PRAGMA" && firstWord != "WITH")
+        // WITH в SQLite может начинать INSERT/UPDATE/DELETE — разрешаем только SELECT и PRAGMA.
+        if (firstWord != "SELECT" && firstWord != "PRAGMA")
         {
-            return BadRequest("Разрешены только запросы на чтение (SELECT, PRAGMA, WITH).");
+            return BadRequest("Разрешены только запросы на чтение (SELECT, PRAGMA).");
         }
 
         try

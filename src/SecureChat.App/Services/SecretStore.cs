@@ -100,10 +100,18 @@ public sealed partial class SecretStore
 
             foreach (var pair in protectedValues)
             {
-                var protectedBytes = Convert.FromBase64String(pair.Value);
-                var plainBytes = Unprotect(protectedBytes);
-                values[pair.Key] = Encoding.UTF8.GetString(plainBytes);
-                CryptographicOperations.ZeroMemory(plainBytes);
+                try
+                {
+                    var protectedBytes = Convert.FromBase64String(pair.Value);
+                    var plainBytes = Unprotect(protectedBytes);
+                    values[pair.Key] = Encoding.UTF8.GetString(plainBytes);
+                    CryptographicOperations.ZeroMemory(plainBytes);
+                }
+                catch
+                {
+                    // Одна повреждённая запись не должна делать всё хранилище
+                    // нечитаемым — пропускаем её, остальные ключи остаются доступны.
+                }
             }
         }
 

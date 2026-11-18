@@ -404,6 +404,14 @@ public sealed class ChatHub : Hub
             return false;
         }
 
+        // Ключ можно выдать участнику только один раз. Перезапись уже выданного
+        // ключа позволила бы подменить групповой ключ — это могут только админы.
+        var existingKey = await _spaces.GetSpaceKeyAsync(spaceId, targetUserId);
+        if (!string.IsNullOrWhiteSpace(existingKey) && !IsAdmin(space.MyRole))
+        {
+            return false;
+        }
+
         try
         {
             ChatJson.Deserialize<SpaceKeyEnvelope>(envelopeJson);
@@ -448,7 +456,13 @@ public sealed class ChatHub : Hub
 
     public async Task<List<SpaceMemberDto>> GetSpaceMembers(string spaceId)
     {
-        if (string.IsNullOrWhiteSpace(spaceId))
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId))
+        {
+            return new List<SpaceMemberDto>();
+        }
+
+        if (await _spaces.GetAsync(spaceId, userId) is null)
         {
             return new List<SpaceMemberDto>();
         }
@@ -529,6 +543,18 @@ public sealed class ChatHub : Hub
     {
         var userId = Context.UserIdentifier;
         if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(requestId))
+        {
+            return false;
+        }
+
+        // Одобрять заявку может только владелец или администратор пространства.
+        var pending = await _spaces.GetJoinRequestAsync(requestId);
+        if (pending is null)
+        {
+            return false;
+        }
+        var ownSpace = await _spaces.GetAsync(pending.SpaceId, userId);
+        if (ownSpace is null || !IsAdmin(ownSpace.MyRole))
         {
             return false;
         }
@@ -952,7 +978,13 @@ public sealed class ChatHub : Hub
 
     public async Task<List<TopicDto>> GetTopics(string spaceId)
     {
-        if (string.IsNullOrWhiteSpace(spaceId))
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId))
+        {
+            return new List<TopicDto>();
+        }
+
+        if (await _spaces.GetAsync(spaceId, userId) is null)
         {
             return new List<TopicDto>();
         }

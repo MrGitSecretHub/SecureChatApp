@@ -899,5 +899,7 @@
   "browser_copy_link": "Copy link",
   "browser_copied": "Link copied",
   "browser_home": "Home",
-  "browser_external": "Open in system browser"
+  "browser_external": "Open in system browser",
+  "login_insecure_check": "Allow HTTP (insecure)",
+  "login_insecure_warn": "HTTP sends your password and token in clear text. Use HTTPS, or tick \"Allow HTTP\" to continue anyway."
 }

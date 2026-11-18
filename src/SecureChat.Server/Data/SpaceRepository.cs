@@ -726,6 +726,16 @@ public sealed class SpaceRepository
         }
     }
 
+    /// <summary>Возвращает заявку по идентификатору (для проверки прав в ChatHub).</summary>
+    public async Task<SpaceJoinRequestDto?> GetJoinRequestAsync(
+        string requestId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        return await ReadJoinRequestAsync(connection, requestId, cancellationToken);
+    }
+
     private static async Task<SpaceJoinRequestDto?> ReadJoinRequestAsync(
         SqliteConnection connection,
         string requestId,

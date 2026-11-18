@@ -181,13 +181,29 @@ public partial class GifWebView : ContentView
             HeightRequest = VideoMaxHeight;
         }
 
-        var contentType = string.IsNullOrWhiteSpace(MediaContentType)
-            ? "video/mp4"
-            : MediaContentType.Trim();
+        var contentType = SafeVideoContentType(MediaContentType);
 
         GifView.Source = new HtmlWebViewSource
         {
             Html = BuildVideoHtml(_bytes, contentType, _surfaceHex)
+        };
+    }
+
+    /// <summary>Только известные видео-MIME: иначе из сообщения можно вставить
+    /// произвольные атрибуты в data: URL пузыря.</summary>
+    private static string SafeVideoContentType(string? contentType)
+    {
+        if (string.IsNullOrWhiteSpace(contentType))
+        {
+            return "video/mp4";
+        }
+
+        var value = contentType.Trim();
+        return value.ToLowerInvariant() switch
+        {
+            "video/mp4" or "video/webm" or "video/quicktime" or
+            "video/x-m4v" or "video/3gpp" or "video/ogg" => value,
+            _ => "video/mp4"
         };
     }
 
@@ -196,6 +212,8 @@ public partial class GifWebView : ContentView
         var builder = new StringBuilder(video.Length * 4 / 3 + 512);
         builder.Append(
             "<!doctype html><html><head><meta charset='utf-8'>" +
+            "<meta http-equiv='Content-Security-Policy' " +
+            "content=\"default-src 'none'; media-src data:; style-src 'unsafe-inline'\">" +
             "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
             "<style>html,body{margin:0;padding:0;width:100%;height:100%;" +
             "background:#000;overflow:hidden}" +
