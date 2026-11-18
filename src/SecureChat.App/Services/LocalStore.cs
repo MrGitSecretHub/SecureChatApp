@@ -1159,7 +1159,8 @@ public sealed class LocalStore
             // реакции, признак пересылки и черновик.
             conversation.Messages.Add(CloneMessage(message));
 
-            if (message.SentAtUnixMs >= conversation.LastMessageAtUnixMs)
+            if (message.SentAtUnixMs >= conversation.LastMessageAtUnixMs &&
+                message.Kind != SecureChat.Core.Contracts.MessageKinds.PollVote)
             {
                 conversation.LastMessage = PreviewFor(message);
                 conversation.LastMessageAtUnixMs = message.SentAtUnixMs;

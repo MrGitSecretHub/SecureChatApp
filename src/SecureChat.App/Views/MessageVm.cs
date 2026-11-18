@@ -832,7 +832,8 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     public bool MatchesSearch
     {
-        get => _matchesSearch;
+        // Голоса — внутренние данные опроса, в ленте не показываются.
+        get => _matchesSearch && Kind != SecureChat.Core.Contracts.MessageKinds.PollVote;
         set => Set(ref _matchesSearch, value);
     }
 

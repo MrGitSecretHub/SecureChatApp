@@ -288,7 +288,7 @@
                         BackgroundColor="Transparent">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="views:SpaceMessageVm">
-                    <VerticalStackLayout Spacing="0">
+                    <VerticalStackLayout Spacing="0" IsVisible="{Binding VisibleInFeed}">
 
                         <!-- Разделитель дат, как в личных чатах -->
                         <Border IsVisible="{Binding HasDateLabel}"

@@ -497,6 +497,8 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     /// <summary>Опрос в сообщении пространства.</summary>
     public PollVm? Poll { get; private set; }
     public bool HasPoll => Poll is not null;
+    /// <summary>Голоса в опросе не показываются отдельными сообщениями.</summary>
+    public bool VisibleInFeed => Kind != SecureChat.Core.Contracts.MessageKinds.PollVote;
 
     /// <summary>Нажали на ссылку в тексте: (сообщение, адрес для открытия).</summary>
     public event Action<SpaceMessageVm, string>? LinkTapped;
