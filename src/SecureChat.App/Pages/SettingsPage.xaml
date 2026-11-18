@@ -104,9 +104,9 @@
                         </Border>
 
                         <VerticalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
-                            <Label Text="Аватар" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_007}" Style="{DynamicResource SectionTitle}" Margin="0" />
                             <Button x:Name="AvatarButton"
-                                    Text="Выбрать изображение"
+                                    Text="{DynamicResource s_set_031}"
                                     Style="{DynamicResource SecondaryButton}"
                                     HorizontalOptions="Start"
                                     Clicked="OnAvatarClicked" />
@@ -115,17 +115,17 @@
 
                     <!-- Никнейм -->
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Отображаемое имя" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_103}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Entry x:Name="NicknameEntry"
-                               Placeholder="Как вас показывать собеседникам"
+                               Placeholder="{DynamicResource s_set_058}"
                                TextChanged="OnNicknameChanged" />
                     </VerticalStackLayout>
 
                     <!-- Био -->
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="О себе" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_094}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Editor x:Name="BioEditor"
-                                Placeholder="Коротко о себе"
+                                Placeholder="{DynamicResource s_set_068}"
                                 PlaceholderColor="{DynamicResource TextMuted}"
                                 HeightRequest="90"
                                 AutoSize="TextChanges"
@@ -134,7 +134,7 @@
 
                     <!-- Статус -->
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Статус" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_161}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Picker x:Name="StatusPicker"
                                 SelectedIndexChanged="OnStatusChanged"
                                 TextColor="{DynamicResource TextPrimary}" />
@@ -143,7 +143,7 @@
                     <!-- Аккаунт -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="3">
-                            <Label Text="Имя пользователя" Style="{DynamicResource Caption}" />
+                            <Label Text="{DynamicResource s_set_052}" Style="{DynamicResource Caption}" />
                             <Label x:Name="UsernameLabel" FontSize="15" FontAttributes="Bold" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
@@ -172,16 +172,16 @@
                     <!-- TCP-туннель (например, Playit): отдельный адрес и порт -->
                     <VerticalStackLayout Spacing="6" Margin="0,8,0,0">
                         <Label Text="{DynamicResource s_settings_tcp_tunnel}" Style="{DynamicResource SectionTitle}" Margin="0" />
-                        <Label Text="Для доступа из интернета через Playit и подобные сервисы. Хост и порт берутся из туннеля, а не из адреса сервера."
+                        <Label Text="{DynamicResource s_set_038}"
                                Style="{DynamicResource Caption}" />
                         <Grid ColumnDefinitions="*,100" ColumnSpacing="8">
                             <Entry x:Name="TcpHostEntry"
-                                   Placeholder="домен туннеля, например tun.ply.gg"
+                                   Placeholder="{DynamicResource s_set_179}"
                                    TextColor="{DynamicResource TextPrimary}"
                                    Keyboard="Url"
                                    TextChanged="OnTcpTunnelChanged" />
                             <Entry x:Name="TcpPortEntry"
-                                   Placeholder="порт"
+                                   Placeholder="{DynamicResource s_set_181}"
                                    TextColor="{DynamicResource TextPrimary}"
                                    Keyboard="Numeric"
                                    MaxLength="5"
@@ -205,12 +205,12 @@
                     <!-- Отпечаток ключа -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,8,0,0">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Отпечаток ключа" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Проверьте у собеседника перед первым сообщением"
+                            <Label Text="{DynamicResource s_set_104}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_126}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Button x:Name="ShowFingerprintButton"
-                                Text="Показать отпечаток"
+                                Text="{DynamicResource s_set_118}"
                                 Style="{DynamicResource SecondaryButton}"
                                 Clicked="OnShowFingerprintClicked" />
                     </Grid>
@@ -218,8 +218,8 @@
                     <!-- Приватность: скрыть онлайн -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Скрыть статус онлайн" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Собеседники не будут видеть, когда вы в сети"
+                            <Label Text="{DynamicResource s_set_151}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_155}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="HideOnlineSwitch"
@@ -231,8 +231,8 @@
                     <!-- Приватность: скрыть прочтения -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Скрыть прочтение сообщений" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Собеседники не будут видеть, когда вы прочитали их сообщение"
+                            <Label Text="{DynamicResource s_set_150}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_156}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="HideReadSwitch"
@@ -244,8 +244,8 @@
                     <!-- Приватность: индикатор набора текста -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Показывать, что вы печатаете" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Собеседник увидит индикатор «печатает…»"
+                            <Label Text="{DynamicResource s_set_121}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_154}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="TypingSwitch"
@@ -257,8 +257,8 @@
                     <!-- Приватность: текст в уведомлениях -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Текст в уведомлениях" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Выключено — показывается только «Новое сообщение»"
+                            <Label Text="{DynamicResource s_set_163}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_033}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="PreviewSwitch"
@@ -270,8 +270,8 @@
                     <!-- Приватность: звук уведомлений -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Звук уведомлений" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Короткий звук при новом сообщении"
+                            <Label Text="{DynamicResource s_set_046}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_067}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="SoundsSwitch"
@@ -283,12 +283,12 @@
                     <!-- Приватность: рингтон уведомлений -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Рингтон уведомлений" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Системный или один из встроенных тонов"
+                            <Label Text="{DynamicResource s_set_132}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_146}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Button x:Name="RingtoneButton"
-                                Text="Системный"
+                                Text="{DynamicResource s_set_145}"
                                 Style="{DynamicResource SecondaryButton}"
                                 MinimumWidthRequest="150"
                                 VerticalOptions="Center"
@@ -298,8 +298,8 @@
                     <!-- Приватность: только контакты -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Сообщения только от контактов" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Сообщения от незнакомых пользователей не будут приниматься"
+                            <Label Text="{DynamicResource s_set_159}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_158}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="ContactsOnlySwitch"
@@ -311,7 +311,7 @@
                     <!-- Приватность: превью ссылок -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Превью ссылок" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_123}" Style="{DynamicResource SectionTitle}" Margin="0" />
                             <Label x:Name="LinkPreviewHintLabel"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
@@ -324,36 +324,36 @@
                     <!-- Код-пароль приложения -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Код-пароль приложения" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Запрашивать код при запуске приложения"
+                            <Label Text="{DynamicResource s_set_062}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_044}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Button x:Name="ChangePasswordButton"
-                                Text="Код-пароль"
+                                Text="{DynamicResource s_set_060}"
                                 Style="{DynamicResource SecondaryButton}"
                                 Clicked="OnChangePasswordClicked" />
                     </Grid>
 
                     <!-- Заблокированные пользователи -->
                     <VerticalStackLayout Spacing="8">
-                        <Label Text="Заблокированные пользователи" Style="{DynamicResource SectionTitle}" Margin="0" />
-                        <Label Text="Сообщения от заблокированных пользователей не будут приниматься"
+                        <Label Text="{DynamicResource s_set_039}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_157}"
                                Style="{DynamicResource Caption}" />
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                             <Entry x:Name="BlockEntry"
-                                   Placeholder="Имя пользователя" />
+                                   Placeholder="{DynamicResource s_set_052}" />
                             <Button x:Name="BlockButton"
                                     Grid.Column="1"
-                                    Text="Заблокировать"
+                                    Text="{DynamicResource s_set_040}"
                                     Style="{DynamicResource SecondaryButton}"
                                     Clicked="OnBlockClicked" />
                         </Grid>
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                             <Picker x:Name="BlockedPicker"
-                                    Title="Список пуст" />
+                                    Title="{DynamicResource s_set_160}" />
                             <Button x:Name="UnblockButton"
                                     Grid.Column="1"
-                                    Text="Разблокировать"
+                                    Text="{DynamicResource s_set_130}"
                                     Style="{DynamicResource SecondaryButton}"
                                     Clicked="OnUnblockClicked" />
                         </Grid>
@@ -361,16 +361,16 @@
 
                     <!-- Экспорт / импорт истории -->
                     <VerticalStackLayout Spacing="6">
-                        <Label Text="Локальная история" Style="{DynamicResource SectionTitle}" Margin="0" />
-                        <Label Text="Экспорт / импорт зашифрованной переписки"
+                        <Label Text="{DynamicResource s_set_071}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_178}"
                                Style="{DynamicResource Caption}" />
                         <HorizontalStackLayout Spacing="8">
                             <Button x:Name="ExportHistoryButton"
-                                    Text="Экспорт"
+                                    Text="{DynamicResource s_set_177}"
                                     Style="{DynamicResource SecondaryButton}"
                                     Clicked="OnExportHistoryClicked" />
                             <Button x:Name="ImportHistoryButton"
-                                    Text="Импорт"
+                                    Text="{DynamicResource s_set_051}"
                                     Style="{DynamicResource SecondaryButton}"
                                     Clicked="OnImportHistoryClicked" />
                         </HorizontalStackLayout>
@@ -384,9 +384,9 @@
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="{DynamicResource s_settings_server}" Style="{DynamicResource H2}" />
-                    <Label Text="Адрес задаётся при входе. Проверьте доступность сервера."
+                    <Label Text="{DynamicResource s_set_012}"
                            Style="{DynamicResource Caption}" />
-                    <Button Text="Проверить сервер"
+                    <Button Text="{DynamicResource s_set_125}"
                             Style="{DynamicResource SecondaryButton}"
                             HorizontalOptions="Start"
                             Clicked="OnCheckServerClicked" />
@@ -398,14 +398,14 @@
                  ============================================================ -->
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Аккаунт" Style="{DynamicResource H2}" />
-                    <Button Text="Сменить пароль аккаунта"
+                    <Label Text="{DynamicResource s_set_013}" Style="{DynamicResource H2}" />
+                    <Button Text="{DynamicResource s_set_153}"
                             Style="{DynamicResource SecondaryButton}"
                             Clicked="OnChangeAccountPasswordClicked" />
-                    <Button Text="Выйти из аккаунта"
+                    <Button Text="{DynamicResource s_set_032}"
                             Style="{DynamicResource SecondaryButton}"
                             Clicked="OnLogoutClicked" />
-                    <Button Text="Удалить аккаунт навсегда"
+                    <Button Text="{DynamicResource s_set_169}"
                             Style="{DynamicResource DangerButton}"
                             Clicked="OnDeleteClicked" />
                 </VerticalStackLayout>
@@ -429,7 +429,7 @@
                                         SelectionChanged="OnThemeSelected"
                                         ItemTemplate="{StaticResource ThemeTileTemplate}" />
                         <Button x:Name="ShowAllThemesButton"
-                                Text="Показать все темы"
+                                Text="{DynamicResource s_set_117}"
                                 Style="{DynamicResource GhostButton}"
                                 HorizontalOptions="Start"
                                 Clicked="OnShowAllThemesClicked" />
@@ -442,12 +442,12 @@
 
                     <!-- Свои цвета и свои темы -->
                     <VerticalStackLayout Spacing="6">
-                        <Label Text="Своя палитра" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_138}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Label x:Name="CustomThemeLabel"
                                Style="{DynamicResource Caption}" />
                         <VerticalStackLayout x:Name="CustomThemesLayout" Spacing="6" />
                         <Button x:Name="ThemeEditorButton"
-                                Text="🎨 Конструктор темы"
+                                Text="{DynamicResource s_set_182}"
                                 Style="{DynamicResource GhostButton}"
                                 HorizontalOptions="Start"
                                 Clicked="OnThemeEditorClicked" />
@@ -466,8 +466,8 @@
 
                     <!-- Цвет вашего имени -->
                     <VerticalStackLayout Spacing="6">
-                        <Label Text="Цвет вашего имени" Style="{DynamicResource SectionTitle}" Margin="0" />
-                        <Label Text="Виден у ваших сообщений в пространствах, как «Your name color» в Telegram"
+                        <Label Text="{DynamicResource s_set_175}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_025}"
                                Style="{DynamicResource Caption}" />
                         <HorizontalStackLayout x:Name="NameColorRow" Spacing="10" />
                     </VerticalStackLayout>
@@ -475,8 +475,8 @@
                     <!-- Авто-ночной режим -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Авто-ночной режим" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Ночью (20:00–07:00) светлая тема сменяется ночной парой"
+                            <Label Text="{DynamicResource s_set_010}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_093}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="AutoNightSwitch"
@@ -487,7 +487,7 @@
 
                     <!-- Шрифт сообщений -->
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Шрифт сообщений" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_176}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Picker x:Name="MessageFontPicker"
                                 SelectedIndexChanged="OnMessageFontChanged"
                                 TextColor="{DynamicResource TextPrimary}" />
@@ -495,12 +495,12 @@
 
                     <!-- Акцентный цвет -->
                     <VerticalStackLayout Spacing="6">
-                        <Label Text="Акцентный цвет" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_014}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Label x:Name="AccentNameLabel"
                                Style="{DynamicResource Caption}" />
                         <HorizontalStackLayout x:Name="AccentRow" Spacing="10" />
                         <Button x:Name="AccentPickerButton"
-                                Text="🎯 Выбрать свой цвет"
+                                Text="{DynamicResource s_set_183}"
                                 Style="{DynamicResource GhostButton}"
                                 HorizontalOptions="Start"
                                 Clicked="OnAccentPickerClicked" />
@@ -508,7 +508,7 @@
 
                     <!-- Форма пузырей -->
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Форма сообщений" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_174}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Picker x:Name="BubbleShapePicker"
                                 SelectedIndexChanged="OnBubbleShapeChanged"
                                 TextColor="{DynamicResource TextPrimary}" />
@@ -517,8 +517,8 @@
                     <!-- Аватары в переписке -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Аватары в переписке" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Показывать аватар отправителя рядом с пузырём"
+                            <Label Text="{DynamicResource s_set_008}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_119}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="AvatarsSwitch"
@@ -530,8 +530,8 @@
                     <!-- Время у сообщений -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Время у сообщений" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Показывать часы отправки в переписке"
+                            <Label Text="{DynamicResource s_set_028}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_120}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="TimestampsSwitch"
@@ -543,8 +543,8 @@
                     <!-- Компактный список чатов -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Компактный список чатов" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Без превью последнего сообщения"
+                            <Label Text="{DynamicResource s_set_066}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_015}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="CompactSidebarSwitch"
@@ -555,8 +555,8 @@
 
                     <!-- Подключение -->
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Подключение" Style="{DynamicResource SectionTitle}" Margin="0" />
-                        <Label Text="Протокол TCP — прямое соединение с сервером"
+                        <Label Text="{DynamicResource s_set_115}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_128}"
                                Style="{DynamicResource Caption}" />
                         <Label x:Name="TransportLabel"
                                Style="{DynamicResource Caption}" />
@@ -564,14 +564,14 @@
 
                     <!-- Размер шрифта -->
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Размер текста" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_131}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Picker x:Name="FontScalePicker"                                SelectedIndexChanged="OnFontScaleChanged"
                                 TextColor="{DynamicResource TextPrimary}" />
                     </VerticalStackLayout>
 
                     <!-- Плотность -->
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Плотность сообщений" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_set_112}" Style="{DynamicResource SectionTitle}" Margin="0" />
                         <Picker x:Name="DensityPicker"                                SelectedIndexChanged="OnDensityChanged"
                                 TextColor="{DynamicResource TextPrimary}" />
                     </VerticalStackLayout>
@@ -585,7 +585,7 @@
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
 
-                    <Label Text="Обои чата" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_set_095}" Style="{DynamicResource H2}" />
 
                     <Border x:Name="WallpaperPreview"
                             HeightRequest="110"
@@ -608,14 +608,14 @@
                     </Border>
 
                     <HorizontalStackLayout Spacing="8">
-                        <Button Text="Из галереи"
+                        <Button Text="{DynamicResource s_set_048}"
                                 Style="{DynamicResource SecondaryButton}"
                                 Clicked="OnWallpaperGalleryClicked" />
-                        <Button Text="Из файла"
+                        <Button Text="{DynamicResource s_set_049}"
                                 Style="{DynamicResource SecondaryButton}"
                                 Clicked="OnWallpaperFileClicked" />
                         <Button x:Name="RemoveWallpaperButton"
-                                Text="Убрать"
+                                Text="{DynamicResource s_set_167}"
                                 Style="{DynamicResource GhostButton}"
                                 IsVisible="False"
                                 Clicked="OnWallpaperRemoveClicked" />
@@ -623,8 +623,8 @@
 
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Затемнять обои" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="Полупрозрачная вуаль поверх картинки для читабельности"
+                            <Label Text="{DynamicResource s_set_045}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_122}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Switch x:Name="WallpaperDimSwitch"
@@ -642,18 +642,18 @@
             <Border Style="{DynamicResource Card}">
                 <VerticalStackLayout Spacing="10">
 
-                    <Label Text="Медиа и память" Style="{DynamicResource H2}" />
+                    <Label Text="{DynamicResource s_set_075}" Style="{DynamicResource H2}" />
 
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Grid.Column="0" Spacing="2">
-                            <Label Text="Занято вложениями" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_043}" Style="{DynamicResource SectionTitle}" Margin="0" />
                             <Label x:Name="MediaCacheLabel"
-                                   Text="Считаем…"
+                                   Text="{DynamicResource s_set_162}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Button Grid.Column="1"
                                 x:Name="ClearMediaCacheButton"
-                                Text="Освободить место"
+                                Text="{DynamicResource s_set_100}"
                                 Style="{DynamicResource SecondaryButton}"
                                 VerticalOptions="Center"
                                 Clicked="OnClearMediaCacheClicked" />
@@ -661,8 +661,8 @@
 
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Grid.Column="0" Spacing="2">
-                            <Label Text="Автозагрузка вложений" Style="{DynamicResource SectionTitle}" Margin="0" />
-                            <Label Text="«По Wi-Fi» не тянет крупные файлы через мобильную сеть"
+                            <Label Text="{DynamicResource s_set_011}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                            <Label Text="{DynamicResource s_set_006}"
                                    Style="{DynamicResource Caption}" />
                         </VerticalStackLayout>
                         <Picker x:Name="AutoDownloadPicker"
@@ -675,7 +675,7 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Label Text="SecureChat 1.1 — учебно-демонстрационное защищённое приложение."
+            <Label Text="{DynamicResource s_set_001}"
                    Style="{DynamicResource Caption}"
                    HorizontalTextAlignment="Center" />
         </VerticalStackLayout>

@@ -28,7 +28,7 @@ public partial class SettingsPage : ContentPage
         base.OnAppearing();
         UsernameLabel.Text = _session.Username;
         ServerLabel.Text = _session.ServerUrl;
-        FingerprintLabel.Text = $"Отпечаток ключа: {_session.Fingerprint}";
+        FingerprintLabel.Text = string.Format(Loc.T("set_fmt_001"), _session.Fingerprint);
         NicknameEntry.Text = _session.Nickname;
         BioEditor.Text = _session.Bio;
 
@@ -83,9 +83,9 @@ public partial class SettingsPage : ContentPage
         _ = RefreshMediaCacheAsync();
 
         FontScalePicker.Items.Clear();
-        FontScalePicker.Items.Add("Маленький");
-        FontScalePicker.Items.Add("Обычный");
-        FontScalePicker.Items.Add("Крупный");
+        FontScalePicker.Items.Add(Loc.T("set_074", "Маленький"));
+        FontScalePicker.Items.Add(Loc.T("set_097", "Обычный"));
+        FontScalePicker.Items.Add(Loc.T("set_070", "Крупный"));
         FontScalePicker.SelectedIndex = _session.FontScale switch
         {
             "Маленький" => 0,
@@ -94,9 +94,9 @@ public partial class SettingsPage : ContentPage
         };
 
         BubbleShapePicker.Items.Clear();
-        BubbleShapePicker.Items.Add("Скруглённая");
-        BubbleShapePicker.Items.Add("Мягкая");
-        BubbleShapePicker.Items.Add("Прямая");
+        BubbleShapePicker.Items.Add(Loc.T("set_148", "Скруглённая"));
+        BubbleShapePicker.Items.Add(Loc.T("set_078", "Мягкая"));
+        BubbleShapePicker.Items.Add(Loc.T("set_129", "Прямая"));
         BubbleShapePicker.SelectedIndex = _session.BubbleShape switch
         {
             "Мягкая" => 1,
@@ -107,7 +107,7 @@ public partial class SettingsPage : ContentPage
         AvatarsSwitch.IsToggled = _session.ShowAvatarsInChat;
 
         TransportPicker.Items.Clear();
-        TransportPicker.Items.Add("Авто");
+        TransportPicker.Items.Add(Loc.T("set_009", "Авто"));
         TransportPicker.Items.Add("SignalR (WebSocket)");
         TransportPicker.Items.Add("TCP");
         TransportPicker.SelectedIndex = _session.TransportMode switch
@@ -124,9 +124,9 @@ public partial class SettingsPage : ContentPage
         CompactSidebarSwitch.IsToggled = _session.CompactSidebar;
 
         DensityPicker.Items.Clear();
-        DensityPicker.Items.Add("Компактная");
-        DensityPicker.Items.Add("Обычная");
-        DensityPicker.Items.Add("Просторная");
+        DensityPicker.Items.Add(Loc.T("set_065", "Компактная"));
+        DensityPicker.Items.Add(Loc.T("set_096", "Обычная"));
+        DensityPicker.Items.Add(Loc.T("set_127", "Просторная"));
         DensityPicker.SelectedIndex = _session.Density switch
         {
             "Компактная" => 0,
@@ -136,10 +136,10 @@ public partial class SettingsPage : ContentPage
 
         BuildAccentRow();
         AccentNameLabel.Text = string.IsNullOrEmpty(_session.Accent) || _session.Accent == App.UseThemeAccent
-            ? "Как в теме"
+            ? Loc.T("set_057", "Как в теме")
             : App.AccentPresets.FirstOrDefault(item => item.Color == _session.Accent).Name is { Length: > 0 } accentName
                 ? accentName
-                : "Свой цвет";
+                : Loc.T("set_137", "Свой цвет");
         UpdateAccentSelection();
         UpdateThemePreview();
         UpdateCustomThemeLabel();
@@ -148,9 +148,9 @@ public partial class SettingsPage : ContentPage
         UpdateNameColorSelection();
 
         MessageFontPicker.Items.Clear();
-        MessageFontPicker.Items.Add("Обычный");
-        MessageFontPicker.Items.Add("С засечками");
-        MessageFontPicker.Items.Add("Моноширинный");
+        MessageFontPicker.Items.Add(Loc.T("set_097", "Обычный"));
+        MessageFontPicker.Items.Add(Loc.T("set_134", "С засечками"));
+        MessageFontPicker.Items.Add(Loc.T("set_077", "Моноширинный"));
         MessageFontPicker.SelectedIndex = _session.MessageFont switch
         {
             "С засечками" => 1,
@@ -162,9 +162,9 @@ public partial class SettingsPage : ContentPage
         UpdateWallpaperUI();
 
         StatusPicker.Items.Clear();
-        StatusPicker.Items.Add("Онлайн");
-        StatusPicker.Items.Add("Неактивен");
-        StatusPicker.Items.Add("Занят");
+        StatusPicker.Items.Add(Loc.T("set_098", "Онлайн"));
+        StatusPicker.Items.Add(Loc.T("set_086", "Неактивен"));
+        StatusPicker.Items.Add(Loc.T("set_042", "Занят"));
         StatusPicker.SelectedIndex = _session.StatusMessage switch
         {
             "Неактивен" => 1,
@@ -178,8 +178,8 @@ public partial class SettingsPage : ContentPage
     {
         var active = _session.ActiveCustomTheme;
         CustomThemeLabel.Text = active is null
-            ? "Своих тем пока нет — соберите палитру в конструкторе"
-            : $"Применена своя тема «{active.Name}» (основа: {active.BaseTheme})";
+            ? Loc.T("set_136", "Своих тем пока нет — соберите палитру в конструкторе")
+            : string.Format(Loc.T("set_fmt_002"), active.Name, active.BaseTheme);
 
         BuildCustomThemesRow();
     }
@@ -304,9 +304,9 @@ public partial class SettingsPage : ContentPage
     {
         _session.FontScale = FontScalePicker.SelectedIndex switch
         {
-            0 => "Маленький",
-            2 => "Крупный",
-            _ => "Обычный"
+            0 => Loc.T("set_074", "Маленький"),
+            2 => Loc.T("set_070", "Крупный"),
+            _ => Loc.T("set_097", "Обычный")
         };
 
         App.ApplyAppearance();
@@ -317,9 +317,9 @@ public partial class SettingsPage : ContentPage
     {
         _session.BubbleShape = BubbleShapePicker.SelectedIndex switch
         {
-            1 => "Мягкая",
-            2 => "Прямая",
-            _ => "Скруглённая"
+            1 => Loc.T("set_078", "Мягкая"),
+            2 => Loc.T("set_129", "Прямая"),
+            _ => Loc.T("set_148", "Скруглённая")
         };
 
         App.ApplyAppearance();
@@ -355,9 +355,9 @@ public partial class SettingsPage : ContentPage
     {
         _session.Density = DensityPicker.SelectedIndex switch
         {
-            0 => "Компактная",
-            2 => "Просторная",
-            _ => "Обычная"
+            0 => Loc.T("set_065", "Компактная"),
+            2 => Loc.T("set_127", "Просторная"),
+            _ => Loc.T("set_096", "Обычная")
         };
 
         App.ApplyAppearance();
@@ -410,16 +410,16 @@ public partial class SettingsPage : ContentPage
     private static readonly string[] CoreThemes =
     {
         ThemeCatalog.DefaultTheme, // Классическая
-        "Синяя",                   // День
-        "Оттенок",                 // Tinted
-        "Ночная синяя"             // Ночь
+        Loc.T("set_144", "Синяя"),                   // День
+        Loc.T("set_107", "Оттенок"),                 // Tinted
+        Loc.T("set_092", "Ночная синяя")             // Ночь
     };
 
     private void OnShowAllThemesClicked(object? sender, EventArgs e)
     {
         _showAllThemes = !_showAllThemes;
         UpdateThemePreview();
-        ShowAllThemesButton.Text = _showAllThemes ? "Скрыть дополнительные темы" : "Показать все темы";
+        ShowAllThemesButton.Text = _showAllThemes ? Loc.T("set_149", "Скрыть дополнительные темы") : Loc.T("set_117", "Показать все темы");
     }
 
     /// <summary>Выбор темы в плитках: применяем оформление и сохраняем его.</summary>
@@ -509,10 +509,10 @@ public partial class SettingsPage : ContentPage
 
         _session.Accent = accent;
         AccentNameLabel.Text = accent == App.UseThemeAccent
-            ? "Как в теме"
+            ? Loc.T("set_057", "Как в теме")
             : App.AccentPresets.FirstOrDefault(item => item.Color == accent).Name is { Length: > 0 } name
                 ? name
-                : "Свой цвет";
+                : Loc.T("set_137", "Свой цвет");
 
         App.ApplyAppearance();
         UpdateAccentSelection();
@@ -524,7 +524,7 @@ public partial class SettingsPage : ContentPage
     private async void OnAccentPickerClicked(object? sender, EventArgs e)
     {
         var current = (Color)Application.Current!.Resources["Accent"];
-        var picker = new ColorPickerPage(current, "Акцентный цвет");
+        var picker = new ColorPickerPage(current, Loc.T("set_014", "Акцентный цвет"));
         await Navigation.PushModalAsync(picker);
 
         if (picker.SelectedColor is not { } chosen)
@@ -533,7 +533,7 @@ public partial class SettingsPage : ContentPage
         }
 
         _session.Accent = ThemeColor.ToHex(chosen);
-        AccentNameLabel.Text = "Свой цвет";
+        AccentNameLabel.Text = Loc.T("set_137", "Свой цвет");
 
         App.ApplyAppearance();
         UpdateAccentSelection();
@@ -561,13 +561,13 @@ public partial class SettingsPage : ContentPage
     /// <summary>Пресеты цвета имени в духе Telegram.</summary>
     private static readonly (string Name, string Hex)[] NameColorPresets =
     {
-        ("Красный", "#E17076"),
-        ("Оранжевый", "#F2A33C"),
-        ("Фиолетовый", "#A695E7"),
-        ("Зелёный", "#7BC862"),
-        ("Бирюзовый", "#6EC9CB"),
-        ("Синий", "#65AADD"),
-        ("Розовый", "#EE7AAE")
+        (Loc.T("set_069", "Красный"), "#E17076"),
+        (Loc.T("set_099", "Оранжевый"), "#F2A33C"),
+        (Loc.T("set_173", "Фиолетовый"), "#A695E7"),
+        (Loc.T("set_047", "Зелёный"), "#7BC862"),
+        (Loc.T("set_017", "Бирюзовый"), "#6EC9CB"),
+        (Loc.T("set_143", "Синий"), "#65AADD"),
+        (Loc.T("set_133", "Розовый"), "#EE7AAE")
     };
 
     private void BuildNameColorRow()
@@ -652,9 +652,9 @@ public partial class SettingsPage : ContentPage
     {
         _session.MessageFont = MessageFontPicker.SelectedIndex switch
         {
-            1 => "С засечками",
-            2 => "Моноширинный",
-            _ => "Обычный"
+            1 => Loc.T("set_134", "С засечками"),
+            2 => Loc.T("set_077", "Моноширинный"),
+            _ => Loc.T("set_097", "Обычный")
         };
 
         App.ApplyAppearance();
@@ -710,13 +710,13 @@ public partial class SettingsPage : ContentPage
         {
             var (bytes, files) = await _localStore.GetMediaCacheInfoAsync();
             MediaCacheLabel.Text = files == 0
-                ? "Вложения не загружены — места не занимает."
-                : $"{FormatBytes(bytes)} · файлов: {files}";
+                ? Loc.T("set_027", "Вложения не загружены — места не занимает.")
+                : string.Format(Loc.T("set_fmt_003"), FormatBytes(bytes), files);
             ClearMediaCacheButton.IsEnabled = files > 0;
         }
         catch
         {
-            MediaCacheLabel.Text = "Не удалось посчитать размер кэша.";
+            MediaCacheLabel.Text = Loc.T("set_082", "Не удалось посчитать размер кэша.");
         }
     }
 
@@ -724,9 +724,9 @@ public partial class SettingsPage : ContentPage
     private async void OnClearMediaCacheClicked(object? sender, EventArgs e)
     {
         var confirmed = await DisplayAlert(
-            "Освободить место",
-            "Локальные копии вложений будут удалены. Переписка и файлы на сервере останутся — вложения снова скачаются, когда их откроют.",
-            "Очистить", "Отмена");
+            Loc.T("set_100", "Освободить место"),
+            Loc.T("set_072", "Локальные копии вложений будут удалены. Переписка и файлы на сервере останутся — вложения снова скачаются, когда их откроют."),
+            Loc.T("set_108", "Очистить"), Loc.T("set_102", "Отмена"));
         if (!confirmed)
         {
             return;
@@ -736,10 +736,10 @@ public partial class SettingsPage : ContentPage
         await RefreshMediaCacheAsync();
 
         await DisplayAlert(
-            "Готово",
+            Loc.T("set_036", "Готово"),
             freed > 0
-                ? $"Освобождено {FormatBytes(freed)}."
-                : "Локальных копий вложений не было.",
+                ? string.Format(Loc.T("set_fmt_004"), FormatBytes(freed))
+                : Loc.T("set_073", "Локальных копий вложений не было."),
             "OK");
     }
 
@@ -758,10 +758,10 @@ public partial class SettingsPage : ContentPage
 
     private static string FormatBytes(long bytes) => bytes switch
     {
-        <= 0 => "0 Б",
-        < 1024 => $"{bytes} Б",
-        < 1024 * 1024 => $"{bytes / 1024.0:0.#} КБ",
-        _ => $"{bytes / (1024.0 * 1024):0.#} МБ"
+        <= 0 => Loc.T("set_000", "0 Б"),
+        < 1024 => string.Format(Loc.T("set_fmt_005"), bytes),
+        < 1024 * 1024 => string.Format(Loc.T("set_fmt_006"), bytes / 1024.0),
+        _ => string.Format(Loc.T("set_fmt_007"), bytes / (1024.0 * 1024))
     };
 
     private void OnNicknameChanged(object sender, TextChangedEventArgs e)
@@ -829,7 +829,7 @@ public partial class SettingsPage : ContentPage
         {
             var file = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = "Выберите аватар",
+                PickerTitle = Loc.T("set_029", "Выберите аватар"),
                 FileTypes = FilePickerFileType.Images
             });
 
@@ -846,7 +846,7 @@ public partial class SettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось загрузить аватар: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("set_109"), string.Format(Loc.T("set_fmt_009"), ex.Message), "OK");
         }
     }
 
@@ -854,9 +854,9 @@ public partial class SettingsPage : ContentPage
     {
         _session.StatusMessage = StatusPicker.SelectedIndex switch
         {
-            1 => "Неактивен",
-            2 => "Занят",
-            _ => "Онлайн"
+            1 => Loc.T("set_086", "Неактивен"),
+            2 => Loc.T("set_042", "Занят"),
+            _ => Loc.T("set_098", "Онлайн")
         };
 
         _ = SyncProfileAsync();
@@ -868,15 +868,15 @@ public partial class SettingsPage : ContentPage
         {
             var serverTime = await _apiClient.GetServerTimeAsync(_session.ServerUrl);
             await DisplayAlert(
-                "Сервер доступен",
+                Loc.T("set_139", "Сервер доступен"),
                 serverTime is null
-                    ? "Сервер ответил, но время получить не удалось."
-                    : $"Сервер ответил. Время сервера: {serverTime:dd.MM.yyyy HH:mm:ss} UTC.",
+                    ? Loc.T("set_141", "Сервер ответил, но время получить не удалось.")
+                    : string.Format(Loc.T("set_fmt_008"), serverTime),
                 "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Сервер недоступен", ex.Message, "OK");
+            await DisplayAlert(Loc.T("set_140", "Сервер недоступен"), ex.Message, "OK");
         }
     }
 
@@ -891,8 +891,8 @@ public partial class SettingsPage : ContentPage
     {
         var current = await PasswordPromptPage.ShowAsync(
             Navigation,
-            "Текущий пароль",
-            "Введите пароль, с которым вы входите в аккаунт.");
+            Loc.T("set_165", "Текущий пароль"),
+            Loc.T("set_023", "Введите пароль, с которым вы входите в аккаунт."));
         if (string.IsNullOrEmpty(current))
         {
             return;
@@ -900,8 +900,8 @@ public partial class SettingsPage : ContentPage
 
         var next = await PasswordPromptPage.ShowAsync(
             Navigation,
-            "Новый пароль",
-            "Не менее 8 символов. Он понадобится при следующем входе.");
+            Loc.T("set_090", "Новый пароль"),
+            Loc.T("set_079", "Не менее 8 символов. Он понадобится при следующем входе."));
         if (string.IsNullOrEmpty(next))
         {
             return;
@@ -909,9 +909,9 @@ public partial class SettingsPage : ContentPage
 
         var repeat = await PasswordPromptPage.ShowAsync(
             Navigation,
-            "Повторите пароль",
-            "Введите новый пароль ещё раз.",
-            "Сменить пароль");
+            Loc.T("set_114", "Повторите пароль"),
+            Loc.T("set_021", "Введите новый пароль ещё раз."),
+            Loc.T("set_152", "Сменить пароль"));
         if (repeat is null)
         {
             return;
@@ -919,7 +919,7 @@ public partial class SettingsPage : ContentPage
 
         if (!string.Equals(next, repeat, StringComparison.Ordinal))
         {
-            await DisplayAlert("Пароли не совпадают", "Новый пароль введён по-разному.", "OK");
+            await DisplayAlert(Loc.T("set_110", "Пароли не совпадают"), Loc.T("set_091", "Новый пароль введён по-разному."), "OK");
             return;
         }
 
@@ -927,24 +927,24 @@ public partial class SettingsPage : ContentPage
         {
             await _account.ChangePasswordAsync(current, next);
             await DisplayAlert(
-                "Пароль изменён",
-                "Используйте новый пароль при следующем входе. Текущая сессия остаётся активной.",
+                Loc.T("set_111", "Пароль изменён"),
+                Loc.T("set_053", "Используйте новый пароль при следующем входе. Текущая сессия остаётся активной."),
                 "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось сменить пароль", ex.Message, "OK");
+            await DisplayAlert(Loc.T("set_083", "Не удалось сменить пароль"), ex.Message, "OK");
         }
     }
 
     private async void OnDeleteClicked(object sender, EventArgs e)
     {
         var confirmed = await DisplayAlert(
-            "Удалить аккаунт навсегда?",
+            Loc.T("set_170", "Удалить аккаунт навсегда?"),
             "С сервера будут удалены аккаунт, переписка и вложения. Локальная история " +
-            "и ключи устройства тоже будут стёрты. Восстановить данные невозможно.",
-            "Удалить навсегда",
-            "Отмена");
+            Loc.T("set_180", "и ключи устройства тоже будут стёрты. Восстановить данные невозможно."),
+            Loc.T("set_171", "Удалить навсегда"),
+            Loc.T("set_102", "Отмена"));
 
         if (!confirmed)
         {
@@ -953,9 +953,9 @@ public partial class SettingsPage : ContentPage
 
         var password = await PasswordPromptPage.ShowAsync(
             Navigation,
-            "Подтвердите удаление",
-            "Введите пароль аккаунта. Это действие необратимо.",
-            "Удалить аккаунт");
+            Loc.T("set_116", "Подтвердите удаление"),
+            Loc.T("set_022", "Введите пароль аккаунта. Это действие необратимо."),
+            Loc.T("set_168", "Удалить аккаунт"));
         if (string.IsNullOrEmpty(password))
         {
             return;
@@ -969,7 +969,7 @@ public partial class SettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Не удалось удалить аккаунт", ex.Message, "OK");
+            await DisplayAlert(Loc.T("set_084", "Не удалось удалить аккаунт"), ex.Message, "OK");
         }
     }
 
@@ -982,15 +982,15 @@ public partial class SettingsPage : ContentPage
         var fingerprint = _session.Fingerprint;
         if (string.IsNullOrEmpty(fingerprint))
         {
-            await DisplayAlert("Безопасность", "Отпечаток ключа недоступен.", "OK");
+            await DisplayAlert(Loc.T("set_016", "Безопасность"), Loc.T("set_105", "Отпечаток ключа недоступен."), "OK");
             return;
         }
 
         await DisplayAlert(
-            "Отпечаток ключа",
+            Loc.T("set_104", "Отпечаток ключа"),
             fingerprint,
-            "Скопировать",
-            "Закрыть");
+            Loc.T("set_147", "Скопировать"),
+            Loc.T("set_041", "Закрыть"));
 
         // В реальном приложении здесь можно скопировать в буфер обмена
     }
@@ -1037,12 +1037,12 @@ public partial class SettingsPage : ContentPage
     {
         var options = Ringtones.All.Select(item => item.Name).ToArray();
         var picked = await DisplayActionSheet(
-            "Рингтон уведомлений",
-            "Отмена",
+            Loc.T("set_132", "Рингтон уведомлений"),
+            Loc.T("set_102", "Отмена"),
             null,
             options);
 
-        if (string.IsNullOrEmpty(picked) || picked == "Отмена")
+        if (string.IsNullOrEmpty(picked) || picked == Loc.T("set_102", "Отмена"))
         {
             return;
         }
@@ -1082,8 +1082,8 @@ public partial class SettingsPage : ContentPage
     private void UpdateLinkPreviewHint()
     {
         LinkPreviewHintLabel.Text = _session.LinkPreviewEnabled
-            ? "Включено — чат сам запросит заголовок и картинку ссылки у сайта; владелец сайта увидит ваш IP"
-            : "Выключено — чат не заходит на сайты ссылок и не показывает карточки";
+            ? Loc.T("set_026", "Включено — чат сам запросит заголовок и картинку ссылки у сайта; владелец сайта увидит ваш IP")
+            : Loc.T("set_034", "Выключено — чат не заходит на сайты ссылок и не показывает карточки");
     }
 
     private async void OnBlockClicked(object sender, EventArgs e)
@@ -1096,7 +1096,7 @@ public partial class SettingsPage : ContentPage
 
         if (string.Equals(name, _session.Username, StringComparison.OrdinalIgnoreCase))
         {
-            await DisplayAlert("Блокировка", "Нельзя заблокировать самого себя.", "OK");
+            await DisplayAlert(Loc.T("set_018", "Блокировка"), Loc.T("set_088", "Нельзя заблокировать самого себя."), "OK");
             return;
         }
 
@@ -1131,8 +1131,8 @@ public partial class SettingsPage : ContentPage
         }
 
         BlockedPicker.Title = _session.BlockedUsernames.Count == 0
-            ? "Список пуст"
-            : "Выберите пользователя";
+            ? Loc.T("set_160", "Список пуст")
+            : Loc.T("set_030", "Выберите пользователя");
     }
 
     private Task SavePrivacyAsync() =>
@@ -1143,12 +1143,12 @@ public partial class SettingsPage : ContentPage
         var secrets = AppServices.Get<SecretStore>();
         var hasPasscode = await PrivacyStore.HasPasscodeAsync(secrets);
         var choice = await DisplayActionSheet(
-            "Код-пароль приложения",
-            "Отмена",
+            Loc.T("set_062", "Код-пароль приложения"),
+            Loc.T("set_102", "Отмена"),
             null,
-            hasPasscode ? new[] { "Изменить код", "Выключить код" } : new[] { "Установить код" });
+            hasPasscode ? new[] { Loc.T("set_050", "Изменить код"), Loc.T("set_035", "Выключить код") } : new[] { Loc.T("set_172", "Установить код") });
 
-        if (string.IsNullOrEmpty(choice) || choice == "Отмена")
+        if (string.IsNullOrEmpty(choice) || choice == Loc.T("set_102", "Отмена"))
         {
             return;
         }
@@ -1156,10 +1156,10 @@ public partial class SettingsPage : ContentPage
         if (hasPasscode)
         {
             var current = await DisplayPromptAsync(
-                "Текущий код",
-                "Введите текущий код-пароль:",
-                "Далее",
-                "Отмена",
+                Loc.T("set_164", "Текущий код"),
+                Loc.T("set_024", "Введите текущий код-пароль:"),
+                Loc.T("set_037", "Далее"),
+                Loc.T("set_102", "Отмена"),
                 maxLength: 32,
                 keyboard: Keyboard.Text);
 
@@ -1170,23 +1170,23 @@ public partial class SettingsPage : ContentPage
 
             if (!await PrivacyStore.VerifyPasscodeAsync(secrets, current))
             {
-                await DisplayAlert("Код-пароль", "Неверный код-пароль.", "OK");
+                await DisplayAlert(Loc.T("set_060", "Код-пароль"), Loc.T("set_087", "Неверный код-пароль."), "OK");
                 return;
             }
         }
 
-        if (choice == "Выключить код")
+        if (choice == Loc.T("set_035", "Выключить код"))
         {
             await PrivacyStore.RemovePasscodeAsync(secrets);
-            await DisplayAlert("Код-пароль", "Код-пароль выключен.", "OK");
+            await DisplayAlert(Loc.T("set_060", "Код-пароль"), Loc.T("set_061", "Код-пароль выключен."), "OK");
             return;
         }
 
         var newCode = await DisplayPromptAsync(
-            "Новый код-пароль",
-            "Минимум 4 символа:",
-            "Далее",
-            "Отмена",
+            Loc.T("set_089", "Новый код-пароль"),
+            Loc.T("set_076", "Минимум 4 символа:"),
+            Loc.T("set_037", "Далее"),
+            Loc.T("set_102", "Отмена"),
             maxLength: 32,
             keyboard: Keyboard.Text);
 
@@ -1197,26 +1197,26 @@ public partial class SettingsPage : ContentPage
 
         if (newCode.Length < 4)
         {
-            await DisplayAlert("Код-пароль", "Код должен содержать не менее 4 символов.", "OK");
+            await DisplayAlert(Loc.T("set_060", "Код-пароль"), Loc.T("set_059", "Код должен содержать не менее 4 символов."), "OK");
             return;
         }
 
         var repeat = await DisplayPromptAsync(
-            "Повторите код",
-            "Введите новый код ещё раз:",
+            Loc.T("set_113", "Повторите код"),
+            Loc.T("set_020", "Введите новый код ещё раз:"),
             "Сохранить",
-            "Отмена",
+            Loc.T("set_102", "Отмена"),
             maxLength: 32,
             keyboard: Keyboard.Text);
 
         if (!string.Equals(repeat, newCode, StringComparison.Ordinal))
         {
-            await DisplayAlert("Код-пароль", "Коды не совпадают.", "OK");
+            await DisplayAlert(Loc.T("set_060", "Код-пароль"), Loc.T("set_064", "Коды не совпадают."), "OK");
             return;
         }
 
         await PrivacyStore.SetPasscodeAsync(secrets, newCode);
-        await DisplayAlert("Код-пароль", "Код-пароль сохранён. Он будет запрашиваться при запуске.", "OK");
+        await DisplayAlert(Loc.T("set_060", "Код-пароль"), Loc.T("set_063", "Код-пароль сохранён. Он будет запрашиваться при запуске."), "OK");
     }
 
     private async void OnExportHistoryClicked(object sender, EventArgs e)
@@ -1227,11 +1227,11 @@ public partial class SettingsPage : ContentPage
             var base64 = Convert.ToBase64String(data);
 
             await Clipboard.Default.SetTextAsync(base64);
-            await DisplayAlert("История", "История переписки скопирована в буфер обмена (base64).", "OK");
+            await DisplayAlert(Loc.T("set_054", "История"), Loc.T("set_056", "История переписки скопирована в буфер обмена (base64)."), "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось экспортировать историю: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("set_109"), string.Format(Loc.T("set_fmt_010"), ex.Message), "OK");
         }
     }
 
@@ -1242,17 +1242,17 @@ public partial class SettingsPage : ContentPage
             var base64 = await Clipboard.Default.GetTextAsync();
             if (string.IsNullOrWhiteSpace(base64))
             {
-                await DisplayAlert("История", "Буфер обмена пуст.", "OK");
+                await DisplayAlert(Loc.T("set_054", "История"), Loc.T("set_019", "Буфер обмена пуст."), "OK");
                 return;
             }
 
             var data = Convert.FromBase64String(base64);
             await _localStore.ImportHistoryAsync(data);
-            await DisplayAlert("История", "История переписки импортирована из буфера обмена.", "OK");
+            await DisplayAlert(Loc.T("set_054", "История"), Loc.T("set_055", "История переписки импортирована из буфера обмена."), "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", $"Не удалось импортировать историю: {ex.Message}", "OK");
+            await DisplayAlert(Loc.T("set_109"), string.Format(Loc.T("set_fmt_011"), ex.Message), "OK");
         }
     }
 
@@ -1262,14 +1262,14 @@ public partial class SettingsPage : ContentPage
         {
             1 => "SignalR",
             2 => "TCP",
-            _ => "Авто"
+            _ => Loc.T("set_009", "Авто")
         };
 
         await App.SaveAppearanceAsync();
 
         // Без модального окна: транспорт показывается рядом с переключателем.
         TransportHintLabel.Text =
-            $"Транспорт: {_session.TransportMode}. Изменение применится при следующем подключении.";
+            string.Format(Loc.T("set_fmt_012"), _session.TransportMode);
         TransportHintLabel.IsVisible = true;
     }
 }

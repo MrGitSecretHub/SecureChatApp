@@ -53,12 +53,12 @@
 
                         <Label Text="{DynamicResource s_login_password}" Style="{DynamicResource FieldLabel}" />
                         <Entry x:Name="PasswordEntry"
-                               Placeholder="Не менее 8 символов"
+                               Placeholder="{DynamicResource s_login_003}"
                                IsPassword="True" />
 
                         <Label Text="{DynamicResource s_login_password_repeat}" Style="{DynamicResource FieldLabel}" />
                         <Entry x:Name="ConfirmEntry"
-                               Placeholder="Повторите пароль"
+                               Placeholder="{DynamicResource s_login_006}"
                                IsPassword="True" />
 
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,8,0,0">

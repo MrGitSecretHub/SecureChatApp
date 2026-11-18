@@ -41,7 +41,7 @@ public partial class LoginPage : ContentPage
                 UsernameEntry.Text = saved.Username;
             }
 
-            SetBusy(true, "Проверка сохранённой сессии…");
+            SetBusy(true, Loc.T("login_007", "Проверка сохранённой сессии…"));
             if (await _account.TryRestoreAsync())
             {
                 await _chatManager.StartAsync();
@@ -59,7 +59,7 @@ public partial class LoginPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowStatus($"Не удалось восстановить сессию: {ex.Message}");
+            ShowStatus(string.Format(Loc.T("login_fmt_001"), ex.Message));
         }
         finally
         {
@@ -84,7 +84,7 @@ public partial class LoginPage : ContentPage
             return;
         }
 
-        SetBusy(true, "Вход…");
+        SetBusy(true, Loc.T("login_002", "Вход…"));
 
         try
         {
@@ -114,7 +114,7 @@ public partial class LoginPage : ContentPage
             AccountService.Validate(server, username, password);
             if (!string.Equals(password, confirm, StringComparison.Ordinal))
             {
-                throw new ArgumentException("Пароли не совпадают.");
+                throw new ArgumentException(Loc.T("login_005", "Пароли не совпадают."));
             }
         }
         catch (ArgumentException ex)
@@ -123,7 +123,7 @@ public partial class LoginPage : ContentPage
             return;
         }
 
-        SetBusy(true, "Создание аккаунта и ключей…");
+        SetBusy(true, Loc.T("login_008", "Создание аккаунта и ключей…"));
 
         try
         {
@@ -182,15 +182,15 @@ public partial class LoginPage : ContentPage
         if (candidates.Length == 0)
         {
             await DisplayAlert(
-                "Адрес сервера",
+                Loc.T("login_000", "Адрес сервера"),
                 "Не удалось определить адрес автоматически. " +
-                "Узнайте IP-адрес компьютера командой ipconfig и введите его вручную.",
+                Loc.T("login_009", "Узнайте IP-адрес компьютера командой ipconfig и введите его вручную."),
                 "OK");
             return;
         }
 
         var choice = await DisplayActionSheet(
-            "Адрес сервера:",
+            Loc.T("login_001", "Адрес сервера:"),
             "Отмена",
             null,
             candidates);

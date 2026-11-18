@@ -8,6 +8,14 @@ namespace SecureChat.App.Services;
 /// ключи доступны в XAML через {DynamicResource s_...} и в коде через T().
 /// При смене языка словарь подменяется на лету, без перезапуска.
 /// </summary>
+/// <summary>Статический доступ к переводам — можно вызывать где угодно,
+/// включая инициализаторы полей и статические методы.</summary>
+public static class Loc
+{
+    public static string T(string key, string? russianFallback = null) =>
+        AppServices.Get<LocalizationService>().T(key, russianFallback);
+}
+
 public sealed class LocalizationService
 {
     private const string LanguageKey = "ui.language";
