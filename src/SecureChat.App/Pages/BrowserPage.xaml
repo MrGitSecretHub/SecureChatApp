@@ -2,63 +2,112 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.BrowserPage"
-             Title="{DynamicResource s_ui_003}">
+             Title="{DynamicResource s_ui_003}"
+             BackgroundColor="{DynamicResource PageBackground}">
+
     <Grid RowDefinitions="Auto,*,Auto">
 
-        <!-- Адресная строка -->
+        <!-- ==== ВЕРХНЯЯ ПАНЕЛЬ ====
+             Windows: ← → ⟳ | адрес | 🔒 | ⧉ | ⋮
+             Android:  адрес | ⧉ | ⋮   (навигация в плавающей панели снизу) -->
         <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*,Auto"
-              ColumnSpacing="8"
-              Padding="12,10"
+              ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto"
+              ColumnSpacing="4"
+              Padding="10,8"
               BackgroundColor="{DynamicResource Surface}">
-            <Button Grid.Column="0"
-                    Text="◀"
+
+            <Button x:Name="TopBackButton"
+                    Grid.Column="0"
+                    Text="←"
+                    FontSize="18"
                     Style="{DynamicResource IconButton}"
-                    Clicked="OnBackClicked" />
-            <Entry Grid.Column="1"
-                   x:Name="AddressEntry"
+                    Clicked="OnBackClicked"
+                    IsVisible="{OnPlatform WinUI=True, Android=False}" />
+
+            <Button x:Name="TopForwardButton"
+                    Grid.Column="1"
+                    Text="→"
+                    FontSize="18"
+                    Style="{DynamicResource IconButton}"
+                    Clicked="OnForwardClicked"
+                    IsVisible="{OnPlatform WinUI=True, Android=False}" />
+
+            <Button x:Name="TopReloadButton"
+                    Grid.Column="2"
+                    Text="⟳"
+                    FontSize="18"
+                    Style="{DynamicResource IconButton}"
+                    Clicked="OnReloadClicked"
+                    IsVisible="{OnPlatform WinUI=True, Android=False}" />
+
+            <Entry x:Name="AddressEntry"
+                   Grid.Column="3"
                    Placeholder="https://example.com"
                    Keyboard="Url"
                    ReturnType="Go"
                    Completed="OnNavigate" />
-            <Button Grid.Column="2"
-                    Text="➤"
+
+            <Label x:Name="SecurityIcon"
+                   Grid.Column="4"
+                   Text="🔒"
+                   FontSize="14"
+                   VerticalOptions="Center"
+                   IsVisible="{OnPlatform WinUI=True, Android=False}" />
+
+            <Button x:Name="OpenExternalButton"
+                    Grid.Column="5"
+                    Text="⧉"
+                    FontSize="18"
                     Style="{DynamicResource IconButton}"
-                    Clicked="OnNavigate" />
+                    Clicked="OnOpenExternalClicked"
+                    ToolTipProperties.Text="{DynamicResource s_browser_external}" />
+
+            <Button x:Name="MenuButton"
+                    Grid.Column="6"
+                    Text="⋯"
+                    FontSize="20"
+                    Style="{DynamicResource IconButton}"
+                    Clicked="OnMenuClicked"
+                    ToolTipProperties.Text="{DynamicResource s_browser_menu}" />
         </Grid>
 
-        <!-- Страница -->
+        <!-- ==== СТРАНИЦА ==== -->
         <WebView Grid.Row="1"
                  x:Name="BrowserWebView"
                  Navigating="OnNavigating"
                  Navigated="OnNavigated" />
 
-        <!-- Панель инструментов -->
+        <!-- ==== НИЖНЯЯ ПЛАВАЮЩАЯ ПАНЕЛЬ (только Android) ==== -->
         <Border Grid.Row="2"
+                x:Name="BottomToolbar"
                 BackgroundColor="{DynamicResource Surface}"
                 StrokeThickness="0"
-                Padding="10,8">
-            <HorizontalStackLayout Spacing="6">
+                Padding="10,6"
+                IsVisible="{OnPlatform WinUI=False, Android=True}">
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="18">
+                <Button x:Name="BottomBackButton"
+                        Text="←"
+                        FontSize="20"
+                        Style="{DynamicResource GhostButton}"
+                        Clicked="OnBackClicked" />
+                <Button x:Name="BottomForwardButton"
+                        Text="→"
+                        FontSize="20"
+                        Style="{DynamicResource GhostButton}"
+                        Clicked="OnForwardClicked" />
+                <Button x:Name="BottomReloadButton"
+                        Text="⟳"
+                        FontSize="20"
+                        Style="{DynamicResource GhostButton}"
+                        Clicked="OnReloadClicked" />
                 <Button Text="🏠"
+                        FontSize="20"
                         Style="{DynamicResource GhostButton}"
-                        Clicked="OnHomeClicked"
-                        ToolTipProperties.Text="{DynamicResource s_ui_036}" />
-                <Button Text="↻"
-                        Style="{DynamicResource GhostButton}"
-                        Clicked="OnReloadClicked"
-                        ToolTipProperties.Text="{DynamicResource s_ui_091}" />
-                <Button Text="←"
-                        Style="{DynamicResource GhostButton}"
-                        Clicked="OnBackClicked"
-                        ToolTipProperties.Text="{DynamicResource s_ui_071}" />
-                <Button Text="→"
-                        Style="{DynamicResource GhostButton}"
-                        Clicked="OnForwardClicked"
-                        ToolTipProperties.Text="{DynamicResource s_ui_013}" />
+                        Clicked="OnHomeClicked" />
                 <Button Text="⧉"
+                        FontSize="20"
                         Style="{DynamicResource GhostButton}"
-                        Clicked="OnOpenExternalClicked"
-                        ToolTipProperties.Text="{DynamicResource s_ui_098}" />
+                        Clicked="OnOpenExternalClicked" />
             </HorizontalStackLayout>
         </Border>
     </Grid>

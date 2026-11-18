@@ -894,5 +894,10 @@
   "bug_key_title": "Verify key",
   "bug_key_msg": "Key fingerprint: {0}\n\nVerify it with your contact via another channel. If it matches, confirm.",
   "bug_key_yes": "Verified",
-  "bug_key_no": "Cancel"
+  "bug_key_no": "Cancel",
+  "browser_menu": "Actions",
+  "browser_copy_link": "Copy link",
+  "browser_copied": "Link copied",
+  "browser_home": "Home",
+  "browser_external": "Open in system browser"
 }
