@@ -39,11 +39,13 @@ public partial class App : Application
     {
         InitializeComponent();
 
-        // Сначала словарь локализации — страницы используют {DynamicResource s_...}.
-        AppServices.Get<LocalizationService>().InitializeAsync().GetAwaiter().GetResult();
+        // Словарь локализации — синхронно, без обращения к хранилищу,
+        // чтобы не блокировать запуск. Сохранённый язык восстановим позже.
+        AppServices.Get<LocalizationService>().InitializeDefault();
 
         ApplyAppearance();
         _ = LoadAppearanceAsync();
+        _ = AppServices.Get<LocalizationService>().RestoreAsync();
         EnsureAutoNightTimer();
 
         // Звук уведомлений: подписка на уровне приложения, поэтому сигнал

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 
@@ -36,25 +35,39 @@ public sealed class LocalizationService
 
     public event Action? LanguageChanged;
 
-    public string Language { get; private set; } = "ru";
+    public string Language { get; private set; } = "en";
 
     public LocalizationService(SecretStore secrets)
     {
         _secrets = secrets;
     }
 
-    /// <summary>Загружает сохранённый язык и применяет словарь.</summary>
-    public async Task InitializeAsync()
+    /// <summary>Немедленно загружает словарь по умолчанию (без обращения к хранилищу) —
+    /// безопасно вызывать в конструкторе приложения.</summary>
+    public void InitializeDefault()
     {
-        var saved = await _secrets.GetAsync(LanguageKey);
-        Language = Languages.Any(item => item.Code == saved) ? saved! : DetectSystemLanguage();
+        Language = "en";
         Apply();
     }
 
-    private static string DetectSystemLanguage()
+    /// <summary>Восстанавливает сохранённый язык из зашифрованного хранилища.</summary>
+    public async Task RestoreAsync()
     {
-        var twoLetter = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
-        return Languages.Any(item => item.Code == twoLetter) ? twoLetter : "en";
+        try
+        {
+            var saved = await _secrets.GetAsync(LanguageKey);
+            if (!string.IsNullOrWhiteSpace(saved) &&
+                Languages.Any(item => item.Code == saved) &&
+                !string.Equals(saved, Language, StringComparison.Ordinal))
+            {
+                Language = saved!;
+                Apply();
+            }
+        }
+        catch
+        {
+            // Хранилище недоступно — остаётся английский.
+        }
     }
 
     /// <summary>Меняет язык и сохраняет выбор.</summary>
