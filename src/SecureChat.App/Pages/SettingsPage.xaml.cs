@@ -18,9 +18,51 @@ public partial class SettingsPage : ContentPage
     private bool _tcpTunnelInitialized;
     private readonly ObservableCollection<ThemeTileVm> _themeItems = new();
 
-    public SettingsPage()
+    /// <summary>Раздел, который показывать (null — все). Для страниц-категорий.</summary>
+    private readonly string? _section;
+
+    public SettingsPage(string? section = null)
     {
         InitializeComponent();
+        _section = section;
+        ApplySectionFilter();
+    }
+
+    /// <summary>Оставляет видимым только запрошенный раздел настроек.</summary>
+    private void ApplySectionFilter()
+    {
+        if (string.IsNullOrWhiteSpace(_section))
+        {
+            return;
+        }
+
+        var map = new Dictionary<string, Microsoft.Maui.Controls.View>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["profile"] = SectionProfile,
+            ["privacy"] = SectionPrivacy,
+            ["server"] = SectionServer,
+            ["account"] = SectionAccount,
+            ["appearance"] = SectionAppearance,
+            ["wallpaper"] = SectionWallpaper,
+            ["media"] = SectionMedia
+        };
+
+        foreach (var pair in map)
+        {
+            pair.Value.IsVisible = string.Equals(pair.Key, _section, StringComparison.OrdinalIgnoreCase);
+        }
+
+        Title = _section switch
+        {
+            "profile" => "Профиль",
+            "privacy" => "Безопасность и приватность",
+            "server" => "Сервер и подключение",
+            "account" => "Аккаунт",
+            "appearance" => "Оформление",
+            "wallpaper" => "Обои чата",
+            "media" => "Медиа и память",
+            _ => Title
+        };
     }
 
     protected override void OnAppearing()
