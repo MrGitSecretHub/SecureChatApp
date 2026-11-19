@@ -30,7 +30,6 @@ public partial class ChatsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await RefreshStoriesAsync();
 
         if (!_subscribed)
         {
@@ -420,59 +419,6 @@ public partial class ChatsPage : ContentPage
         catch (OperationCanceledException)
         {
             // Новая подсказка заменила предыдущую.
-        }
-    }
-
-    private async Task RefreshStoriesAsync()
-    {
-        if (StoriesStrip is null) return;
-        StoriesStrip.Clear();
-        var add = new Button
-        {
-            Text = "＋",
-            WidthRequest = 44,
-            HeightRequest = 44,
-            CornerRadius = 22,
-            BackgroundColor = (Color?)Application.Current?.Resources["SurfaceAlt"] ?? Colors.Gray,
-            TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White
-        };
-        add.Clicked += async (_, _) => await Navigation.PushAsync(new StoryCreatePage());
-        StoriesStrip.Add(add);
-
-        IReadOnlyList<StoryItem> stories;
-        try
-        {
-            stories = await AppServices.Get<StoryService>().GetAsync();
-        }
-        catch
-        {
-            return;
-        }
-
-        foreach (var story in stories)
-        {
-            var avatar = new Button
-            {
-                WidthRequest = 44,
-                HeightRequest = 44,
-                CornerRadius = 22,
-                Padding = 0,
-                BackgroundColor = (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue,
-                TextColor = Colors.White,
-                Text = string.IsNullOrEmpty(story.Text) ? "◉" : story.Text[..1].ToUpperInvariant()
-            };
-            if (!string.IsNullOrEmpty(story.AvatarBase64))
-            {
-                try
-                {
-                    avatar.ImageSource = ImageSource.FromStream(() =>
-                        new MemoryStream(Convert.FromBase64String(story.AvatarBase64!)));
-                    avatar.Text = string.Empty;
-                }
-                catch (FormatException) { }
-            }
-            avatar.Clicked += async (_, _) => await Navigation.PushAsync(new StoryViewerPage(story));
-            StoriesStrip.Add(avatar);
         }
     }
 

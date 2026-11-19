@@ -39,16 +39,30 @@ public sealed class StoryCreatePage : ContentPage
 
     private async void OnPickClicked(object? sender, EventArgs e)
     {
-        var file = await FilePicker.Default.PickAsync(new PickOptions
+        try
         {
-            PickerTitle = "Выберите изображение",
-            FileTypes = FilePickerFileType.Images
-        });
-        if (file is null) return;
-        using var stream = await file.OpenReadAsync();
-        using var memory = new MemoryStream();
-        await stream.CopyToAsync(memory);
-        _image = Convert.ToBase64String(memory.ToArray());
+            // Без FileTypes: на некоторых Windows-сборках FilePickerFileType.Images
+            // приводит к исключению, а диалог вообще не открывается.
+            var file = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Выберите изображение"
+            });
+            if (file is null) return;
+            using var stream = await file.OpenReadAsync();
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+            var bytes = memory.ToArray();
+            if (bytes.Length > 8 * 1024 * 1024)
+            {
+                await DisplayAlert("История", "Слишком большое изображение (максимум 8 МБ).", "OK");
+                return;
+            }
+            _image = Convert.ToBase64String(bytes);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка выбора", ex.Message, "OK");
+        }
     }
 
     private async void OnPublishClicked(object? sender, EventArgs e)
@@ -66,7 +80,7 @@ public sealed class StoryCreatePage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка", ex.Message, "OK");
+            await DisplayAlert("Ошибка публикации", ex.ToString(), "OK");
         }
     }
 }

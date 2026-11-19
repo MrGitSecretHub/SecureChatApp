@@ -4011,5 +4011,12 @@ public partial class ChatView : ContentView
         MessageEntry.CursorPosition = MessageEntry.Text.Length;
         MessageEntry.Focus();
     }
+
+    private async void OnStoriesClicked(object? sender, EventArgs e)
+    {
+        var page = HostPage;
+        if (page is null) return;
+        await page.Navigation.PushAsync(new StoriesPage());
+    }
 }
 

@@ -196,7 +196,7 @@
               Padding="12,8,12,12"
               RowDefinitions="Auto,Auto"
               RowSpacing="8">
-            <Grid RowDefinitions="Auto,Auto" Grid.Row="0"
+            <Grid Grid.Row="0"
                   ColumnDefinitions="*,*,*,*"
                   ColumnSpacing="8">
                 <Button Grid.Column="0"
@@ -232,11 +232,7 @@
                         Clicked="OnBrowserClicked"
                         ToolTipProperties.Text="{DynamicResource s_ui_017}" />
             
-        <Grid Grid.Row="1" Grid.ColumnSpan="3" Margin="0,6,0,0">
-            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                <HorizontalStackLayout x:Name="StoriesStrip" Spacing="8" />
-            </ScrollView>
-        </Grid>
+        
 </Grid>
             <Button Grid.Row="1"
                     Text="{DynamicResource s_vs_logout}"

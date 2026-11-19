@@ -1348,6 +1348,12 @@
                                     VerticalOptions="End"
                                     Clicked="OnQuickRepliesClicked"
                                     ToolTipProperties.Text="Быстрые ответы" />
+                            <Button x:Name="StoriesButton"
+                                    Text="📖"
+                                    Style="{DynamicResource IconButton}"
+                                    VerticalOptions="End"
+                                    Clicked="OnStoriesClicked"
+                                    ToolTipProperties.Text="Истории" />
                             <Button x:Name="EmojiButton"
                                     Text="😊"
                                     Style="{DynamicResource IconButton}"
