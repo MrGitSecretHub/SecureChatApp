@@ -1878,7 +1878,7 @@ public sealed class ChatManager
             };
 
             MediaAttachment? media = null;
-            if (kind != MessageKinds.Text && kind != MessageKinds.Sticker)
+            if (!IsTextLike(kind))
             {
                 media = payload.Media;
                 if (media is null || !IsValidMedia(media))
@@ -2006,7 +2006,7 @@ public sealed class ChatManager
                 await SendReadReceiptsAsync(conversation.Username);
             }
 
-            if (kind != MessageKinds.Text && kind != MessageKinds.Sticker)
+            if (!IsTextLike(kind))
             {
                 _ = EnsureMediaAsync(conversation.Username, message.Id);
             }
