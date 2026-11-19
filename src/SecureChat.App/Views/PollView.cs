@@ -25,7 +25,7 @@ public sealed class PollOptionVm : INotifyPropertyChanged
     public int Votes
     {
         get => _votes;
-        set { if (_votes != value) { _votes = value; OnPropertyChanged(); OnPropertyChanged(nameof(PercentText)); } }
+        set { if (_votes != value) { _votes = value; OnPropertyChanged(); OnPropertyChanged(nameof(Percent)); OnPropertyChanged(nameof(PercentText)); } }
     }
 
     public bool IsSelected
@@ -54,6 +54,7 @@ public sealed class PollOptionVm : INotifyPropertyChanged
     public void Refresh()
     {
         OnPropertyChanged(nameof(Votes));
+        OnPropertyChanged(nameof(Percent));
         OnPropertyChanged(nameof(PercentText));
         OnPropertyChanged(nameof(IsSelected));
     }
