@@ -3987,5 +3987,29 @@ public partial class ChatView : ContentView
             ShowHint(ex.Message, isError: true);
         }
     }
+
+    private async void OnQuickRepliesClicked(object? sender, EventArgs e)
+    {
+        var page = HostPage;
+        if (page is null) return;
+
+        var items = await AppServices.Get<QuickRepliesService>().GetAllAsync();
+        var options = items.Count == 0
+            ? new[] { "Управление быстрыми ответами" }
+            : items.Concat(new[] { "Управление быстрыми ответами" }).ToArray();
+        var choice = await page.DisplayActionSheet("Быстрый ответ", "Отмена", null, options);
+        if (string.IsNullOrEmpty(choice) || choice == "Отмена") return;
+
+        if (choice == "Управление быстрыми ответами")
+        {
+            await page.Navigation.PushAsync(new QuickRepliesPage());
+            return;
+        }
+
+        var text = MessageEntry.Text ?? string.Empty;
+        MessageEntry.Text = string.IsNullOrEmpty(text) ? choice : text + " " + choice;
+        MessageEntry.CursorPosition = MessageEntry.Text.Length;
+        MessageEntry.Focus();
+    }
 }
 

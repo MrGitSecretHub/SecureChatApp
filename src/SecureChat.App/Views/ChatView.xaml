@@ -1342,6 +1342,12 @@
                                     VerticalOptions="End"
                                     Clicked="OnCreatePollClicked"
                                     ToolTipProperties.Text="Опрос" />
+                            <Button x:Name="QuickRepliesButton"
+                                    Text="⚡"
+                                    Style="{DynamicResource IconButton}"
+                                    VerticalOptions="End"
+                                    Clicked="OnQuickRepliesClicked"
+                                    ToolTipProperties.Text="Быстрые ответы" />
                             <Button x:Name="EmojiButton"
                                     Text="😊"
                                     Style="{DynamicResource IconButton}"

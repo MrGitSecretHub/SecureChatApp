@@ -13,6 +13,7 @@ public static class MauiProgram
         builder.UseMauiApp<App>();
 
         builder.Services.AddSingleton<SecretStore>();
+        builder.Services.AddSingleton<QuickRepliesService>();
         builder.Services.AddSingleton<LocalizationService>();
         builder.Services.AddSingleton<SessionStore>();
         builder.Services.AddSingleton<NotificationService>();
