@@ -1,4 +1,3 @@
-using System.Text;
 using SecureChat.App.Services;
 
 namespace SecureChat.App.Pages;
@@ -6,12 +5,11 @@ namespace SecureChat.App.Pages;
 /// <summary>Просмотр истории с прогрессом 24 часа.</summary>
 public sealed class StoryViewerPage : ContentPage
 {
-    private readonly LocalStore _store = AppServices.Get<LocalStore>();
-    private readonly StoredStory _story;
+    private readonly StoryItem _story;
     private readonly ProgressBar _progress = new() { ProgressColor = Colors.White };
     private CancellationTokenSource? _cts;
 
-    public StoryViewerPage(StoredStory story)
+    public StoryViewerPage(StoryItem story)
     {
         _story = story;
         BackgroundColor = Colors.Black;
@@ -27,30 +25,22 @@ public sealed class StoryViewerPage : ContentPage
 
         var caption = new Label
         {
-            Text = story.Text,
+            Text = $"{story.OwnerUsername}\n{story.Text}",
             TextColor = Colors.White,
             FontSize = 18,
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(16)
         };
 
-        var delete = new Button { Text = "Удалить историю", TextColor = Colors.White };
-        delete.Clicked += async (_, _) =>
-        {
-            await _store.RemoveStoryAsync(_story.Id);
-            await Navigation.PopAsync();
-        };
-
         Content = new Grid
         {
             RowDefinitions = new RowDefinitionCollection { new(GridLength.Auto), new(), new(GridLength.Auto), new(GridLength.Auto) },
             Padding = new Thickness(8, 30),
-            Children = { image, caption, _progress, delete, close }
+            Children = { image, caption, _progress, close }
         };
         Grid.SetRow(image, 1);
         Grid.SetRow(caption, 2);
         Grid.SetRow(_progress, 3);
-        Grid.SetRow(delete, 3);
         Grid.SetRow(close, 0);
     }
 

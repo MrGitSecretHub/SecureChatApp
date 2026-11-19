@@ -2,11 +2,12 @@ using SecureChat.App.Services;
 
 namespace SecureChat.App.Pages;
 
-/// <summary>Создание истории: текст и/или изображение, живёт 24 часа.</summary>
+/// <summary>Публикация истории: текст и/или фото, видимость — все или контакты.</summary>
 public sealed class StoryCreatePage : ContentPage
 {
-    private readonly LocalStore _store = AppServices.Get<LocalStore>();
+    private readonly StoryService _stories = AppServices.Get<StoryService>();
     private readonly Entry _text = new() { Placeholder = "Подпись истории" };
+    private readonly CheckBox _contactsOnly = new() { IsChecked = true };
     private string _image = string.Empty;
 
     public StoryCreatePage()
@@ -26,6 +27,11 @@ public sealed class StoryCreatePage : ContentPage
                 new Label { Text = "История будет доступна 24 часа", FontSize = 12, TextColor = Colors.Gray },
                 _text,
                 pick,
+                new HorizontalStackLayout
+                {
+                    Spacing = 8,
+                    Children = { _contactsOnly, new Label { Text = "Только контакты", VerticalOptions = LayoutOptions.Center } }
+                },
                 publish
             }
         };
@@ -53,7 +59,14 @@ public sealed class StoryCreatePage : ContentPage
             await DisplayAlert("История", "Добавьте текст или фото.", "OK");
             return;
         }
-        await _store.AddStoryAsync(text, _image);
-        await Navigation.PopAsync();
+        try
+        {
+            await _stories.PublishAsync(text, _image, _contactsOnly.IsChecked);
+            await Navigation.PopAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
     }
 }

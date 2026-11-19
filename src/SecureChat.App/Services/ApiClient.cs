@@ -197,6 +197,48 @@ public sealed class ApiException : Exception
         return await ReadAsync<UserProfileDto>(response, cancellationToken);
     }
 
+
+    public async Task<IReadOnlyList<UserProfileDto>> ListUsersAsync(
+        string serverUrl,
+        string token,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, BuildUri(serverUrl, "api/users"));
+        request.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        return await ReadAsync<IReadOnlyList<UserProfileDto>>(response, cancellationToken);
+    }
+
+    public async Task PublishStoryAsync(
+        string serverUrl,
+        string token,
+        StoryPublishRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(
+            HttpMethod.Post,
+            BuildUri(serverUrl, "api/stories"))
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using var response = await _http.SendAsync(message, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<StoryDto>> GetStoriesAsync(
+        string serverUrl,
+        string token,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, BuildUri(serverUrl, "api/stories"));
+        request.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        return await ReadAsync<IReadOnlyList<StoryDto>>(response, cancellationToken);
+    }
     public async Task<DateTimeOffset?> GetServerTimeAsync(        string serverUrl,
         CancellationToken cancellationToken = default)
     {

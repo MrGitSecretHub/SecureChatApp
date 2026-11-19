@@ -262,6 +262,18 @@ public sealed class ChatRepository
         }
     }
 
+    public async Task<IReadOnlyList<UserRecord>> ListUsersAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT Id, Username, Email, AuthHash, AuthSalt, EncryptionPublicKey, SigningPublicKey, CreatedAt FROM Users ORDER BY Username";
+        var result = new List<UserRecord>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken)) result.Add(MapUser(reader));
+        return result;
+    }
+
     public async Task<UserRecord?> GetUserByUsernameAsync(
         string username,
         CancellationToken cancellationToken = default)

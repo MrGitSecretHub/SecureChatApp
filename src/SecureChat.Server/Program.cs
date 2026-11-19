@@ -31,6 +31,7 @@ builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddSingleton<PasswordHasher>();
 builder.Services.AddSingleton<ChatRepository>();
 builder.Services.AddSingleton<SpaceRepository>();
+builder.Services.AddSingleton<StoryRepository>();
 builder.Services.AddSingleton<EnvelopeRouter>();
 builder.Services.AddSingleton<PresenceTracker>();
 builder.Services.AddHostedService<TcpChatServer>();
@@ -168,6 +169,7 @@ app.MapHub<ChatHub>("/hubs/chat");
 
 await app.Services.GetRequiredService<ChatRepository>().InitializeAsync();
 await app.Services.GetRequiredService<SpaceRepository>().InitializeAsync();
+await app.Services.GetRequiredService<StoryRepository>().InitializeAsync();
 
 app.Logger.LogInformation(
     "SecureChat server запущен. JWT issuer={Issuer}, audience={Audience}",

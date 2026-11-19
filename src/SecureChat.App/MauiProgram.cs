@@ -14,6 +14,7 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<SecretStore>();
         builder.Services.AddSingleton<QuickRepliesService>();
+        builder.Services.AddSingleton<StoryService>();
         builder.Services.AddSingleton<LocalizationService>();
         builder.Services.AddSingleton<SessionStore>();
         builder.Services.AddSingleton<NotificationService>();
