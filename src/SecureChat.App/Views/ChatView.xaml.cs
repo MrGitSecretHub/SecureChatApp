@@ -631,6 +631,13 @@ public partial class ChatView : ContentView
         }
 
         _allPollVotes.Clear();
+        try
+        {
+            var dbg = string.Join("\n", _conversation.Messages.OrderBy(m => m.SentAtUnixMs)
+                .Select(m => $"{m.Kind}|len={m.Text?.Length}|{(m.Text ?? "").Substring(0, Math.Min(40, m.Text?.Length ?? 0))}"));
+            System.IO.File.WriteAllText(@"C:\Users\Administrator\AppData\Local\Temp\opencode\bubbles_debug.txt", dbg);
+        }
+        catch { }
         foreach (var stored in _conversation.Messages.OrderBy(item => item.SentAtUnixMs))
         {
             var vm = CreateMessageVm(stored, _username);

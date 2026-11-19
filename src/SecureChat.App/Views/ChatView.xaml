@@ -674,6 +674,11 @@
                                                     </Grid>
                                                 </VerticalStackLayout>
 
+                                        <!-- Опрос: отдельная область без жестов пузыря, чтобы кнопки работали -->
+                                        <VerticalStackLayout Spacing="6" IsVisible="{Binding HasPoll}"
+                                                             Padding="10">
+                                            <views:PollView Poll="{Binding Poll}" />
+                                        </VerticalStackLayout>
                                             </Border>
                                             <Grid IsVisible="{Binding IsImageReady}">
                                                 <views:GifWebView IsVisible="{Binding IsAnimatedGif}"
@@ -1034,12 +1039,6 @@
                                                    IsVisible="{Binding IsMine}" />
                                         </HorizontalStackLayout>
                                     </VerticalStackLayout>
-
-                                        <!-- Опрос: отдельная область без жестов пузыря, чтобы кнопки работали -->
-                                        <VerticalStackLayout Spacing="6" IsVisible="{Binding HasPoll}"
-                                                             Padding="10">
-                                            <views:PollView Poll="{Binding Poll}" />
-                                        </VerticalStackLayout>
                                 </Border>
                             </Grid>
                         </VerticalStackLayout>
