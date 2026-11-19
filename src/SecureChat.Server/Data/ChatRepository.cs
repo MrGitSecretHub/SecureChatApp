@@ -267,7 +267,14 @@ public sealed class ChatRepository
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT Id, Username, Email, AuthHash, AuthSalt, EncryptionPublicKey, SigningPublicKey, CreatedAt FROM Users ORDER BY Username";
+        command.CommandText = """
+            SELECT Id, Username, Email, AuthHash, AuthSalt,
+                   EncryptionPublicKey, SigningPublicKey, CreatedAt,
+                   Nickname, Bio, AvatarBase64, StatusMessage, LastSeenUnixMs,
+                   IsAdmin
+            FROM Users
+            ORDER BY Username;
+            """;
         var result = new List<UserRecord>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken)) result.Add(MapUser(reader));
