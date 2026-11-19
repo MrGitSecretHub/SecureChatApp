@@ -455,7 +455,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
     public bool IsImageReady => ImageSource is not null;
     public bool IsImagePending => IsImage && ImageSource is null;
-    public bool HasText => !string.IsNullOrEmpty(Text);
+    public bool HasText => !string.IsNullOrEmpty(Text) && Poll is null;
 
     /// <summary>Текст с подсветкой упоминаний (для Label FormattedText); null — обычный текст.</summary>
     public FormattedString? TextFormatted => _textFormatted;
@@ -618,6 +618,18 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasReactions));
     }
 
+    private static PollData? TryParsePollJson(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text) || text[0] != '{' ||
+            !text.Contains("\"Question\"", StringComparison.Ordinal) ||
+            !text.Contains("\"Options\"", StringComparison.Ordinal))
+        {
+            return null;
+        }
+        try { return JsonSerializer.Deserialize<PollData>(text); }
+        catch (JsonException) { return null; }
+    }
+
     public static SpaceMessageVm From(
         SpaceMessageDto source,
         SpaceMessagePayload payload,
@@ -669,6 +681,16 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
         vm.SenderNameColor = ResolveSenderNameColor(mine);
         vm._text = payload.Text;
+
+        var pollData = payload.Kind == SecureChat.Core.Contracts.MessageKinds.Poll
+            ? payload.Poll ?? TryParsePollJson(payload.Text)
+            : TryParsePollJson(payload.Text);
+        if (pollData is not null && pollData.Options.Count > 0)
+        {
+            var vmForVote = vm;
+            vm.Poll = new PollVm(pollData.Id, pollData.Question, pollData.Options,
+                index => vm.PollVoteRequested?.Invoke(vmForVote, index));
+        }
         vm._isEdited = source.EditedAtUnixMs > 0;
         vm._isPinned = source.IsPinned;
         vm._canModerate = canModerate;

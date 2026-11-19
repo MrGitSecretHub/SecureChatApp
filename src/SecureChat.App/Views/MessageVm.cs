@@ -56,23 +56,29 @@ public sealed class MessageVm : INotifyPropertyChanged
         IsMine = message.IsMine;
         SentAtUnixMs = message.SentAtUnixMs;
         IsOnce = message.IsOnce;
-        if (Kind == MessageKinds.Poll)
+        var pollData = Kind == MessageKinds.Poll
+            ? TryParsePoll(message.Text, strict: true)
+            : TryParsePoll(message.Text, strict: false);
+        if (pollData is not null && pollData.Options.Count > 0)
         {
-            try
-            {
-                var poll = JsonSerializer.Deserialize<PollData>(message.Text);
-                if (poll is not null && poll.Options.Count > 0)
-                {
-                    Poll = new PollVm(poll.Id, poll.Question, poll.Options,
-                        index => PollVoteRequested?.Invoke(this, index));
-                }
-            }
-            catch (JsonException)
-            {
-                // некорректный опрос — показываем как обычное сообщение
-            }
+            Poll = new PollVm(pollData.Id, pollData.Question, pollData.Options,
+                index => PollVoteRequested?.Invoke(this, index));
         }
         Update(message, ownName, peerName);
+    }
+
+    /// <summary>Разбор опроса: строгий для Kind=poll, эвристический для утерянного Kind.</summary>
+    private static PollData? TryParsePoll(string? text, bool strict)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        if (!strict && (text[0] != '{' ||
+            !text.Contains("\"Question\"", StringComparison.Ordinal) ||
+            !text.Contains("\"Options\"", StringComparison.Ordinal)))
+        {
+            return null;
+        }
+        try { return JsonSerializer.Deserialize<PollData>(text); }
+        catch (JsonException) { return null; }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -357,7 +363,7 @@ public sealed class MessageVm : INotifyPropertyChanged
          ((long)data[index + 3] << 32) | ((long)data[index + 4] << 24) | ((long)data[index + 5] << 16) |
          ((long)data[index + 6] << 8) | data[index + 7]) & 0x7FFFFFFFFFFFFFFF;
 
-    public bool ShowText => Kind == MessageKinds.Text;
+    public bool ShowText => Kind == MessageKinds.Text && Poll is null;
     public bool CanOpenFile => IsFile;
 
     public string Text
