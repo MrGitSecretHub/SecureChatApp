@@ -39,6 +39,7 @@ public partial class ChatView : ContentView
     private readonly LinkPreviewService _previewService = AppServices.Get<LinkPreviewService>();
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<MessageVm> _messages = new();
+    private readonly List<MessageVm> _allPollVotes = new();
     private readonly ObservableCollection<MediaListItemVm> _mediaItems = new();
     private readonly ObservableCollection<MessageVm> _pinnedItems = new();
 
@@ -629,9 +630,16 @@ public partial class ChatView : ContentView
             return;
         }
 
+        _allPollVotes.Clear();
         foreach (var stored in _conversation.Messages.OrderBy(item => item.SentAtUnixMs))
         {
-            _messages.Add(CreateMessageVm(stored, _username));
+            var vm = CreateMessageVm(stored, _username);
+            if (stored.Kind == MessageKinds.PollVote)
+            {
+                _allPollVotes.Add(vm);
+                continue;
+            }
+            _messages.Add(vm);
         }
 
         ApplyPollVotes();
@@ -945,6 +953,12 @@ public partial class ChatView : ContentView
             }
 
             var created = CreateMessageVm(message, peer);
+            if (message.Kind == MessageKinds.PollVote)
+            {
+                _allPollVotes.Add(created);
+                ApplyPollVotes();
+                return;
+            }
             InsertSorted(created);
             RefreshDerived();
             ScrollToBottom();
@@ -3941,7 +3955,7 @@ public partial class ChatView : ContentView
     {
         var polls = _messages.Where(m => m.Poll is not null)
             .ToDictionary(m => m.Poll!.Id, m => m.Poll!);
-        foreach (var vote in _messages.Where(m => m.Kind == MessageKinds.PollVote))
+        foreach (var vote in _allPollVotes)
         {
             try
             {
