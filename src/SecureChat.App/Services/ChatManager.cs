@@ -323,7 +323,7 @@ public sealed class ChatManager
                 }
 
                 var message = item.Message;
-                if (message.Kind != MessageKinds.Text && message.Kind != MessageKinds.Sticker)
+                if (!IsTextLike(message.Kind))
                 {
                     try
                     {
@@ -446,7 +446,7 @@ public sealed class ChatManager
             IsOnce = message.IsOnce
         };
 
-        if (message.Kind != MessageKinds.Text && message.Kind != MessageKinds.Sticker)
+        if (!IsTextLike(message.Kind))
         {
             payload.Media = new MediaAttachment
             {
@@ -1308,7 +1308,7 @@ public sealed class ChatManager
                     ?? LocalStore.ReadReactions(message.ReactionsJson)
             };
 
-            if (message.Kind != MessageKinds.Text && message.Kind != MessageKinds.Sticker)
+            if (!IsTextLike(message.Kind))
             {
                 payload.Media = new MediaAttachment
                 {
@@ -1661,6 +1661,11 @@ public sealed class ChatManager
         }
     }
 
+    /// <summary>Виды сообщений без медиа-вложения.</summary>
+    private static bool IsTextLike(string kind) =>
+        kind is MessageKinds.Text or MessageKinds.Sticker or
+               MessageKinds.Poll or MessageKinds.PollVote;
+
     private static bool IsValidMedia(MediaAttachment media)
     {
         if (!Guid.TryParse(media.Id, out _) ||
@@ -1867,6 +1872,8 @@ public sealed class ChatManager
                 MessageKinds.Voice => MessageKinds.Voice,
                 MessageKinds.VideoCircle => MessageKinds.VideoCircle,
                 MessageKinds.Sticker => MessageKinds.Sticker,
+                MessageKinds.Poll => MessageKinds.Poll,
+                MessageKinds.PollVote => MessageKinds.PollVote,
                 _ => MessageKinds.Text
             };
 
@@ -1894,7 +1901,7 @@ public sealed class ChatManager
             var message = new StoredMessage
             {
                 Id = envelope.Id,
-                Text = kind == MessageKinds.Text || kind == MessageKinds.Sticker
+                Text = IsTextLike(kind)
                     ? payload.Text
                     : BuildMediaPreview(kind, media!.FileName),
                 SentAtUnixMs = envelope.SentAtUnixMs,
