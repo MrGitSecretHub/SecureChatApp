@@ -1,3 +1,4 @@
+using SecureChat.App.Pages;
 using System;
 using System.Collections.ObjectModel;
 using System.Threading;
@@ -29,6 +30,7 @@ public partial class ChatsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await RefreshStoriesAsync();
 
         if (!_subscribed)
         {
@@ -420,4 +422,37 @@ public partial class ChatsPage : ContentPage
             // Новая подсказка заменила предыдущую.
         }
     }
+
+    private async Task RefreshStoriesAsync()
+    {
+        if (StoriesStrip is null) return;
+        StoriesStrip.Clear();
+        var add = new Button
+        {
+            Text = "＋",
+            WidthRequest = 44,
+            HeightRequest = 44,
+            CornerRadius = 22,
+            BackgroundColor = (Color?)Application.Current?.Resources["SurfaceAlt"] ?? Colors.Gray,
+            TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White
+        };
+        add.Clicked += async (_, _) => await Navigation.PushAsync(new StoryCreatePage());
+        StoriesStrip.Add(add);
+
+        foreach (var story in await AppServices.Get<LocalStore>().GetActiveStoriesAsync())
+        {
+            var avatar = new Button
+            {
+                Text = string.IsNullOrEmpty(story.Text) ? "◉" : story.Text[..1].ToUpperInvariant(),
+                WidthRequest = 44,
+                HeightRequest = 44,
+                CornerRadius = 22,
+                BackgroundColor = (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue,
+                TextColor = Colors.White
+            };
+            avatar.Clicked += async (_, _) => await Navigation.PushAsync(new StoryViewerPage(story));
+            StoriesStrip.Add(avatar);
+        }
+    }
+
 }

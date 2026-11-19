@@ -111,6 +111,20 @@ public sealed class LocalState
 
     /// <summary>Отложенные посты пространств (уже зашифрованные, ждут своего времени).</summary>
     public List<ScheduledSpacePost> ScheduledSpacePosts { get; set; } = new();
+
+    /// <summary>Истории (24 часа).</summary>
+    public List<StoredStory> Stories { get; set; } = new();
+}
+
+/// <summary>История: текстовый/медиа-пост, доступный 24 часа.</summary>
+public sealed class StoredStory
+{
+    public string Id { get; set; } = string.Empty;
+    public string OwnerUsername { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+    public string ImageBase64 { get; set; } = string.Empty;
+    public long CreatedAtUnixMs { get; set; }
+    public long ExpiresAtUnixMs => CreatedAtUnixMs + 24L * 60 * 60 * 1000;
 }
 
 /// <summary>Пользовательский пак: набор файлов (GIF или стикеры) на устройстве.</summary>
@@ -2239,6 +2253,50 @@ public sealed class LocalStore
         AlbumIndex = source.AlbumIndex,
         AlbumCount = source.AlbumCount
     };
+
+    public async Task AddStoryAsync(string text, string imageBase64)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            _state!.Stories.RemoveAll(s => s.ExpiresAtUnixMs <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            _state.Stories.Insert(0, new StoredStory
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                OwnerUsername = _owner ?? string.Empty,
+                Text = text.Trim(),
+                ImageBase64 = imageBase64,
+                CreatedAtUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
+            await SaveAsync();
+        }
+        finally { _lock.Release(); }
+    }
+
+    public async Task<IReadOnlyList<StoredStory>> GetActiveStoriesAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            return _state!.Stories.Where(s => s.ExpiresAtUnixMs > now).ToList();
+        }
+        finally { _lock.Release(); }
+    }
+
+    public async Task RemoveStoryAsync(string id)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            _state!.Stories.RemoveAll(s => s.Id == id);
+            await SaveAsync();
+        }
+        finally { _lock.Release(); }
+    }
 
     /// <summary>Подпись сообщения в списке чатов: для опросов — читаемый текст, не JSON.</summary>
     private static string PreviewFor(StoredMessage message)

@@ -13,7 +13,7 @@
               RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
 
             <!-- Шапка приложения -->
-            <Grid Grid.Row="0"
+            <Grid RowDefinitions="Auto,Auto" Grid.Row="0"
                   ColumnDefinitions="Auto,*,Auto"
                   ColumnSpacing="10"
                   Padding="12,14,8,8">
@@ -73,7 +73,13 @@
                             MinimumHeightRequest="28"
                             Clicked="OnSearchUsersClicked"
                             ToolTipProperties.Text="{DynamicResource s_ui_123}" />
-                </Grid>
+                
+        <Grid Grid.Row="1" Grid.ColumnSpan="3" Margin="0,6,0,0">
+            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout x:Name="StoriesStrip" Spacing="8" />
+            </ScrollView>
+        </Grid>
+</Grid>
             </Grid>
 
             <!-- Карточка профиля (клик открывает профиль и настройки) -->

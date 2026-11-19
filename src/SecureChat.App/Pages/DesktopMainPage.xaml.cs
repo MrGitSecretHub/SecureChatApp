@@ -1,3 +1,4 @@
+using SecureChat.App.Pages;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -83,6 +84,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await RefreshStoriesAsync();
 
         _pageVisible = true;
         UpdateHeader();
@@ -1006,4 +1008,37 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
             throw new NotSupportedException();
     }
+
+    private async Task RefreshStoriesAsync()
+    {
+        if (StoriesStrip is null) return;
+        StoriesStrip.Clear();
+        var add = new Button
+        {
+            Text = "＋",
+            WidthRequest = 44,
+            HeightRequest = 44,
+            CornerRadius = 22,
+            BackgroundColor = (Color?)Application.Current?.Resources["SurfaceAlt"] ?? Colors.Gray,
+            TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White
+        };
+        add.Clicked += async (_, _) => await Navigation.PushAsync(new StoryCreatePage());
+        StoriesStrip.Add(add);
+
+        foreach (var story in await AppServices.Get<LocalStore>().GetActiveStoriesAsync())
+        {
+            var avatar = new Button
+            {
+                Text = string.IsNullOrEmpty(story.Text) ? "◉" : story.Text[..1].ToUpperInvariant(),
+                WidthRequest = 44,
+                HeightRequest = 44,
+                CornerRadius = 22,
+                BackgroundColor = (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue,
+                TextColor = Colors.White
+            };
+            avatar.Clicked += async (_, _) => await Navigation.PushAsync(new StoryViewerPage(story));
+            StoriesStrip.Add(avatar);
+        }
+    }
+
 }
