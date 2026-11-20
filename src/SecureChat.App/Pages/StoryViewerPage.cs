@@ -2,38 +2,41 @@ using SecureChat.App.Services;
 
 namespace SecureChat.App.Pages;
 
-/// <summary>Просмотр историй: 5 секунд на историю, просмотры, удаление своей.</summary>
+/// <summary>Полноэкранный просмотр историй с сегментированным прогрессом.</summary>
 public sealed class StoryViewerPage : ContentPage
 {
     private readonly StoryService _stories = AppServices.Get<StoryService>();
     private readonly List<StoryItem> _items;
-    private readonly Image _image = new() { Aspect = Aspect.AspectFit, VerticalOptions = LayoutOptions.FillAndExpand };
+    private readonly Grid _segments = new() { ColumnSpacing = 3, HeightRequest = 3, Margin = new Thickness(10, 8, 10, 0) };
+    private readonly Image _image = new() { Aspect = Aspect.AspectFill, VerticalOptions = LayoutOptions.FillAndExpand, HorizontalOptions = LayoutOptions.FillAndExpand };
+    private readonly Label _name = new() { TextColor = Colors.White, FontAttributes = FontAttributes.Bold, FontSize = 13 };
+    private readonly Label _time = new() { TextColor = Color.FromArgb("#CCFFFFFF"), FontSize = 11 };
     private readonly Label _caption = new()
     {
         TextColor = Colors.White,
-        FontSize = 18,
+        FontSize = 14,
         HorizontalTextAlignment = TextAlignment.Center,
-        Margin = new Thickness(16)
+        LineBreakMode = LineBreakMode.WordWrap,
+        Margin = new Thickness(12, 6),
+        BackgroundColor = Color.FromArgb("#99000000"),
+        Padding = new Thickness(10, 6)
     };
-    private readonly Label _meta = new()
-    {
-        TextColor = Colors.LightGray,
-        FontSize = 12,
-        HorizontalTextAlignment = TextAlignment.Center
-    };
-    private readonly ProgressBar _progress = new() { ProgressColor = Colors.White };
     private readonly Button _views = new()
     {
         TextColor = Colors.White,
-        BackgroundColor = Color.FromArgb("#33FFFFFF"),
-        FontSize = 13
+        BackgroundColor = Color.FromArgb("#55FFFFFF"),
+        FontSize = 11,
+        HeightRequest = 28,
+        Padding = new Thickness(8, 0)
     };
     private readonly Button _delete = new()
     {
         Text = Loc.T("stories_delete", "Удалить историю"),
         TextColor = Colors.White,
-        BackgroundColor = Color.FromArgb("#33FFFFFF"),
-        FontSize = 13,
+        BackgroundColor = Color.FromArgb("#55FFFFFF"),
+        FontSize = 11,
+        HeightRequest = 28,
+        Padding = new Thickness(8, 0),
         IsVisible = false
     };
     private CancellationTokenSource? _cts;
@@ -46,80 +49,137 @@ public sealed class StoryViewerPage : ContentPage
         _items = items.ToList();
         _index = Math.Clamp(startIndex, 0, _items.Count - 1);
         BackgroundColor = Colors.Black;
+        Shell.SetNavBarIsVisible(this, false);
+        NavigationPage.SetHasNavigationBar(this, false);
 
         var close = new Button
         {
             Text = "✕",
             TextColor = Colors.White,
             BackgroundColor = Colors.Transparent,
-            HorizontalOptions = LayoutOptions.End,
-            WidthRequest = 48
+            FontSize = 18,
+            WidthRequest = 40,
+            HeightRequest = 40,
+            Padding = 0
         };
         close.Clicked += async (_, _) => await Navigation.PopAsync();
-        _views.Clicked += OnViewsClicked;
-        _delete.Clicked += OnDeleteClicked;
+
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitionCollection { new(), new(GridLength.Auto) }, Padding = new Thickness(10, 0) };
+        header.Add(new HorizontalStackLayout { Spacing = 8, VerticalOptions = LayoutOptions.Center, Children = { _name, _time } }, 0, 0);
+        header.Add(close, 1, 0);
+
+        var prev = new BoxView { Color = Colors.Transparent, HorizontalOptions = LayoutOptions.FillAndExpand };
+        var next = new BoxView { Color = Colors.Transparent, HorizontalOptions = LayoutOptions.FillAndExpand };
+        prev.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => Previous()) });
+        next.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => Next()) });
+        var taps = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection { new(), new() },
+            InputTransparent = false,
+            BackgroundColor = Colors.Transparent
+        };
+        taps.Add(prev, 0, 0);
+        taps.Add(next, 1, 0);
 
         var actions = new HorizontalStackLayout
         {
-            Spacing = 8,
+            Spacing = 6,
             HorizontalOptions = LayoutOptions.Center,
+            Margin = new Thickness(0, 0, 0, 6),
             Children = { _views, _delete }
         };
+        _views.Clicked += OnViewsClicked;
+        _delete.Clicked += OnDeleteClicked;
 
-        Content = new Grid
+        var overlay = new Grid
         {
-            RowDefinitions = new RowDefinitionCollection
-            {
-                new(GridLength.Auto), new(), new(GridLength.Auto),
-                new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Auto)
-            },
-            Padding = new Thickness(8, 30),
-            Children = { _image, _caption, _meta, _progress, actions, close }
+            RowDefinitions = new RowDefinitionCollection { new(GridLength.Auto), new(), new(GridLength.Auto), new(GridLength.Auto) },
+            InputTransparent = true
         };
-        Grid.SetRow(_image, 1);
-        Grid.SetRow(_caption, 2);
-        Grid.SetRow(_meta, 3);
-        Grid.SetRow(_progress, 4);
-        Grid.SetRow(actions, 5);
-        Grid.SetRow(close, 0);
+        overlay.Add(_segments, 0, 0);
+        overlay.Add(new Grid { Children = { header } }, 1, 0);
+        overlay.Add(new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.End, Children = { _caption, actions } }, 2, 0);
+        // тап-зоны поверх медиа, но под кнопками
+        var root = new Grid
+        {
+            RowDefinitions = new RowDefinitionCollection { new(), new(GridLength.Auto) }
+        };
+        root.Add(_image, 0, 0);
+        root.Add(taps, 0, 0);
+        root.Add(overlay, 0, 0);
+        root.Add(new BoxView { Color = Color.FromArgb("#66000000"), VerticalOptions = LayoutOptions.End, HeightRequest = 90 }, 1, 0);
+        Content = root;
         ShowCurrent();
+    }
+
+    private void BuildSegments()
+    {
+        _segments.Clear();
+        for (var i = 0; i < _items.Count; i++)
+        {
+            var segment = new BoxView
+            {
+                Color = i < _index ? Colors.White : Color.FromArgb("#66FFFFFF"),
+                HorizontalOptions = LayoutOptions.FillAndExpand,
+                HeightRequest = 3
+            };
+            _segments.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            _segments.Add(segment, i, 0);
+        }
     }
 
     private void ShowCurrent()
     {
         if (_items.Count == 0) return;
         var story = _items[_index];
-        _caption.Text = string.IsNullOrEmpty(story.Text)
-            ? story.OwnerUsername
-            : $"{story.OwnerUsername}\n{story.Text}";
+        _name.Text = story.IsMine ? Loc.T("stories_my", "Мои истории") : story.OwnerUsername;
+        var date = DateTimeOffset.FromUnixTimeMilliseconds(story.CreatedAtUnixMs).ToLocalTime();
+        _time.Text = date.ToString("dd.MM HH:mm");
+        _caption.Text = story.Text;
+        _caption.IsVisible = !string.IsNullOrWhiteSpace(story.Text);
         _image.Source = null;
         if (!string.IsNullOrEmpty(story.ImageBase64))
         {
-            try
-            {
-                _image.Source = ImageSource.FromStream(() =>
-                    new MemoryStream(Convert.FromBase64String(story.ImageBase64)));
-            }
-            catch (FormatException) { }
+            try { _image.Source = ImageSource.FromStream(() => new MemoryStream(Convert.FromBase64String(story.ImageBase64))); }
+            catch (FormatException) { _image.BackgroundColor = Colors.Black; }
         }
-        _meta.Text = $"{story.CreatedAtUnixMs:dd.MM HH:mm} · {story.ViewCount} 👁";
-        _views.Text = Loc.T("stories_views", "Просмотры") + $" · {story.ViewCount}";
+        _views.Text = $"👁 {story.ViewCount}";
         _delete.IsVisible = story.IsMine;
-        _progress.Progress = 0;
-        _ = _stories.MarkViewedAsync(story.Id);
-        story.ViewedByMe = true;
-        story.ViewCount = Math.Max(story.ViewCount, 1);
-        _meta.Text = $"{story.CreatedAtUnixMs:dd.MM HH:mm} · {story.ViewCount} 👁";
+        BuildSegments();
+        if (!story.ViewedByMe)
+        {
+            _ = _stories.MarkViewedAsync(story.Id);
+            story.ViewedByMe = true;
+        }
+    }
+
+    private void Previous()
+    {
+        if (_index <= 0) return;
+        _index--;
+        ShowCurrent();
+        RestartTimer();
+    }
+
+    private void Next()
+    {
+        if (_index < _items.Count - 1)
+        {
+            _index++;
+            ShowCurrent();
+            RestartTimer();
+        }
+        else
+        {
+            Dispatcher.Dispatch(async () => await Navigation.PopAsync());
+        }
     }
 
     private async void OnViewsClicked(object? sender, EventArgs e)
     {
-        var story = _items[_index];
-        var viewers = await _stories.GetViewersAsync(story.Id);
-        var title = viewers.Count == 0
-            ? Loc.T("stories_no_viewers", "Пока никто")
-            : Loc.T("stories_viewers", "Просмотрели") + $" ({viewers.Count})";
-        await DisplayAlert(title,
+        var viewers = await _stories.GetViewersAsync(_items[_index].Id);
+        await DisplayAlert(
+            viewers.Count == 0 ? Loc.T("stories_no_viewers", "Пока никто") : Loc.T("stories_viewers", "Просмотрели"),
             viewers.Count == 0 ? string.Empty : string.Join("\n", viewers),
             Loc.T("stories_close", "Закрыть"));
     }
@@ -150,8 +210,7 @@ public sealed class StoryViewerPage : ContentPage
     {
         _cts?.Cancel();
         _cts = new CancellationTokenSource();
-        var token = _cts.Token;
-        _ = RunTimerAsync(token);
+        _ = RunTimerAsync(_cts.Token);
     }
 
     private async Task RunTimerAsync(CancellationToken token)
@@ -162,21 +221,14 @@ public sealed class StoryViewerPage : ContentPage
             for (var i = 1; i <= seconds; i++)
             {
                 await Task.Delay(1000, token);
-                MainThread.BeginInvokeOnMainThread(() => _progress.Progress = (float)i / seconds);
+                var idx = i - 1;
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (idx < _segments.Children.Count && _segments.Children[idx] is BoxView box)
+                        box.Color = Colors.White;
+                });
             }
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                if (_index < _items.Count - 1)
-                {
-                    _index++;
-                    ShowCurrent();
-                    RestartTimer();
-                }
-                else
-                {
-                    await Navigation.PopAsync();
-                }
-            });
+            MainThread.BeginInvokeOnMainThread(Next);
         }
         catch (TaskCanceledException) { }
     }

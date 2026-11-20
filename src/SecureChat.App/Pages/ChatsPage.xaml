@@ -3,19 +3,21 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.ChatsPage"
              Title="{DynamicResource s_chats_title}">
-    <Grid Padding="16" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" RowSpacing="12">
+    <Grid Padding="8" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" RowSpacing="6">
 
         <!-- Шапка -->
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <VerticalStackLayout Spacing="2">
                 <Label Text="{DynamicResource s_ui_030}"
-                       Style="{DynamicResource H1}" />
+                       Style="{DynamicResource Caption}" />
                 <Label Text="{DynamicResource s_ui_148}"
                        Style="{DynamicResource Caption}" />
             </VerticalStackLayout>
             <Button Grid.Column="1"
                     Text="＋"
                     Style="{DynamicResource IconButtonActive}"
+                    WidthRequest="30"
+                    HeightRequest="30"
                     VerticalOptions="Center"
                     Clicked="OnAddContactClicked"
                     ToolTipProperties.Text="{DynamicResource s_ui_032}" />
@@ -32,14 +34,16 @@
         <!-- Поиск по сообщениям -->
         <SearchBar Grid.Row="2"
                    x:Name="MessageSearchEntry"
+                   HeightRequest="36"
+                   FontSize="13"
                    Placeholder="{DynamicResource s_ui_118}"
                    SearchButtonPressed="OnSearchMessagesPressed" />
 
         <!-- Вкладки списка, как папки в Telegram -->
         <ScrollView Grid.Row="4"
                     Orientation="Horizontal"
-                    HeightRequest="36"
-                    Margin="0,2,0,0">
+                    HeightRequest="30"
+                    Margin="0">
             <HorizontalStackLayout Spacing="6">
                 <Button x:Name="FolderAllButton"
                         Text="{DynamicResource s_chats_all}"
@@ -90,17 +94,17 @@
         <Grid Grid.Row="3" ColumnDefinitions="Auto,*" ColumnSpacing="8">
             <Button x:Name="StoriesAddButton"
                     Text="＋"
-                    WidthRequest="48"
-                    HeightRequest="48"
-                    CornerRadius="24"
-                    FontSize="20"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    CornerRadius="20"
+                    FontSize="17"
                     BackgroundColor="{DynamicResource SurfaceAlt}"
                     TextColor="{DynamicResource Accent}"
                     VerticalOptions="Center"
                     Clicked="OnStoriesAddClicked" />
             <ScrollView Grid.Column="1" Orientation="Horizontal"
                         HorizontalScrollBarVisibility="Never">
-                <HorizontalStackLayout x:Name="ChatsStoriesStrip" Spacing="10" VerticalOptions="Center" />
+                <HorizontalStackLayout x:Name="ChatsStoriesStrip" Spacing="6" VerticalOptions="Center" />
             </ScrollView>
         </Grid>
 
@@ -112,7 +116,7 @@
                         ItemsLayout="VerticalList"
                         VerticalScrollBarVisibility="Never">
             <CollectionView.EmptyView>
-                <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
+                <VerticalStackLayout Padding="16,20" Spacing="6" VerticalOptions="Center">
                     <Label Text="💬"
                            Style="{DynamicResource EmptyStateIcon}" />
                     <Label Text="Пока нет чатов"
@@ -124,28 +128,28 @@
 
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Border Style="{DynamicResource Card}" Margin="12,6" Padding="14,12">
+                    <Border Style="{DynamicResource Card}" Margin="6,3" Padding="8,6">
                         <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
 
                             <!-- Аватар -->
-                            <Grid WidthRequest="50"
-                                  HeightRequest="50">
+                            <Grid WidthRequest="40"
+                                  HeightRequest="40">
                                 <Border StrokeThickness="0"
                                         BackgroundColor="{DynamicResource AccentSoft}">
                                     <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="25" />
+                                        <RoundRectangle CornerRadius="20" />
                                     </Border.StrokeShape>
                                     <Label Text="{Binding Initial}"
                                            FontAttributes="Bold"
-                                           FontSize="20"
+                                           FontSize="15"
                                            TextColor="{DynamicResource Accent}"
                                            HorizontalOptions="Center"
                                            VerticalOptions="Center" />
                                 </Border>
                                 <Image Source="{Binding AvatarSource}"
                                        Aspect="AspectFill"
-                                       WidthRequest="50"
-                                       HeightRequest="50">
+                                       WidthRequest="40"
+                                       HeightRequest="40">
                                     <Image.Clip>
                                         <EllipseGeometry />
                                     </Image.Clip>
@@ -156,7 +160,7 @@
                             <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
                                 <Label Text="{Binding Username}"
                                        FontAttributes="Bold"
-                                       FontSize="16"
+                                       FontSize="13"
                                        TextColor="{DynamicResource TextPrimary}" />
                                 <Label Text="{Binding LastMessage}"
                                        Style="{DynamicResource Caption}"
@@ -180,7 +184,7 @@
                                 <Border IsVisible="{Binding HasUnread}"
                                         BackgroundColor="{DynamicResource Accent}"
                                         StrokeThickness="0"
-                                        Padding="7,2"
+                                        Padding="5,1"
                                         HorizontalOptions="End">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="10" />
@@ -197,7 +201,7 @@
                                     Text="⋮"
                                     FontSize="18"
                                     Padding="4"
-                                    MinimumWidthRequest="32"
+                                    MinimumWidthRequest="26"
                                     MinimumHeightRequest="32"
                                     Style="{DynamicResource IconButton}"
                                     VerticalOptions="Center"
@@ -211,7 +215,7 @@
 
         <!-- Нижняя панель: быстрые действия и выход -->
         <Grid Grid.Row="6"
-              Padding="12,8,12,12"
+              Padding="8,4,8,8"
               RowDefinitions="Auto,Auto"
               RowSpacing="8">
             <Grid Grid.Row="0"

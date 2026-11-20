@@ -448,13 +448,13 @@ public partial class ChatsPage : ContentPage
                 var unseen = list.Any(s => !s.ViewedByMe);
                 var btn = new Button
                 {
-                    WidthRequest = 48,
-                    HeightRequest = 48,
-                    CornerRadius = 24,
+                    WidthRequest = 40,
+                    HeightRequest = 40,
+                    CornerRadius = 20,
                     Padding = 2,
                     Text = string.IsNullOrEmpty(first.Text) ? "◉" : first.Text[..1].ToUpperInvariant(),
                     TextColor = Colors.White,
-                    FontSize = 14,
+                    FontSize = 12,
                     BackgroundColor = unseen
                         ? (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue
                         : (Color?)Application.Current?.Resources["SurfaceAlt"] ?? Colors.Gray
