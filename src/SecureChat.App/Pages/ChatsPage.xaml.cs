@@ -30,6 +30,7 @@ public partial class ChatsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _ = RefreshContactAvatarsAsync();
 
         if (!_subscribed)
         {
@@ -422,4 +423,11 @@ public partial class ChatsPage : ContentPage
         }
     }
 
+
+    private async Task RefreshContactAvatarsAsync()
+    {
+        var items = await _chatManager.GetConversationsAsync();
+        foreach (var item in items.Take(30))
+            await _chatManager.RefreshContactProfileAsync(item.Username);
+    }
 }

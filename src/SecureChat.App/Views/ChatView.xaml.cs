@@ -508,6 +508,7 @@ public partial class ChatView : ContentView
         _username = stored.Username;
         Subscribe();
         await _chatManager.OpenChatAsync(_username);
+        await _chatManager.RefreshContactProfileAsync(_username);
         _conversation = await _chatManager.GetConversationAsync(_username) ?? stored;
 
         ContactLabel.Text = _conversation.Username;

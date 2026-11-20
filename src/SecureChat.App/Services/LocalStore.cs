@@ -2258,7 +2258,7 @@ public sealed class LocalStore
         AlbumCount = source.AlbumCount
     };
 
-    public async Task AddStoryAsync(string text, string imageBase64)
+    public async Task AddStoryAsync(string text, string imageBase64, string ownerUsername = "", long createdAtUnixMs = 0)
     {
         await _lock.WaitAsync();
         try
@@ -2268,10 +2268,10 @@ public sealed class LocalStore
             _state.Stories.Insert(0, new StoredStory
             {
                 Id = Guid.NewGuid().ToString("N"),
-                OwnerUsername = _owner ?? string.Empty,
+                OwnerUsername = string.IsNullOrEmpty(ownerUsername) ? _owner ?? string.Empty : ownerUsername,
                 Text = text.Trim(),
                 ImageBase64 = imageBase64,
-                CreatedAtUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                CreatedAtUnixMs = createdAtUnixMs > 0 ? createdAtUnixMs : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             });
             await SaveAsync();
         }

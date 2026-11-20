@@ -753,6 +753,20 @@ public sealed class ChatManager
             _ => DownloadMediaCoreAsync(username, messageId));
     }
 
+    /// <summary>Обновляет аватар/ник контакта с сервера (после смены профиля другим устройством).</summary>
+    public async Task RefreshContactProfileAsync(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username) || _session.Token is null) return;
+        try
+        {
+            var profile = await _apiClient.GetUserAsync(
+                _session.ServerUrl, _session.Token, username);
+            await _localStore.AddOrUpdateContactAsync(profile);
+            ConversationsChanged?.Invoke();
+        }
+        catch { }
+    }
+
     public async Task SendMessageAsync(
         string username,
         string text,

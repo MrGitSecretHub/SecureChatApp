@@ -81,6 +81,11 @@ public sealed class StoryService
         }
 
         await _api.PublishStoryAsync(_session.ServerUrl, _session.Token!, request);
+        await _store.AddStoryAsync(
+            content.Text,
+            content.ImageBase64,
+            _session.User?.Username ?? string.Empty,
+            created);
     }
 
     public async Task<IReadOnlyList<StoryItem>> GetAsync()
@@ -88,8 +93,30 @@ public sealed class StoryService
         var identity = _session.Identity;
         if (identity is null || _session.Token is null) return Array.Empty<StoryItem>();
 
-        var dtos = await _api.GetStoriesAsync(_session.ServerUrl, _session.Token);
         var result = new List<StoryItem>();
+        foreach (var own in await _store.GetActiveStoriesAsync())
+        {
+            result.Add(new StoryItem
+            {
+                Id = own.Id,
+                OwnerUsername = own.OwnerUsername,
+                Text = own.Text,
+                ImageBase64 = own.ImageBase64,
+                AvatarBase64 = _session.AvatarBase64,
+                CreatedAtUnixMs = own.CreatedAtUnixMs,
+                ExpiresAtUnixMs = own.ExpiresAtUnixMs,
+                IsMine = true
+            });
+        }
+        IReadOnlyList<StoryDto> dtos;
+        try
+        {
+            dtos = await _api.GetStoriesAsync(_session.ServerUrl, _session.Token);
+        }
+        catch
+        {
+            return result;
+        }
         foreach (var dto in dtos)
         {
             try
