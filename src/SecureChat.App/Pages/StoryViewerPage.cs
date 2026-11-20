@@ -39,6 +39,24 @@ public sealed class StoryViewerPage : ContentPage
         Padding = new Thickness(8, 0),
         IsVisible = false
     };
+    private readonly Button _reply = new()
+    {
+        Text = "↩ " + Loc.T("stories_reply", "Reply"),
+        TextColor = Colors.White,
+        BackgroundColor = Color.FromArgb("#55FFFFFF"),
+        FontSize = 11,
+        HeightRequest = 28,
+        Padding = new Thickness(8, 0),
+        IsVisible = false
+    };
+    private readonly Entry _replyEntry = new()
+    {
+        Placeholder = Loc.T("stories_reply_hint", "Reply to story…"),
+        TextColor = Colors.White,
+        PlaceholderColor = Color.FromArgb("#AAFFFFFF"),
+        BackgroundColor = Color.FromArgb("#33FFFFFF"),
+        IsVisible = false
+    };
     private CancellationTokenSource? _cts;
     private int _index;
 
@@ -86,10 +104,12 @@ public sealed class StoryViewerPage : ContentPage
             Spacing = 6,
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 0, 0, 6),
-            Children = { _views, _delete }
+            Children = { _views, _reply, _delete }
         };
         _views.Clicked += OnViewsClicked;
         _delete.Clicked += OnDeleteClicked;
+        _reply.Clicked += OnReplyClicked;
+        _replyEntry.Completed += OnReplyCompleted;
 
         var overlay = new Grid
         {
@@ -98,7 +118,7 @@ public sealed class StoryViewerPage : ContentPage
         };
         overlay.Add(_segments, 0, 0);
         overlay.Add(new Grid { Children = { header } }, 1, 0);
-        overlay.Add(new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.End, Children = { _caption, actions } }, 2, 0);
+        overlay.Add(new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.End, Children = { _caption, _replyEntry, actions } }, 2, 0);
         // тап-зоны поверх медиа, но под кнопками
         var root = new Grid
         {
@@ -137,6 +157,16 @@ public sealed class StoryViewerPage : ContentPage
         _time.Text = date.ToString("dd.MM HH:mm");
         _caption.Text = story.Text;
         _caption.IsVisible = !string.IsNullOrWhiteSpace(story.Text);
+        _caption.FontSize = story.FontSize > 0 ? story.FontSize : 18;
+        _caption.TextColor = string.IsNullOrEmpty(story.TextHex)
+            ? Colors.White
+            : Color.FromArgb(story.TextHex);
+        _caption.BackgroundColor = string.IsNullOrEmpty(story.ImageBase64)
+            ? Colors.Transparent
+            : Color.FromArgb("#99000000");
+        _image.BackgroundColor = string.IsNullOrEmpty(story.ImageBase64)
+            ? Color.FromArgb(string.IsNullOrEmpty(story.BackgroundHex) ? "#3B6FE8" : story.BackgroundHex)
+            : Colors.Black;
         _image.Source = null;
         if (!string.IsNullOrEmpty(story.ImageBase64))
         {
@@ -145,6 +175,9 @@ public sealed class StoryViewerPage : ContentPage
         }
         _views.Text = $"👁 {story.ViewCount}";
         _delete.IsVisible = story.IsMine;
+        _reply.IsVisible = !story.IsMine;
+        _replyEntry.IsVisible = false;
+        _replyEntry.Text = string.Empty;
         BuildSegments();
         if (!story.ViewedByMe)
         {
@@ -237,5 +270,37 @@ public sealed class StoryViewerPage : ContentPage
     {
         _cts?.Cancel();
         base.OnDisappearing();
+    }
+
+    private void OnReplyClicked(object? sender, EventArgs e)
+    {
+        _cts?.Cancel();
+        _replyEntry.IsVisible = true;
+        _replyEntry.Focus();
+    }
+
+    private async void OnReplyCompleted(object? sender, EventArgs e)
+    {
+        await SendReplyAsync();
+    }
+
+    private async Task SendReplyAsync()
+    {
+        var text = _replyEntry.Text?.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+        var story = _items[_index];
+        _replyEntry.IsVisible = false;
+        _replyEntry.Text = string.Empty;
+        try
+        {
+            var chat = AppServices.Get<ChatManager>();
+            await chat.SendMessageAsync(story.OwnerUsername, "↪ " + text);
+            await DisplayAlert(Loc.T("stories_reply", "Ответить"), Loc.T("stories_reply_sent", "Ответ отправлен"), "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(Loc.T("stories_error", "Ошибка"), ex.Message, "OK");
+        }
+        RestartTimer();
     }
 }

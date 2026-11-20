@@ -12,6 +12,10 @@ public sealed class StoryPublishRequest
 {
     public string Visibility { get; set; } = "contacts";
     public long CreatedAtUnixMs { get; set; }
+
+    /// <summary>Срок жизни истории в часах (1..24).</summary>
+    public int LifetimeHours { get; set; } = 24;
+
     public List<StoryEnvelopeDto> Envelopes { get; set; } = new();
 }
 

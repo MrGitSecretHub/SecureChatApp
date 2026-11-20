@@ -18,12 +18,18 @@ public sealed class StoryItem
     public bool IsMine { get; set; }
     public int ViewCount { get; set; }
     public bool ViewedByMe { get; set; }
+    public string BackgroundHex { get; set; } = "#3B6FE8";
+    public string? TextHex { get; set; }
+    public int FontSize { get; set; } = 18;
 }
 
 internal sealed class StoryContent
 {
     public string Text { get; set; } = string.Empty;
     public string ImageBase64 { get; set; } = string.Empty;
+    public string BackgroundHex { get; set; } = "#3B6FE8";
+    public string? TextHex { get; set; }
+    public int FontSize { get; set; } = 18;
 }
 
 /// <summary>Публикация и загрузка историй с E2E-шифрованием для каждого получателя.</summary>
@@ -64,7 +70,14 @@ public sealed class StoryService
         catch { }
     }
 
-    public async Task PublishAsync(string text, string imageBase64, bool contactsOnly)
+    public async Task PublishAsync(
+        string text,
+        string imageBase64,
+        bool contactsOnly,
+        int lifetimeHours = 24,
+        string backgroundHex = "#3B6FE8",
+        string? textHex = null,
+        int fontSize = 18)
     {
         var user = _session.User ?? throw new InvalidOperationException("Нет активного аккаунта.");
         var identity = _session.Identity ?? throw new InvalidOperationException("Нет ключей устройства.");
@@ -82,11 +95,19 @@ public sealed class StoryService
         if (recipients.Count == 0)
             throw new InvalidOperationException("Нет получателей для истории.");
 
-        var content = new StoryContent { Text = text.Trim(), ImageBase64 = imageBase64 };
+        var content = new StoryContent
+        {
+            Text = text.Trim(),
+            ImageBase64 = imageBase64,
+            BackgroundHex = string.IsNullOrWhiteSpace(backgroundHex) ? "#3B6FE8" : backgroundHex,
+            TextHex = textHex,
+            FontSize = Math.Clamp(fontSize, 12, 36)
+        };
         var request = new StoryPublishRequest
         {
             Visibility = contactsOnly ? "contacts" : "all",
-            CreatedAtUnixMs = created
+            CreatedAtUnixMs = created,
+            LifetimeHours = Math.Clamp(lifetimeHours, 1, 24)
         };
 
         using var signingKey = identity.CreateSigningKey();
@@ -119,7 +140,8 @@ public sealed class StoryService
             content.Text,
             content.ImageBase64,
             _session.User?.Username ?? string.Empty,
-            created);
+            created,
+            lifetimeHours);
     }
 
     public async Task<IReadOnlyList<StoryItem>> GetAsync()
@@ -153,7 +175,10 @@ public sealed class StoryService
                     ExpiresAtUnixMs = dto.ExpiresAtUnixMs,
                     IsMine = mine,
                     ViewCount = dto.ViewCount,
-                    ViewedByMe = dto.ViewedByMe
+                    ViewedByMe = dto.ViewedByMe,
+                    BackgroundHex = content.BackgroundHex,
+                    TextHex = content.TextHex,
+                    FontSize = content.FontSize
                 });
             }
             return result.OrderByDescending(s => s.CreatedAtUnixMs).ToList();

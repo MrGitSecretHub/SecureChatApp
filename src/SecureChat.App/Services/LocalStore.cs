@@ -127,7 +127,8 @@ public sealed class StoredStory
     public string Text { get; set; } = string.Empty;
     public string ImageBase64 { get; set; } = string.Empty;
     public long CreatedAtUnixMs { get; set; }
-    public long ExpiresAtUnixMs => CreatedAtUnixMs + 24L * 60 * 60 * 1000;
+    public int LifetimeHours { get; set; } = 24;
+    public long ExpiresAtUnixMs => CreatedAtUnixMs + LifetimeHours * 60L * 60 * 1000;
 }
 
 /// <summary>Пользовательский пак: набор файлов (GIF или стикеры) на устройстве.</summary>
@@ -2258,7 +2259,7 @@ public sealed class LocalStore
         AlbumCount = source.AlbumCount
     };
 
-    public async Task AddStoryAsync(string text, string imageBase64, string ownerUsername = "", long createdAtUnixMs = 0)
+    public async Task AddStoryAsync(string text, string imageBase64, string ownerUsername = "", long createdAtUnixMs = 0, int lifetimeHours = 24)
     {
         await _lock.WaitAsync();
         try
@@ -2271,7 +2272,8 @@ public sealed class LocalStore
                 OwnerUsername = string.IsNullOrEmpty(ownerUsername) ? _owner ?? string.Empty : ownerUsername,
                 Text = text.Trim(),
                 ImageBase64 = imageBase64,
-                CreatedAtUnixMs = createdAtUnixMs > 0 ? createdAtUnixMs : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                CreatedAtUnixMs = createdAtUnixMs > 0 ? createdAtUnixMs : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                LifetimeHours = Math.Clamp(lifetimeHours, 1, 24)
             });
             await SaveAsync();
         }

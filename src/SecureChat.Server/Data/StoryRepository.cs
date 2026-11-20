@@ -51,7 +51,8 @@ public sealed class StoryRepository
         Core.Contracts.StoryPublishRequest request, CancellationToken ct = default)
     {
         var created = request.CreatedAtUnixMs > 0 ? request.CreatedAtUnixMs : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var expires = created + 24L * 60 * 60 * 1000;
+        var hours = Math.Clamp(request.LifetimeHours, 1, 24);
+        var expires = created + hours * 60L * 60 * 1000;
         var visibility = request.Visibility == "all" ? "all" : "contacts";
 
         await using var connection = new SqliteConnection(_connectionString);

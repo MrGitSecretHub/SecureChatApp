@@ -922,5 +922,17 @@
   "stories_error": "Error",
   "stories_not_enough": "Add text or a photo.",
   "stories_too_large": "Image is too large (max 8 MB).",
-  "stories_close": "Close"
+  "stories_close": "Close",
+  "stories_bg": "Background color",
+  "stories_font": "Text size",
+  "stories_lifetime": "Lifetime",
+  "stories_hours": "hours",
+  "stories_preview": "Preview",
+  "stories_remove_photo": "Remove photo",
+  "stories_reply": "Reply",
+  "stories_reply_hint": "Reply to story\u2026",
+  "stories_send": "Send",
+  "stories_quick": "Quick reply",
+  "stories_publish_error": "Could not publish story",
+  "stories_reply_sent": "Reply sent"
 }

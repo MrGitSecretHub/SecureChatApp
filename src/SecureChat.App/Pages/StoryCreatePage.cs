@@ -2,51 +2,130 @@ using SecureChat.App.Services;
 
 namespace SecureChat.App.Pages;
 
-/// <summary>Публикация истории: текст и/или фото, видимость — все или контакты.</summary>
+/// <summary>Создание истории: фото, подпись, оформление, срок жизни и аудитория.</summary>
 public sealed class StoryCreatePage : ContentPage
 {
+    private static readonly string[] Backgrounds =
+    {
+        "#3B6FE8", "#9B6FE8", "#E8A33D", "#5FBF6A", "#E2705A", "#1F2937", "#0F766E", "#B8336A"
+    };
+
     private readonly StoryService _stories = AppServices.Get<StoryService>();
-    private readonly Entry _text = new() { Placeholder = "Подпись истории" };
+    private readonly Entry _text = new() { Placeholder = Loc.T("stories_question", "Подпись истории") };
     private readonly CheckBox _contactsOnly = new() { IsChecked = true };
+    private readonly Image _preview = new() { Aspect = Aspect.AspectFit, HeightRequest = 180, IsVisible = false };
+    private readonly HorizontalStackLayout _palette = new() { Spacing = 8 };
+    private readonly Label _fontValue = new() { Text = "18", WidthRequest = 34, HorizontalTextAlignment = TextAlignment.Center, VerticalOptions = LayoutOptions.Center };
+    private readonly Picker _lifetime = new() { Title = Loc.T("stories_lifetime", "Время жизни") };
+    private readonly Button _removePhoto = new() { Text = Loc.T("stories_remove_photo", "Убрать фото"), IsVisible = false };
     private string _image = string.Empty;
+    private string _background = Backgrounds[0];
+    private int _fontSize = 18;
 
     public StoryCreatePage()
     {
-        Title = "Новая история";
-        var pick = new Button { Text = "📷 Выбрать фото" };
+        Title = Loc.T("stories_new", "Новая история");
+        Shell.SetNavBarIsVisible(this, false);
+        NavigationPage.SetHasNavigationBar(this, false);
+
+        foreach (var hex in Backgrounds)
+        {
+            var swatch = new Button
+            {
+                BackgroundColor = Color.FromArgb(hex),
+                WidthRequest = 32,
+                HeightRequest = 32,
+                CornerRadius = 16,
+                Padding = 0,
+                BorderColor = hex == _background ? Colors.White : Colors.Transparent,
+                BorderWidth = 2
+            };
+            swatch.Clicked += (_, _) =>
+            {
+                _background = hex;
+                foreach (var child in _palette.Children.OfType<Button>())
+                    child.BorderWidth = child.BackgroundColor == Color.FromArgb(hex) ? 2 : 0;
+                UpdatePreviewBackground();
+            };
+            _palette.Add(swatch);
+        }
+
+        foreach (var hours in new[] { 1, 6, 12, 24 })
+            _lifetime.Items.Add($"{hours} {Loc.T("stories_hours", "часов")}");
+        _lifetime.SelectedIndex = 3;
+
+        var pick = new Button { Text = "📷 " + Loc.T("stories_choose_photo", "Выбрать фото") };
         pick.Clicked += OnPickClicked;
-        var publish = new Button { Text = "Опубликовать" };
+        _removePhoto.Clicked += (_, _) =>
+        {
+            _image = string.Empty;
+            _preview.IsVisible = false;
+            _removePhoto.IsVisible = false;
+            UpdatePreviewBackground();
+        };
+
+        var plus = new Button { Text = "＋", WidthRequest = 36, Padding = 0 };
+        var minus = new Button { Text = "－", WidthRequest = 36, Padding = 0 };
+        minus.Clicked += (_, _) => SetFontSize(_fontSize - 2);
+        plus.Clicked += (_, _) => SetFontSize(_fontSize + 2);
+
+        var publish = new Button { Text = Loc.T("stories_publish", "Опубликовать") };
         publish.Clicked += OnPublishClicked;
 
-        Content = new VerticalStackLayout
+        Content = new ScrollView
         {
-            Spacing = 12,
-            Padding = 16,
-            Children =
+            Content = new VerticalStackLayout
             {
-                new Label { Text = "История будет доступна 24 часа", FontSize = 12, TextColor = Colors.Gray },
-                _text,
-                pick,
-                new HorizontalStackLayout
+                Spacing = 10,
+                Padding = 16,
+                Children =
                 {
-                    Spacing = 8,
-                    Children = { _contactsOnly, new Label { Text = "Только контакты", VerticalOptions = LayoutOptions.Center } }
-                },
-                publish
+                    new Label { Text = Loc.T("stories_create_hint", "История будет доступна 24 часа"), FontSize = 12, TextColor = Colors.Gray },
+                    _preview,
+                    _removePhoto,
+                    _text,
+                    new Label { Text = Loc.T("stories_bg", "Цвет фона"), FontSize = 12, TextColor = Colors.Gray },
+                    new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = _palette },
+                    new Label { Text = Loc.T("stories_font", "Размер текста"), FontSize = 12, TextColor = Colors.Gray },
+                    new HorizontalStackLayout { Spacing = 8, Children = { minus, _fontValue, plus } },
+                    _lifetime,
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 8,
+                        Children =
+                        {
+                            _contactsOnly,
+                            new Label { Text = Loc.T("stories_only_contacts", "Только контакты"), VerticalOptions = LayoutOptions.Center }
+                        }
+                    },
+                    publish
+                }
             }
         };
+        UpdatePreviewBackground();
+    }
+
+    private void SetFontSize(int size)
+    {
+        _fontSize = Math.Clamp(size, 12, 36);
+        _fontValue.Text = _fontSize.ToString();
+    }
+
+    private void UpdatePreviewBackground()
+    {
+        _preview.BackgroundColor = Color.FromArgb(_background);
+        if (!_preview.IsVisible)
+        {
+            _preview.IsVisible = true;
+            _preview.Source = null;
+        }
     }
 
     private async void OnPickClicked(object? sender, EventArgs e)
     {
         try
         {
-            // Без FileTypes: на некоторых Windows-сборках FilePickerFileType.Images
-            // приводит к исключению, а диалог вообще не открывается.
-            var file = await FilePicker.Default.PickAsync(new PickOptions
-            {
-                PickerTitle = "Выберите изображение"
-            });
+            var file = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = Loc.T("stories_choose_photo", "Выбрать фото") });
             if (file is null) return;
             using var stream = await file.OpenReadAsync();
             using var memory = new MemoryStream();
@@ -54,14 +133,16 @@ public sealed class StoryCreatePage : ContentPage
             var bytes = memory.ToArray();
             if (bytes.Length > 8 * 1024 * 1024)
             {
-                await DisplayAlert("История", "Слишком большое изображение (максимум 8 МБ).", "OK");
+                await DisplayAlert(Loc.T("stories_error", "Ошибка"), Loc.T("stories_too_large", "Слишком большое изображение (максимум 8 МБ)."), "OK");
                 return;
             }
             _image = Convert.ToBase64String(bytes);
+            _preview.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
+            _removePhoto.IsVisible = true;
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка выбора", ex.Message, "OK");
+            await DisplayAlert(Loc.T("stories_error", "Ошибка"), ex.Message, "OK");
         }
     }
 
@@ -70,17 +151,29 @@ public sealed class StoryCreatePage : ContentPage
         var text = _text.Text?.Trim() ?? string.Empty;
         if (string.IsNullOrEmpty(text) && string.IsNullOrEmpty(_image))
         {
-            await DisplayAlert("История", "Добавьте текст или фото.", "OK");
+            await DisplayAlert(Loc.T("stories_error", "Ошибка"), Loc.T("stories_not_enough", "Добавьте текст или фото."), "OK");
             return;
         }
+
+        var hours = _lifetime.SelectedIndex switch
+        {
+            0 => 1,
+            1 => 6,
+            2 => 12,
+            _ => 24
+        };
+
         try
         {
-            await _stories.PublishAsync(text, _image, _contactsOnly.IsChecked);
+            await _stories.PublishAsync(
+                text, _image, _contactsOnly.IsChecked, hours,
+                _background, null, _fontSize);
             await Navigation.PopAsync();
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ошибка публикации", ex.ToString(), "OK");
+            await DisplayAlert(Loc.T("stories_error", "Ошибка"),
+                Loc.T("stories_publish_error", "Не удалось опубликовать историю") + ": " + ex.Message, "OK");
         }
     }
 }
