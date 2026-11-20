@@ -30,6 +30,7 @@ public partial class ChatsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _ = RefreshStoriesStripAsync();
         _ = RefreshContactAvatarsAsync();
 
         if (!_subscribed)
@@ -429,5 +430,55 @@ public partial class ChatsPage : ContentPage
         var items = await _chatManager.GetConversationsAsync();
         foreach (var item in items.Take(30))
             await _chatManager.RefreshContactProfileAsync(item.Username);
+    }
+
+    private async Task RefreshStoriesStripAsync()
+    {
+        if (ChatsStoriesStrip is null) return;
+        ChatsStoriesStrip.Clear();
+        try
+        {
+            var items = await AppServices.Get<StoryService>().GetAsync();
+            var groups = items.GroupBy(s => s.OwnerUsername, StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(g => g.Max(s => s.CreatedAtUnixMs));
+            foreach (var group in groups)
+            {
+                var list = group.OrderByDescending(s => s.CreatedAtUnixMs).ToList();
+                var first = list[0];
+                var unseen = list.Any(s => !s.ViewedByMe);
+                var btn = new Button
+                {
+                    WidthRequest = 48,
+                    HeightRequest = 48,
+                    CornerRadius = 24,
+                    Padding = 2,
+                    Text = string.IsNullOrEmpty(first.Text) ? "◉" : first.Text[..1].ToUpperInvariant(),
+                    TextColor = Colors.White,
+                    FontSize = 14,
+                    BackgroundColor = unseen
+                        ? (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue
+                        : (Color?)Application.Current?.Resources["SurfaceAlt"] ?? Colors.Gray
+                };
+                if (!string.IsNullOrEmpty(first.AvatarBase64))
+                {
+                    try
+                    {
+                        btn.ImageSource = ImageSource.FromStream(() =>
+                            new MemoryStream(Convert.FromBase64String(first.AvatarBase64!)));
+                        btn.Text = string.Empty;
+                    }
+                    catch (FormatException) { }
+                }
+                btn.Clicked += async (_, _) =>
+                    await Navigation.PushAsync(new StoryViewerPage(list, 0));
+                ChatsStoriesStrip.Add(btn);
+            }
+        }
+        catch { }
+    }
+
+    private async void OnStoriesAddClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new StoryCreatePage());
     }
 }

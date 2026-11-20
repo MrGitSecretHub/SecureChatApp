@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.ChatsPage"
              Title="{DynamicResource s_chats_title}">
-    <Grid Padding="16" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="12">
+    <Grid Padding="16" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" RowSpacing="12">
 
         <!-- Шапка -->
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -86,9 +86,27 @@
             </HorizontalStackLayout>
         </ScrollView>
 
+        <!-- Истории: компактная лента над списком чатов -->
+        <Grid Grid.Row="4" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+            <Button x:Name="StoriesAddButton"
+                    Text="＋"
+                    WidthRequest="48"
+                    HeightRequest="48"
+                    CornerRadius="24"
+                    FontSize="20"
+                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                    TextColor="{DynamicResource Accent}"
+                    VerticalOptions="Center"
+                    Clicked="OnStoriesAddClicked" />
+            <ScrollView Grid.Column="1" Orientation="Horizontal"
+                        HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout x:Name="ChatsStoriesStrip" Spacing="10" VerticalOptions="Center" />
+            </ScrollView>
+        </Grid>
+
         <!-- Список чатов -->
         <CollectionView x:Name="ConversationsView"
-                        Grid.Row="4"
+                        Grid.Row="5"
                         SelectionMode="Single"
                         SelectionChanged="OnConversationSelected"
                         ItemsLayout="VerticalList"
@@ -192,7 +210,7 @@
         </CollectionView>
 
         <!-- Нижняя панель: быстрые действия и выход -->
-        <Grid Grid.Row="5"
+        <Grid Grid.Row="6"
               Padding="12,8,12,12"
               RowDefinitions="Auto,Auto"
               RowSpacing="8">
