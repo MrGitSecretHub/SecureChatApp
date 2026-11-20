@@ -294,6 +294,8 @@ public sealed class StoryViewerPage : ContentPage
         try
         {
             var chat = AppServices.Get<ChatManager>();
+            // История может быть от пользователя, с которым ещё нет чата — создаём контакт.
+            await chat.RefreshContactProfileAsync(story.OwnerUsername);
             await chat.SendMessageAsync(story.OwnerUsername, "↪ " + text);
             await DisplayAlert(Loc.T("stories_reply", "Ответить"), Loc.T("stories_reply_sent", "Ответ отправлен"), "OK");
         }
