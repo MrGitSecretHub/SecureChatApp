@@ -23,8 +23,8 @@ public sealed class StoryViewerPage : ContentPage
         Margin = new Thickness(20, 8),
         Padding = new Thickness(12, 10)
     };
-    private readonly Button _views = MakeAction("👁 0");
-    private readonly Button _delete = MakeAction(Loc.T("stories_delete", "Удалить историю"));
+    private readonly Button _views = MakeGhost("👁 0");
+    private readonly Button _delete = MakeGhost("🗑 " + Loc.T("stories_delete", "Удалить историю"));
     private readonly Button _reply = MakeAction("↩ " + Loc.T("stories_reply", "Reply"));
     private readonly Entry _replyEntry = new()
     {
@@ -41,10 +41,20 @@ public sealed class StoryViewerPage : ContentPage
     {
         Text = text,
         TextColor = Colors.White,
-        BackgroundColor = Color.FromArgb("#55FFFFFF"),
+        BackgroundColor = Color.FromArgb("#44000000"),
         FontSize = 11,
         HeightRequest = 30,
         Padding = new Thickness(10, 0)
+    };
+
+    private static Button MakeGhost(string text) => new()
+    {
+        Text = text,
+        TextColor = Color.FromArgb("#CCFFFFFF"),
+        BackgroundColor = Color.FromArgb("#33000000"),
+        FontSize = 12,
+        HeightRequest = 34,
+        Padding = new Thickness(8, 0)
     };
 
     public StoryViewerPage(StoryItem story) : this(new List<StoryItem> { story }, 0) { }
@@ -86,7 +96,12 @@ public sealed class StoryViewerPage : ContentPage
             VerticalOptions = LayoutOptions.Center,
             Children = { _name, _time }
         }, 0, 0);
-        header.Add(close, 0, 1);
+        header.Add(new HorizontalStackLayout
+        {
+            Spacing = 4,
+            VerticalOptions = LayoutOptions.Center,
+            Children = { _views, _delete, close }
+        }, 0, 1);
 
         var prev = new BoxView { Color = Colors.Transparent };
         var next = new BoxView { Color = Colors.Transparent };
@@ -112,7 +127,7 @@ public sealed class StoryViewerPage : ContentPage
         {
             Spacing = 8,
             HorizontalOptions = LayoutOptions.Center,
-            Children = { _views, _reply, _delete }
+            Children = { _reply }
         };
 
         var bottom = new VerticalStackLayout
