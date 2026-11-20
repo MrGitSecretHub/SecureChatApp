@@ -1216,7 +1216,7 @@ public partial class ChatView : ContentView
                     isOnce: sendOnce,
                     expireAtUnixMs: _ttlNext);
                 _ttlNext = null;
-                TtlButton.Text = "⏲";
+                UpdateActionsButton();
                 ResetViewOnce();
                 _replyingTo = null;
                 ReplyBar.IsVisible = false;
@@ -4047,7 +4047,34 @@ public partial class ChatView : ContentView
             "Через 1 день" => DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeMilliseconds(),
             _ => null
         };
-        TtlButton.Text = _ttlNext.HasValue ? "⏲✓" : "⏲";
+        UpdateActionsButton();
+    }
+
+    private void UpdateActionsButton()
+    {
+        if (ActionsButton is not null)
+            ActionsButton.Text = _ttlNext.HasValue ? "⏲" : "⚡";
+    }
+
+    private async void OnActionsClicked(object? sender, EventArgs e)
+    {
+        var page = HostPage;
+        if (page is null) return;
+        var choice = await page.DisplayActionSheet(
+            "Действия", "Отмена", null,
+            "Опрос", "Быстрые ответы", "Автоудаление сообщения");
+        switch (choice)
+        {
+            case "Опрос":
+                OnCreatePollClicked(sender, e);
+                break;
+            case "Быстрые ответы":
+                OnQuickRepliesClicked(sender, e);
+                break;
+            case "Автоудаление сообщения":
+                OnTtlClicked(sender, e);
+                break;
+        }
     }
 }
 
