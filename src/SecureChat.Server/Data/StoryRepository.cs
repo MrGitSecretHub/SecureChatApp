@@ -37,6 +37,12 @@ public sealed class StoryRepository
                 PRIMARY KEY (StoryId, RecipientId)
             );
             CREATE INDEX IF NOT EXISTS IX_Stories_Expires ON Stories(ExpiresAt);
+            CREATE TABLE IF NOT EXISTS StoryViews (
+                StoryId  TEXT NOT NULL,
+                ViewerId TEXT NOT NULL,
+                ViewedAt TEXT NOT NULL,
+                PRIMARY KEY (StoryId, ViewerId)
+            );
             """;
         await command.ExecuteNonQueryAsync(ct);
     }
@@ -104,7 +110,9 @@ public sealed class StoryRepository
         await connection.OpenAsync(ct);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT s.Id, s.OwnerId, s.OwnerUsername, e.EnvelopeJson, s.CreatedAt, s.ExpiresAt
+            SELECT s.Id, s.OwnerId, s.OwnerUsername, e.EnvelopeJson, s.CreatedAt, s.ExpiresAt,
+                   (SELECT COUNT(*) FROM StoryViews v WHERE v.StoryId = s.Id),
+                   EXISTS(SELECT 1 FROM StoryViews v WHERE v.StoryId = s.Id AND v.ViewerId = $me)
             FROM Stories s
             JOIN StoryEnvelopes e ON e.StoryId = s.Id AND e.RecipientId = $me
             WHERE s.ExpiresAt > $now
@@ -123,9 +131,66 @@ public sealed class StoryRepository
                 OwnerUsername = reader.GetString(2),
                 EnvelopeJson = reader.GetString(3),
                 CreatedAtUnixMs = reader.GetInt64(4),
-                ExpiresAtUnixMs = reader.GetInt64(5)
+                ExpiresAtUnixMs = reader.GetInt64(5),
+                ViewCount = Convert.ToInt32(reader.GetInt64(6)),
+                ViewedByMe = reader.GetInt64(7) != 0
             });
         }
         return result;
+    }
+
+    public async Task MarkViewedAsync(string storyId, string viewerId, CancellationToken ct = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT OR IGNORE INTO StoryViews (StoryId, ViewerId, ViewedAt)
+            VALUES ($story, $viewer, $at);
+            """;
+        command.Parameters.AddWithValue("$story", storyId);
+        command.Parameters.AddWithValue("$viewer", viewerId);
+        command.Parameters.AddWithValue("$at", DateTimeOffset.UtcNow.ToString("O"));
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<string>> GetViewersAsync(string storyId, CancellationToken ct = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT u.Username FROM StoryViews v
+            LEFT JOIN Users u ON u.Id = v.ViewerId
+            WHERE v.StoryId = $story ORDER BY v.ViewedAt;
+            """;
+        command.Parameters.AddWithValue("$story", storyId);
+        var result = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+            result.Add(reader.IsDBNull(0) ? "?" : reader.GetString(0));
+        return result;
+    }
+
+    public async Task<bool> DeleteOwnAsync(string storyId, string ownerId, CancellationToken ct = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM Stories WHERE Id = $id AND OwnerId = $owner;";
+        command.Parameters.AddWithValue("$id", storyId);
+        command.Parameters.AddWithValue("$owner", ownerId);
+        var deleted = await command.ExecuteNonQueryAsync(ct) > 0;
+        if (deleted)
+        {
+            foreach (var table in new[] { "StoryEnvelopes", "StoryViews" })
+            {
+                await using var clean = connection.CreateCommand();
+                clean.CommandText = $"DELETE FROM {table} WHERE StoryId = $id;";
+                clean.Parameters.AddWithValue("$id", storyId);
+                await clean.ExecuteNonQueryAsync(ct);
+            }
+        }
+        return deleted;
     }
 }

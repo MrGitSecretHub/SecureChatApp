@@ -24,4 +24,10 @@ public sealed class StoryDto
     public string EnvelopeJson { get; set; } = string.Empty;
     public long CreatedAtUnixMs { get; set; }
     public long ExpiresAtUnixMs { get; set; }
+
+    /// <summary>Сколько участников просмотрели историю.</summary>
+    public int ViewCount { get; set; }
+
+    /// <summary>Просмотрел ли текущий пользователь.</summary>
+    public bool ViewedByMe { get; set; }
 }

@@ -16,6 +16,8 @@ public sealed class StoryItem
     public long CreatedAtUnixMs { get; set; }
     public long ExpiresAtUnixMs { get; set; }
     public bool IsMine { get; set; }
+    public int ViewCount { get; set; }
+    public bool ViewedByMe { get; set; }
 }
 
 internal sealed class StoryContent
@@ -30,6 +32,37 @@ public sealed class StoryService
     private readonly ApiClient _api = AppServices.Get<ApiClient>();
     private readonly AppSession _session = AppServices.Get<AppSession>();
     private readonly LocalStore _store = AppServices.Get<LocalStore>();
+
+    public async Task MarkViewedAsync(string storyId)
+    {
+        if (string.IsNullOrWhiteSpace(storyId) || _session.Token is null) return;
+        try
+        {
+            await _api.MarkStoryViewedAsync(_session.ServerUrl, _session.Token, storyId);
+        }
+        catch { }
+    }
+
+    public async Task<IReadOnlyList<string>> GetViewersAsync(string storyId)
+    {
+        if (string.IsNullOrWhiteSpace(storyId) || _session.Token is null) return Array.Empty<string>();
+        try
+        {
+            return await _api.GetStoryViewersAsync(_session.ServerUrl, _session.Token, storyId);
+        }
+        catch { return Array.Empty<string>(); }
+    }
+
+    public async Task DeleteAsync(string storyId)
+    {
+        if (string.IsNullOrWhiteSpace(storyId) || _session.Token is null) return;
+        try
+        {
+            await _api.DeleteStoryAsync(_session.ServerUrl, _session.Token, storyId);
+            await _store.RemoveStoryAsync(storyId);
+        }
+        catch { }
+    }
 
     public async Task PublishAsync(string text, string imageBase64, bool contactsOnly)
     {
@@ -118,7 +151,9 @@ public sealed class StoryService
                     AvatarBase64 = mine ? _session.AvatarBase64 : profile.AvatarBase64,
                     CreatedAtUnixMs = dto.CreatedAtUnixMs,
                     ExpiresAtUnixMs = dto.ExpiresAtUnixMs,
-                    IsMine = mine
+                    IsMine = mine,
+                    ViewCount = dto.ViewCount,
+                    ViewedByMe = dto.ViewedByMe
                 });
             }
             return result.OrderByDescending(s => s.CreatedAtUnixMs).ToList();

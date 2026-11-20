@@ -28,6 +28,33 @@ public sealed class StoriesController : ControllerBase
         return Ok(await _stories.GetForUserAsync(userId, cancellationToken));
     }
 
+    [HttpPost("{id}/view")]
+    public async Task<IActionResult> MarkViewed(string id, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        await _stories.MarkViewedAsync(id, userId, cancellationToken);
+        return Ok(new { status = "ok" });
+    }
+
+    [HttpGet("{id}/viewers")]
+    public async Task<IActionResult> Viewers(string id, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        return Ok(await _stories.GetViewersAsync(id, cancellationToken));
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        return await _stories.DeleteOwnAsync(id, userId, cancellationToken)
+            ? Ok(new { status = "ok" })
+            : NotFound();
+    }
+
     [HttpPost]
     public async Task<IActionResult> Publish([FromBody] StoryPublishRequest request, CancellationToken cancellationToken)
     {

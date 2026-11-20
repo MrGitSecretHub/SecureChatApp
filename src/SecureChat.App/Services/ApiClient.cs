@@ -210,6 +210,39 @@ public sealed class ApiException : Exception
         return await ReadAsync<IReadOnlyList<UserProfileDto>>(response, cancellationToken);
     }
 
+    public async Task MarkStoryViewedAsync(
+        string serverUrl, string token, string storyId, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post, BuildUri(serverUrl, $"api/stories/{Uri.EscapeDataString(storyId)}/view"));
+        request.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<string>> GetStoryViewersAsync(
+        string serverUrl, string token, string storyId, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get, BuildUri(serverUrl, $"api/stories/{Uri.EscapeDataString(storyId)}/viewers"));
+        request.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        return await ReadAsync<IReadOnlyList<string>>(response, cancellationToken);
+    }
+
+    public async Task DeleteStoryAsync(
+        string serverUrl, string token, string storyId, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Delete, BuildUri(serverUrl, $"api/stories/{Uri.EscapeDataString(storyId)}"));
+        request.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<UserProfileDto>> ListUsersAsync(
         string serverUrl,
         string token,
