@@ -90,7 +90,9 @@ public sealed class StoryService
         {
             var names = (await _api.GetContactsAsync(_session.ServerUrl, _session.Token!))
                 .Select(u => u.Username).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            recipients = recipients.Where(u => names.Contains(u.Username)).ToList();
+            recipients = recipients.Where(u =>
+                names.Contains(u.Username) ||
+                string.Equals(u.Id, user.Id, StringComparison.Ordinal)).ToList();
         }
         if (recipients.Count == 0)
             throw new InvalidOperationException("Нет получателей для истории.");

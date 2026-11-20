@@ -115,30 +115,34 @@ public sealed class StoryViewerPage : ContentPage
             Children = { _views, _reply, _delete }
         };
 
-        var overlay = new Grid
-        {
-            RowDefinitions = new RowDefinitionCollection
-            {
-                new RowDefinition(GridLength.Auto), // segments
-                new RowDefinition(GridLength.Auto), // header
-                new RowDefinition(GridLength.Star),  // caption
-                new RowDefinition(GridLength.Auto)  // reply + actions
-            },
-            ColumnDefinitions = new ColumnDefinitionCollection { new ColumnDefinition(GridLength.Star) },
-            InputTransparent = true,
-            CascadeInputTransparent = false
-        };
-        overlay.Add(_segments, 0, 0);
-        overlay.Add(header, 1, 0);
-        overlay.Add(_caption, 2, 0);
-        overlay.Add(new VerticalStackLayout
+        var bottom = new VerticalStackLayout
         {
             Spacing = 6,
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.End,
-            Padding = new Thickness(10, 0, 10, 16),
+            Padding = new Thickness(12, 0, 12, 16),
             Children = { _replyEntry, actions }
-        }, 3, 0);
+        };
+
+        var overlay = new VerticalStackLayout
+        {
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
+            InputTransparent = true,
+            CascadeInputTransparent = false
+        };
+        overlay.Add(_segments);
+        overlay.Add(header);
+        overlay.Add(new ContentView
+        {
+            Content = _caption,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.FillAndExpand,
+            MinimumHeightRequest = 160,
+            InputTransparent = true,
+            CascadeInputTransparent = false
+        });
+        overlay.Add(bottom);
 
         var root = new Grid
         {
