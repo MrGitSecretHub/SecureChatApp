@@ -36,7 +36,7 @@
                    SearchButtonPressed="OnSearchMessagesPressed" />
 
         <!-- Вкладки списка, как папки в Telegram -->
-        <ScrollView Grid.Row="3"
+        <ScrollView Grid.Row="4"
                     Orientation="Horizontal"
                     HeightRequest="36"
                     Margin="0,2,0,0">
@@ -86,8 +86,8 @@
             </HorizontalStackLayout>
         </ScrollView>
 
-        <!-- Истории: компактная лента над списком чатов -->
-        <Grid Grid.Row="4" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+        <!-- Истории: компактная лента над папками -->
+        <Grid Grid.Row="3" ColumnDefinitions="Auto,*" ColumnSpacing="8">
             <Button x:Name="StoriesAddButton"
                     Text="＋"
                     WidthRequest="48"
