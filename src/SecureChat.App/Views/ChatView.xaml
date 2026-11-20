@@ -1165,6 +1165,51 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- Меню действий, как у скрепки -->
+            <Border Grid.Row="6"
+                    x:Name="ActionsMenuPanel"
+                    HorizontalOptions="Start"
+                    VerticalOptions="Start"
+                    Margin="64,-190,0,0"
+                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                    Stroke="{DynamicResource BorderColor}"
+                    StrokeThickness="1"
+                    IsVisible="False"
+                    Padding="0,6">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <VerticalStackLayout>
+                    <Border StyleId="poll" Padding="16,10" BackgroundColor="{DynamicResource SurfaceAlt}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnActionsMenuItemTapped" />
+                        </Border.GestureRecognizers>
+                        <HorizontalStackLayout Spacing="12">
+                            <Label Text="📊" FontSize="15" VerticalOptions="Center" />
+                            <Label Text="Опрос" FontSize="14" TextColor="{DynamicResource TextPrimary}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </Border>
+                    <Border StyleId="replies" Padding="16,10" BackgroundColor="{DynamicResource SurfaceAlt}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnActionsMenuItemTapped" />
+                        </Border.GestureRecognizers>
+                        <HorizontalStackLayout Spacing="12">
+                            <Label Text="💬" FontSize="15" VerticalOptions="Center" />
+                            <Label Text="Быстрые ответы" FontSize="14" TextColor="{DynamicResource TextPrimary}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </Border>
+                    <Border StyleId="ttl" Padding="16,10" BackgroundColor="{DynamicResource SurfaceAlt}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnActionsMenuItemTapped" />
+                        </Border.GestureRecognizers>
+                        <HorizontalStackLayout Spacing="12">
+                            <Label Text="⏲" FontSize="15" VerticalOptions="Center" />
+                            <Label Text="Автоудаление" FontSize="14" TextColor="{DynamicResource TextPrimary}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+            </Border>
+
             <!-- Поле ввода -->
             <Border Grid.Row="7"
                     BackgroundColor="{DynamicResource Surface}"

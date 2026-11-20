@@ -4056,25 +4056,30 @@ public partial class ChatView : ContentView
             ActionsButton.Text = _ttlNext.HasValue ? "⏲" : "⚡";
     }
 
-    private async void OnActionsClicked(object? sender, EventArgs e)
+    private void OnActionsClicked(object? sender, EventArgs e)
     {
-        var page = HostPage;
-        if (page is null) return;
-        var choice = await page.DisplayActionSheet(
-            "Действия", "Отмена", null,
-            "Опрос", "Быстрые ответы", "Автоудаление сообщения");
-        switch (choice)
+        AttachMenuPanel.IsVisible = false;
+        ActionsMenuPanel.IsVisible = !ActionsMenuPanel.IsVisible;
+    }
+
+    private async void OnActionsMenuItemTapped(object? sender, EventArgs e)
+    {
+        ActionsMenuPanel.IsVisible = false;
+        var action = (sender as Element)?.StyleId;
+        switch (action)
         {
-            case "Опрос":
-                OnCreatePollClicked(sender, e);
+            case "poll":
+                OnCreatePollClicked(sender!, EventArgs.Empty);
                 break;
-            case "Быстрые ответы":
-                OnQuickRepliesClicked(sender, e);
+            case "replies":
+                OnQuickRepliesClicked(sender!, EventArgs.Empty);
                 break;
-            case "Автоудаление сообщения":
-                OnTtlClicked(sender, e);
+            case "ttl":
+                OnTtlClicked(sender!, EventArgs.Empty);
                 break;
         }
+        await Task.CompletedTask;
     }
+
 }
 
