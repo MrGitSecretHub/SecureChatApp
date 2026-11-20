@@ -28,6 +28,17 @@ public sealed class StoryCreatePage : ContentPage
         Shell.SetNavBarIsVisible(this, false);
         NavigationPage.SetHasNavigationBar(this, false);
 
+        var close = new Button
+        {
+            Text = "✕ " + Loc.T("stories_close", "Закрыть"),
+            HorizontalOptions = LayoutOptions.Start,
+            BackgroundColor = Colors.Transparent,
+            TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White,
+            FontSize = 14,
+            Padding = new Thickness(4, 2)
+        };
+        close.Clicked += async (_, _) => await Navigation.PopAsync();
+
         foreach (var hex in Backgrounds)
         {
             var swatch = new Button
@@ -80,7 +91,9 @@ public sealed class StoryCreatePage : ContentPage
                 Padding = 16,
                 Children =
                 {
+                    close,
                     new Label { Text = Loc.T("stories_create_hint", "История будет доступна 24 часа"), FontSize = 12, TextColor = Colors.Gray },
+                    pick,
                     _preview,
                     _removePhoto,
                     _text,
