@@ -665,7 +665,7 @@ public partial class ChatView : ContentView
 
     private MessageVm CreateMessageVm(StoredMessage stored, string peer)
     {
-        var vm = new MessageVm(stored, _session.Username, peer);
+        var vm = new MessageVm(stored, _session.Username, peer, _conversation?.AvatarBase64);
         vm.MentionTapped += OnMessageMentionTapped;
         vm.HashtagTapped += OnMessageHashtagTapped;
         vm.LinkTapped += OnMessageLinkTapped;
@@ -906,7 +906,7 @@ public partial class ChatView : ContentView
         {
             if (fresh is not null)
             {
-                message.Update(fresh, _session.Username, user);
+                message.Update(fresh, _session.Username, user, _conversation?.AvatarBase64);
             }
 
             if (bytes is not null)
@@ -940,7 +940,7 @@ public partial class ChatView : ContentView
             if (existing is not null)
             {
                 existing.ClearPreviews();
-                existing.Update(message, _session.Username, peer);
+                existing.Update(message, _session.Username, peer, _conversation?.AvatarBase64);
                 RefreshDerived();
                 if (_session.LinkPreviewEnabled && existing.HasUrls)
                 {

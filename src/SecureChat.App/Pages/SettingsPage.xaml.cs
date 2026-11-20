@@ -818,9 +818,10 @@ public partial class SettingsPage : ContentPage
                 _session.AvatarBase64 ?? string.Empty,
                 _session.StatusMessage);
         }
-        catch
+        catch (Exception ex)
         {
-            // Профиль останется локальным, если сервер недоступен.
+            await DisplayAlert(Loc.T("set_016", "Ошибка"),
+                string.Format(Loc.T("set_fmt_009", "Не удалось сохранить: {0}"), ex.Message), "OK");
         }
     }
     private async void OnAvatarClicked(object sender, EventArgs e)

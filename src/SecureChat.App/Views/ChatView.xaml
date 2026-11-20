@@ -1376,39 +1376,34 @@
                     </Border>
 
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never"
-                            Grid.Column="0"
-                            WidthRequest="{OnPlatform Android=120, WinUI=300}"
-                            VerticalOptions="End">
-                        <HorizontalStackLayout
-                                               Spacing="8"
+                        <HorizontalStackLayout Grid.Column="0"
+                                               Spacing="{OnPlatform Android=2, WinUI=8}"
                                                VerticalOptions="End">
                             <Button x:Name="AttachButton"
                                     Text="📎"
                                     Style="{DynamicResource IconButton}"
                                     VerticalOptions="End"
                                     Clicked="OnAttachClicked"
-                                    ToolTipProperties.Text="{DynamicResource s_ui_133}" />
+                                    ToolTipProperties.Text="{DynamicResource s_ui_133}"  WidthRequest="{OnPlatform Android=34, WinUI=40}"/>
                             <Button x:Name="ActionsButton"
                                     Text="⚡"
                                     Style="{DynamicResource IconButton}"
                                     VerticalOptions="End"
                                     Clicked="OnActionsClicked"
-                                    ToolTipProperties.Text="Действия" />
+                                    ToolTipProperties.Text="Действия"  WidthRequest="{OnPlatform Android=34, WinUI=40}"/>
                             <Button x:Name="EmojiButton"
                                     Text="😊"
                                     Style="{DynamicResource IconButton}"
                                     VerticalOptions="End"
                                     Clicked="OnEmojiButtonClicked"
-                                    ToolTipProperties.Text="{DynamicResource s_ui_175}" />
+                                    ToolTipProperties.Text="{DynamicResource s_ui_175}"  WidthRequest="{OnPlatform Android=34, WinUI=40}"/>
                             <Button x:Name="ViewOnceButton"
                                     Text="👁"
                                     Style="{DynamicResource IconButton}"
                                     VerticalOptions="End"
                                     Clicked="OnViewOnceToggled"
-                                    ToolTipProperties.Text="{DynamicResource s_ui_093}" />
+                                    ToolTipProperties.Text="{DynamicResource s_ui_093}"  WidthRequest="{OnPlatform Android=34, WinUI=40}"/>
                         </HorizontalStackLayout>
-                        </ScrollView>
 
                         <views:MentionEntryView Grid.Column="1"
                                                 x:Name="MessageEntry" MinimumWidthRequest="120"

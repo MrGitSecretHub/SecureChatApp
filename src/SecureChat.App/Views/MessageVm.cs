@@ -49,7 +49,7 @@ public sealed class MessageVm : INotifyPropertyChanged
     private readonly List<string> _urls = new();
     private readonly List<LinkChip> _hiddenLinks = new();
 
-    public MessageVm(StoredMessage message, string ownName, string peerName)
+    public MessageVm(StoredMessage message, string ownName, string peerName, string? peerAvatar = null)
     {
         Id = message.Id;
         Kind = string.IsNullOrEmpty(message.Kind) ? MessageKinds.Text : message.Kind;
@@ -64,7 +64,7 @@ public sealed class MessageVm : INotifyPropertyChanged
             Poll = new PollVm(pollData.Id, pollData.Question, pollData.Options,
                 index => PollVoteRequested?.Invoke(this, index));
         }
-        Update(message, ownName, peerName);
+        Update(message, ownName, peerName, peerAvatar);
     }
 
     /// <summary>Разбор опроса: строгий для Kind=poll, эвристический для утерянного Kind.</summary>
@@ -960,7 +960,7 @@ public sealed class MessageVm : INotifyPropertyChanged
         $"{(int)Math.Round(color.Green * 255):X2}" +
         $"{(int)Math.Round(color.Blue * 255):X2}";
 
-    public void Update(StoredMessage message, string ownName, string peerName)
+    public void Update(StoredMessage message, string ownName, string peerName, string? peerAvatar = null)
     {
         Text = message.Text;
         FileName = message.FileName;
@@ -987,7 +987,9 @@ public sealed class MessageVm : INotifyPropertyChanged
         SenderDisplay = IsMine
             ? ownName
             : string.IsNullOrEmpty(message.SenderUsername) ? peerName : message.SenderUsername;
-        SenderAvatarBase64 = message.SenderAvatarBase64;
+        SenderAvatarBase64 = string.IsNullOrWhiteSpace(message.SenderAvatarBase64)
+            ? peerAvatar
+            : message.SenderAvatarBase64;
         _username = peerName;
         SetAlbum(message.AlbumId, message.AlbumIndex, message.AlbumCount);
         SetReactions(LocalStore.ReadReactions(message.ReactionsJson), ownName);
