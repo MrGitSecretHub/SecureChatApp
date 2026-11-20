@@ -28,7 +28,8 @@ public static class MessageCrypto
         long sentAtUnixMs,
         string plaintext,
         string recipientEncryptionPublicKey,
-        ECDsa senderSigningKey)
+        ECDsa senderSigningKey,
+        long? expireAtUnixMs = null)
     {
         ArgumentNullException.ThrowIfNull(plaintext);
 
@@ -45,7 +46,8 @@ public static class MessageCrypto
                 SentAtUnixMs = sentAtUnixMs
             },
             recipientEncryptionPublicKey,
-            senderSigningKey);
+            senderSigningKey,
+            expireAtUnixMs);
     }
 
     public static EncryptedEnvelope EncryptPayload(
@@ -57,7 +59,8 @@ public static class MessageCrypto
         long sentAtUnixMs,
         MessagePayload payload,
         string recipientEncryptionPublicKey,
-        ECDsa senderSigningKey)
+        ECDsa senderSigningKey,
+        long? expireAtUnixMs = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(senderId);
@@ -85,7 +88,7 @@ public static class MessageCrypto
 
         var header = BuildHeader(
             id, senderId, senderUsername, recipientId, recipientUsername,
-            sentAtUnixMs, Convert.ToBase64String(ephemeralPublicKeyBytes));
+            sentAtUnixMs, Convert.ToBase64String(ephemeralPublicKeyBytes), expireAtUnixMs);
 
         var aad = Encoding.UTF8.GetBytes(header);
         var salt = SHA256.HashData(Concat(ephemeralPublicKeyBytes, recipientPublicKeyBytes));
@@ -126,7 +129,8 @@ public static class MessageCrypto
             Nonce = nonceBase64,
             Ciphertext = ciphertextBase64,
             Tag = tagBase64,
-            Signature = Convert.ToBase64String(signature)
+            Signature = Convert.ToBase64String(signature),
+            ExpireAtUnixMs = expireAtUnixMs
         };
     }
 
@@ -174,7 +178,8 @@ public static class MessageCrypto
             envelope.RecipientId,
             envelope.RecipientUsername,
             envelope.SentAtUnixMs,
-            envelope.SenderEphemeralPublicKey);
+            envelope.SenderEphemeralPublicKey,
+            envelope.ExpireAtUnixMs);
 
         var aad = Encoding.UTF8.GetBytes(header);
         var salt = SHA256.HashData(Concat(ephemeralPublicKeyBytes, recipientPublicKeyBytes));
@@ -237,7 +242,8 @@ public static class MessageCrypto
                 envelope.RecipientId,
                 envelope.RecipientUsername,
                 envelope.SentAtUnixMs,
-                envelope.SenderEphemeralPublicKey);
+                envelope.SenderEphemeralPublicKey,
+                envelope.ExpireAtUnixMs);
 
             var signatureInput = BuildSignatureInput(header, nonce, ciphertext, tag);
 
@@ -264,17 +270,23 @@ public static class MessageCrypto
         string recipientId,
         string recipientUsername,
         long sentAtUnixMs,
-        string ephemeralPublicKey)
+        string ephemeralPublicKey,
+        long? expireAtUnixMs = null)
     {
-        return string.Join(
-            '\n',
+        var parts = new[]
+        {
             id,
             senderId,
             senderUsername,
             recipientId,
             recipientUsername,
             sentAtUnixMs.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ephemeralPublicKey);
+            ephemeralPublicKey
+        };
+        return expireAtUnixMs.HasValue
+            ? string.Join('\n', parts.Append(
+                expireAtUnixMs.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)))
+            : string.Join('\n', parts);
     }
 
     private static byte[] BuildSignatureInput(

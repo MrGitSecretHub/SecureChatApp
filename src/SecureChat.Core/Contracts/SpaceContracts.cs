@@ -123,6 +123,9 @@ public sealed class SpaceMessageDto
     public long EditedAtUnixMs { get; set; }
     public bool IsPinned { get; set; }
     public List<Reaction> Reactions { get; set; } = new();
+
+    /// <summary>Сколько участников просмотрели пост канала.</summary>
+    public int ViewCount { get; set; }
 }
 
 /// <summary>Запрос отправки зашифрованного сообщения в пространство.</summary>

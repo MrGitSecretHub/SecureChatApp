@@ -537,6 +537,14 @@
                                 <views:PollView Poll="{Binding Poll}"
                                                     IsVisible="{Binding HasPoll}" />
 
+                                <Button Text="{Binding StatsText}"
+                                        IsVisible="{Binding HasStats}"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{DynamicResource TextMuted}"
+                                        FontSize="11"
+                                        Padding="2"
+                                        Clicked="OnStatsTapped" />
+
                                 <Label FormattedText="{Binding TextFormatted}"
                                        Style="{Binding TextStyle}"
                                        LineBreakMode="WordWrap"

@@ -27,6 +27,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     private byte[]? _gifBytes;
     private readonly bool _isChannel;
     private int _commentsCount;
+    private int _viewCount;
     private bool _hasDateLabel;
     private string _dateLabel = string.Empty;
     private readonly List<string> _urls = new();
@@ -461,6 +462,23 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     public FormattedString? TextFormatted => _textFormatted;
 
     /// <summary>Число известных клиенту комментариев к посту.</summary>
+
+    public int ViewCount
+    {
+        get => _viewCount;
+        set
+        {
+            if (_viewCount == value) return;
+            _viewCount = value;
+            OnPropertyChanged(nameof(ViewCount));
+            OnPropertyChanged(nameof(StatsText));
+            OnPropertyChanged(nameof(HasStats));
+        }
+    }
+
+    public string StatsText => ViewCount > 0 ? $"👁 {ViewCount}" : string.Empty;
+    public bool HasStats => ViewCount > 0;
+
     public int CommentsCount
     {
         get => _commentsCount;

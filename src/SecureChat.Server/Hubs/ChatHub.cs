@@ -955,6 +955,30 @@ public sealed class ChatHub : Hub
         return members.FirstOrDefault(item => string.Equals(item.UserId, userId, StringComparison.Ordinal));
     }
 
+    /// <summary>Отметить посты канала как просмотренные текущим участником.</summary>
+    public async Task RecordSpaceMessageViews(string spaceId, IEnumerable<string> messageIds)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId)) return;
+        if (await FindMemberAsync(spaceId, userId) is null) return;
+        await _spaces.RecordViewsAsync(messageIds, userId);
+    }
+
+    /// <summary>Список логинов, просмотревших пост канала.</summary>
+    public async Task<List<string>> GetSpaceMessageViewers(string spaceId, string messageId)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId) ||
+            string.IsNullOrWhiteSpace(messageId))
+        {
+            return new List<string>();
+        }
+        if (await FindMemberAsync(spaceId, userId) is null) return new List<string>();
+        var message = await _spaces.GetEncryptedMessageAsync(spaceId, messageId);
+        if (message is null) return new List<string>();
+        return (await _spaces.GetViewersAsync(messageId)).ToList();
+    }
+
     public async Task<List<SpaceMessageDto>> GetSpaceMessages(string spaceId, string? topicId)
     {
         var userId = Context.UserIdentifier;

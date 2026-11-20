@@ -761,7 +761,8 @@ public sealed class ChatManager
         string? replyToFileName = null,
         string kind = MessageKinds.Text,
         string? replyToSender = null,
-        bool isOnce = false)
+        bool isOnce = false,
+        long? expireAtUnixMs = null)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -785,7 +786,8 @@ public sealed class ChatManager
             replyToFileName: replyToFileName,
             kind: kind,
             replyToSender: replyToSender,
-            isOnce: isOnce);
+            isOnce: isOnce,
+            expireAtUnixMs: expireAtUnixMs);
     }
 
     /// <summary>
@@ -872,7 +874,8 @@ public sealed class ChatManager
         string kind = MessageKinds.Text,
         string? forwardedFrom = null,
         string? replyToSender = null,
-        bool isOnce = false)
+        bool isOnce = false,
+        long? expireAtUnixMs = null)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -923,7 +926,8 @@ public sealed class ChatManager
             sentAt,
             payload,
             recipientEncryptionPublicKey,
-            signingKey);
+            signingKey,
+            expireAtUnixMs);
 
         var conversation = await _localStore.GetConversationAsync(recipientUsername)
             ?? await _localStore.AddOrUpdateContactAsync(new UserProfileDto
@@ -941,6 +945,7 @@ public sealed class ChatManager
             Id = messageId,
             Text = text,
             SentAtUnixMs = sentAt,
+            ExpireAtUnixMs = expireAtUnixMs ?? 0,
             IsMine = true,
             Status = LocalStore.QueuedStatus,
             IsForwarded = isForwarded,
@@ -1905,6 +1910,7 @@ public sealed class ChatManager
                     ? payload.Text
                     : BuildMediaPreview(kind, media!.FileName),
                 SentAtUnixMs = envelope.SentAtUnixMs,
+                ExpireAtUnixMs = envelope.ExpireAtUnixMs ?? 0,
                 IsMine = false,
                 Status = "Получено",
                 Kind = kind,

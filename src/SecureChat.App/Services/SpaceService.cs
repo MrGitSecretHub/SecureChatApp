@@ -308,6 +308,37 @@ public sealed class SpaceService
             "GetSpaceMembers", spaceId, cancellationToken);
     }
 
+    public async Task RecordViewsAsync(
+        string spaceId,
+        IEnumerable<string> messageIds,
+        CancellationToken cancellationToken = default)
+    {
+        var list = messageIds.Take(200).ToList();
+        if (list.Count == 0) return;
+        var connection = await GetConnectionAsync();
+        if (connection is null) return;
+        try
+        {
+            await connection.InvokeAsync("RecordSpaceMessageViews", spaceId, list, cancellationToken);
+        }
+        catch { }
+    }
+
+    public async Task<IReadOnlyList<string>> GetViewersAsync(
+        string spaceId,
+        string messageId,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = await GetConnectionAsync();
+        if (connection is null) return Array.Empty<string>();
+        try
+        {
+            return await connection.InvokeAsync<List<string>>(
+                "GetSpaceMessageViewers", spaceId, messageId, cancellationToken);
+        }
+        catch { return Array.Empty<string>(); }
+    }
+
     public async Task<bool> JoinAsync(string spaceId, CancellationToken cancellationToken = default)
     {
         var tcp = await TryTcpAsync("spaces.join", new TcpSpaceJoinRequest { SpaceId = spaceId }, cancellationToken);

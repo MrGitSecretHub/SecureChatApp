@@ -47,6 +47,7 @@ public partial class ChatView : ContentView
     private string? _username;
     private bool _subscribed;
     private bool _sending;
+    private long? _ttlNext;
     private bool _sendingAttachment;
 
     /// <summary>Следующее сообщение (или вложение) будет одноразовым.</summary>
@@ -638,7 +639,10 @@ public partial class ChatView : ContentView
             System.IO.File.WriteAllText(@"C:\Users\Administrator\AppData\Local\Temp\opencode\bubbles_debug.txt", dbg);
         }
         catch { }
-        foreach (var stored in _conversation.Messages.OrderBy(item => item.SentAtUnixMs))
+        var nowUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        foreach (var stored in _conversation.Messages
+                     .Where(m => m.ExpireAtUnixMs == 0 || m.ExpireAtUnixMs > nowUnixMs)
+                     .OrderBy(item => item.SentAtUnixMs))
         {
             var vm = CreateMessageVm(stored, _username);
             if (stored.Kind == MessageKinds.PollVote)
@@ -1209,7 +1213,10 @@ public partial class ChatView : ContentView
                     replyToText: replyTarget?.Text,
                     replyToFileName: replyTarget?.FileName,
                     replyToSender: replyTarget?.ReplyAuthorName,
-                    isOnce: sendOnce);
+                    isOnce: sendOnce,
+                    expireAtUnixMs: _ttlNext);
+                _ttlNext = null;
+                TtlButton.Text = "⏲";
                 ResetViewOnce();
                 _replyingTo = null;
                 ReplyBar.IsVisible = false;
@@ -4024,6 +4031,23 @@ public partial class ChatView : ContentView
         var page = HostPage;
         if (page is null) return;
         await page.Navigation.PushAsync(new StoriesPage());
+    }
+
+    private async void OnTtlClicked(object? sender, EventArgs e)
+    {
+        var page = HostPage;
+        if (page is null) return;
+        var choice = await page.DisplayActionSheet(
+            "Автоудаление сообщения", "Отмена", "Без автоудаления",
+            "Через 1 минуту", "Через 1 час", "Через 1 день");
+        _ttlNext = choice switch
+        {
+            "Через 1 минуту" => DateTimeOffset.UtcNow.AddMinutes(1).ToUnixTimeMilliseconds(),
+            "Через 1 час" => DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeMilliseconds(),
+            "Через 1 день" => DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeMilliseconds(),
+            _ => null
+        };
+        TtlButton.Text = _ttlNext.HasValue ? "⏲✓" : "⏲";
     }
 }
 

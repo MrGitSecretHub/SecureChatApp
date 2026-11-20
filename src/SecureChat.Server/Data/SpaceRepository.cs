@@ -35,10 +35,27 @@ public sealed class SpaceRepository
         _connectionString = builder.ToString();
     }
 
+    private static async Task EnsureViewTableAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            CREATE TABLE IF NOT EXISTS SpaceMessageViews (
+                MessageId TEXT NOT NULL,
+                UserId    TEXT NOT NULL,
+                ViewedAt  TEXT NOT NULL,
+                PRIMARY KEY (MessageId, UserId)
+            );
+            """;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
+        await EnsureViewTableAsync(connection, cancellationToken);
 
         await using var command = connection.CreateCommand();
         command.CommandText = """
@@ -174,6 +191,79 @@ public sealed class SpaceRepository
     }
 
     /// <summary>Добавляет колонки шифротекста в уже созданную базу.</summary>
+    public async Task RecordViewsAsync(
+        IEnumerable<string> messageIds,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+            await EnsureViewTableAsync(connection, cancellationToken);
+            var now = DateTimeOffset.UtcNow.ToString("O");
+            foreach (var id in messageIds.Distinct().Take(200))
+            {
+                await using var command = connection.CreateCommand();
+                command.CommandText = """
+                    INSERT OR IGNORE INTO SpaceMessageViews (MessageId, UserId, ViewedAt)
+                    VALUES ($id, $user, $at);
+                    """;
+                command.Parameters.AddWithValue("$id", id);
+                command.Parameters.AddWithValue("$user", userId);
+                command.Parameters.AddWithValue("$at", now);
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+        }
+        finally { _writeLock.Release(); }
+    }
+
+    public async Task<IReadOnlyList<string>> GetViewersAsync(
+        string messageId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await EnsureViewTableAsync(connection, cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT u.Username FROM SpaceMessageViews v
+            LEFT JOIN Users u ON u.Id = v.UserId
+            WHERE v.MessageId = $id
+            ORDER BY v.ViewedAt;
+            """;
+        command.Parameters.AddWithValue("$id", messageId);
+        var result = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+            result.Add(reader.IsDBNull(0) ? "?" : reader.GetString(0));
+        return result;
+    }
+
+    private async Task FillViewCountsAsync(
+        List<SpaceMessageDto> messages,
+        CancellationToken cancellationToken)
+    {
+        if (messages.Count == 0) return;
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await EnsureViewTableAsync(connection, cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT MessageId, COUNT(*) FROM SpaceMessageViews
+            WHERE MessageId IN ($ids)
+            GROUP BY MessageId;
+            """;
+        command.Parameters.AddWithValue("$ids", string.Join(",", messages.Select(m => $"'{m.Id}'")));
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+            counts[reader.GetString(0)] = Convert.ToInt32(reader.GetInt64(1));
+        foreach (var message in messages)
+            message.ViewCount = counts.TryGetValue(message.Id, out var count) ? count : 0;
+    }
+
     private static async Task EnsureMessageColumnsAsync(
         SqliteConnection connection,
         CancellationToken cancellationToken)
@@ -1133,6 +1223,7 @@ public sealed class SpaceRepository
 
         result.Reverse();
         await FillReactionsAsync(result, cancellationToken);
+        await FillViewCountsAsync(result, cancellationToken);
         return result;
     }
 

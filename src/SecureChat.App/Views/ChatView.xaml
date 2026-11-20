@@ -1352,6 +1352,12 @@
                                     VerticalOptions="End"
                                     Clicked="OnQuickRepliesClicked"
                                     ToolTipProperties.Text="Быстрые ответы" />
+                            <Button x:Name="TtlButton"
+                                    Text="⏲"
+                                    Style="{DynamicResource IconButton}"
+                                    VerticalOptions="End"
+                                    Clicked="OnTtlClicked"
+                                    ToolTipProperties.Text="Автоудаление" />
                             <Button x:Name="EmojiButton"
                                     Text="😊"
                                     Style="{DynamicResource IconButton}"

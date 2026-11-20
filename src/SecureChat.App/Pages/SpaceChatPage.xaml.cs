@@ -379,6 +379,7 @@ public partial class SpaceChatPage : ContentPage
             }
 
             ApplySpacePollVotes();
+            _ = RecordChannelViewsAsync();
             RefreshDateLabels();
             RefreshMentionJump();
             if (AppServices.Get<AppSession>().LinkPreviewEnabled)
@@ -463,6 +464,7 @@ public partial class SpaceChatPage : ContentPage
         vm.HashtagTapped += OnSpaceHashtagTapped;
         vm.LinkTapped += OnMessageLinkTapped;
         vm.PollVoteRequested += OnSpacePollVoteRequested;
+        vm.ViewCount = message.ViewCount;
         if (payload.Kind == MessageKinds.PollVote && payload.PollVote is not null)
         {
             _spaceVotes[message.Id] = (payload.PollVote, vm.Sender);
@@ -2575,6 +2577,26 @@ public partial class SpaceChatPage : ContentPage
         {
             await this.ShowErrorAsync(ex);
         }
+    }
+
+    private async Task RecordChannelViewsAsync()
+    {
+        if (_spaceType != SpaceTypes.Channel) return;
+        var ids = _messages.Where(m => m.ViewCount >= 0).Select(m => m.Id).ToList();
+        await _spaces.RecordViewsAsync(_spaceId, ids);
+    }
+
+    private async void OnStatsTapped(object sender, EventArgs e)
+    {
+        if (sender is not Element { BindingContext: SpaceMessageVm post }) return;
+        var page = this as Page;
+        if (page is null) return;
+        var viewers = await _spaces.GetViewersAsync(_spaceId, post.Id);
+        var title = viewers.Count == 0
+            ? "Просмотров пока нет"
+            : $"Просмотрели ({viewers.Count})";
+        await page.DisplayActionSheet(title, "Закрыть", null,
+            viewers.Count == 0 ? new[] { "Пока никто" } : viewers.ToArray());
     }
 }
 

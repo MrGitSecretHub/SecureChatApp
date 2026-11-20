@@ -986,11 +986,7 @@ public partial class SettingsPage : ContentPage
             return;
         }
 
-        await DisplayAlert(
-            Loc.T("set_104", "Отпечаток ключа"),
-            fingerprint,
-            Loc.T("set_147", "Скопировать"),
-            Loc.T("set_041", "Закрыть"));
+        await Navigation.PushAsync(new FingerprintQrPage(fingerprint));
 
         // В реальном приложении здесь можно скопировать в буфер обмена
     }

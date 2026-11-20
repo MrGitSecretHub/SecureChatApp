@@ -11,6 +11,9 @@ public sealed class StoredMessage
     public string Id { get; set; } = string.Empty;
     public string Text { get; set; } = string.Empty;
     public long SentAtUnixMs { get; set; }
+
+    /// <summary>Время автоудаления сообщения (0 — бессрочно).</summary>
+    public long ExpireAtUnixMs { get; set; }
     public bool IsMine { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Kind { get; set; } = MessageKinds.Text;
@@ -2222,6 +2225,7 @@ public sealed class LocalStore
         Id = source.Id,
         Text = source.Text,
         SentAtUnixMs = source.SentAtUnixMs,
+        ExpireAtUnixMs = source.ExpireAtUnixMs,
         IsMine = source.IsMine,
         Status = source.Status,
         Kind = source.Kind,
