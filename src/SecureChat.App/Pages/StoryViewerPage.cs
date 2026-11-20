@@ -2,53 +2,30 @@ using SecureChat.App.Services;
 
 namespace SecureChat.App.Pages;
 
-/// <summary>Полноэкранный просмотр историй с сегментированным прогрессом.</summary>
+/// <summary>Полноэкранный просмотр историй: фон, медиа, сегменты, ответ.</summary>
 public sealed class StoryViewerPage : ContentPage
 {
     private readonly StoryService _stories = AppServices.Get<StoryService>();
     private readonly List<StoryItem> _items;
-    private readonly Grid _segments = new() { ColumnSpacing = 3, HeightRequest = 3, Margin = new Thickness(10, 8, 10, 0) };
-    private readonly Image _image = new() { Aspect = Aspect.AspectFill, VerticalOptions = LayoutOptions.FillAndExpand, HorizontalOptions = LayoutOptions.FillAndExpand };
+    private readonly BoxView _backdrop = new() { Color = Colors.Black };
+    private readonly Image _image = new() { Aspect = Aspect.AspectFill, IsVisible = false };
+    private readonly Grid _segments = new() { ColumnSpacing = 3, HeightRequest = 3, Margin = new Thickness(10, 6, 10, 0) };
     private readonly Label _name = new() { TextColor = Colors.White, FontAttributes = FontAttributes.Bold, FontSize = 13 };
     private readonly Label _time = new() { TextColor = Color.FromArgb("#CCFFFFFF"), FontSize = 11 };
     private readonly Label _caption = new()
     {
         TextColor = Colors.White,
-        FontSize = 14,
         HorizontalTextAlignment = TextAlignment.Center,
+        VerticalTextAlignment = TextAlignment.Center,
+        VerticalOptions = LayoutOptions.Center,
+        HorizontalOptions = LayoutOptions.Fill,
         LineBreakMode = LineBreakMode.WordWrap,
-        Margin = new Thickness(12, 6),
-        BackgroundColor = Color.FromArgb("#99000000"),
-        Padding = new Thickness(10, 6)
+        Margin = new Thickness(20, 8),
+        Padding = new Thickness(12, 10)
     };
-    private readonly Button _views = new()
-    {
-        TextColor = Colors.White,
-        BackgroundColor = Color.FromArgb("#55FFFFFF"),
-        FontSize = 11,
-        HeightRequest = 28,
-        Padding = new Thickness(8, 0)
-    };
-    private readonly Button _delete = new()
-    {
-        Text = Loc.T("stories_delete", "Удалить историю"),
-        TextColor = Colors.White,
-        BackgroundColor = Color.FromArgb("#55FFFFFF"),
-        FontSize = 11,
-        HeightRequest = 28,
-        Padding = new Thickness(8, 0),
-        IsVisible = false
-    };
-    private readonly Button _reply = new()
-    {
-        Text = "↩ " + Loc.T("stories_reply", "Reply"),
-        TextColor = Colors.White,
-        BackgroundColor = Color.FromArgb("#55FFFFFF"),
-        FontSize = 11,
-        HeightRequest = 28,
-        Padding = new Thickness(8, 0),
-        IsVisible = false
-    };
+    private readonly Button _views = MakeAction("👁 0");
+    private readonly Button _delete = MakeAction(Loc.T("stories_delete", "Удалить историю"));
+    private readonly Button _reply = MakeAction("↩ " + Loc.T("stories_reply", "Reply"));
     private readonly Entry _replyEntry = new()
     {
         Placeholder = Loc.T("stories_reply_hint", "Reply to story…"),
@@ -60,12 +37,24 @@ public sealed class StoryViewerPage : ContentPage
     private CancellationTokenSource? _cts;
     private int _index;
 
+    private static Button MakeAction(string text) => new()
+    {
+        Text = text,
+        TextColor = Colors.White,
+        BackgroundColor = Color.FromArgb("#55FFFFFF"),
+        FontSize = 11,
+        HeightRequest = 30,
+        Padding = new Thickness(10, 0)
+    };
+
     public StoryViewerPage(StoryItem story) : this(new List<StoryItem> { story }, 0) { }
 
     public StoryViewerPage(IReadOnlyList<StoryItem> items, int startIndex)
     {
         _items = items.ToList();
         _index = Math.Clamp(startIndex, 0, _items.Count - 1);
+        _delete.IsVisible = false;
+        _reply.IsVisible = false;
         BackgroundColor = Colors.Black;
         Shell.SetNavBarIsVisible(this, false);
         NavigationPage.SetHasNavigationBar(this, false);
@@ -82,52 +71,84 @@ public sealed class StoryViewerPage : ContentPage
         };
         close.Clicked += async (_, _) => await Navigation.PopAsync();
 
-        var header = new Grid { ColumnDefinitions = new ColumnDefinitionCollection { new(), new(GridLength.Auto) }, Padding = new Thickness(10, 0) };
-        header.Add(new HorizontalStackLayout { Spacing = 8, VerticalOptions = LayoutOptions.Center, Children = { _name, _time } }, 0, 0);
-        header.Add(close, 1, 0);
+        var header = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            Padding = new Thickness(12, 0, 8, 0)
+        };
+        header.Add(new HorizontalStackLayout
+        {
+            Spacing = 8,
+            VerticalOptions = LayoutOptions.Center,
+            Children = { _name, _time }
+        }, 0, 0);
+        header.Add(close, 0, 1);
 
-        var prev = new BoxView { Color = Colors.Transparent, HorizontalOptions = LayoutOptions.FillAndExpand };
-        var next = new BoxView { Color = Colors.Transparent, HorizontalOptions = LayoutOptions.FillAndExpand };
-        prev.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => Previous()) });
-        next.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => Next()) });
+        var prev = new BoxView { Color = Colors.Transparent };
+        var next = new BoxView { Color = Colors.Transparent };
+        prev.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(Previous) });
+        next.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(Next) });
         var taps = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitionCollection { new(), new() },
-            InputTransparent = false,
-            BackgroundColor = Colors.Transparent
+            RowDefinitions = new RowDefinitionCollection { new RowDefinition(GridLength.Star) },
+            ColumnDefinitions = new ColumnDefinitionCollection
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            }
         };
         taps.Add(prev, 0, 0);
-        taps.Add(next, 1, 0);
+        taps.Add(next, 0, 1);
 
-        var actions = new HorizontalStackLayout
-        {
-            Spacing = 6,
-            HorizontalOptions = LayoutOptions.Center,
-            Margin = new Thickness(0, 0, 0, 6),
-            Children = { _views, _reply, _delete }
-        };
         _views.Clicked += OnViewsClicked;
         _delete.Clicked += OnDeleteClicked;
         _reply.Clicked += OnReplyClicked;
         _replyEntry.Completed += OnReplyCompleted;
+        var actions = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.Center,
+            Children = { _views, _reply, _delete }
+        };
 
         var overlay = new Grid
         {
-            RowDefinitions = new RowDefinitionCollection { new(GridLength.Auto), new(), new(GridLength.Auto), new(GridLength.Auto) },
-            InputTransparent = true
+            RowDefinitions = new RowDefinitionCollection
+            {
+                new RowDefinition(GridLength.Auto), // segments
+                new RowDefinition(GridLength.Auto), // header
+                new RowDefinition(GridLength.Star),  // caption
+                new RowDefinition(GridLength.Auto)  // reply + actions
+            },
+            ColumnDefinitions = new ColumnDefinitionCollection { new ColumnDefinition(GridLength.Star) },
+            InputTransparent = true,
+            CascadeInputTransparent = false
         };
         overlay.Add(_segments, 0, 0);
-        overlay.Add(new Grid { Children = { header } }, 1, 0);
-        overlay.Add(new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.End, Children = { _caption, _replyEntry, actions } }, 2, 0);
-        // тап-зоны поверх медиа, но под кнопками
+        overlay.Add(header, 1, 0);
+        overlay.Add(_caption, 2, 0);
+        overlay.Add(new VerticalStackLayout
+        {
+            Spacing = 6,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.End,
+            Padding = new Thickness(10, 0, 10, 16),
+            Children = { _replyEntry, actions }
+        }, 3, 0);
+
         var root = new Grid
         {
-            RowDefinitions = new RowDefinitionCollection { new(), new(GridLength.Auto) }
+            RowDefinitions = new RowDefinitionCollection { new RowDefinition(GridLength.Star) },
+            ColumnDefinitions = new ColumnDefinitionCollection { new ColumnDefinition(GridLength.Star) }
         };
+        root.Add(_backdrop, 0, 0);
         root.Add(_image, 0, 0);
         root.Add(taps, 0, 0);
         root.Add(overlay, 0, 0);
-        root.Add(new BoxView { Color = Color.FromArgb("#66000000"), VerticalOptions = LayoutOptions.End, HeightRequest = 90 }, 1, 0);
         Content = root;
         ShowCurrent();
     }
@@ -135,16 +156,17 @@ public sealed class StoryViewerPage : ContentPage
     private void BuildSegments()
     {
         _segments.Clear();
+        _segments.ColumnDefinitions.Clear();
         for (var i = 0; i < _items.Count; i++)
         {
             var segment = new BoxView
             {
                 Color = i < _index ? Colors.White : Color.FromArgb("#66FFFFFF"),
-                HorizontalOptions = LayoutOptions.FillAndExpand,
+                HorizontalOptions = LayoutOptions.Fill,
                 HeightRequest = 3
             };
             _segments.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-            _segments.Add(segment, i, 0);
+            _segments.Add(segment, 0, i);
         }
     }
 
@@ -153,32 +175,36 @@ public sealed class StoryViewerPage : ContentPage
         if (_items.Count == 0) return;
         var story = _items[_index];
         _name.Text = story.IsMine ? Loc.T("stories_my", "Мои истории") : story.OwnerUsername;
-        var date = DateTimeOffset.FromUnixTimeMilliseconds(story.CreatedAtUnixMs).ToLocalTime();
-        _time.Text = date.ToString("dd.MM HH:mm");
+        _time.Text = DateTimeOffset.FromUnixTimeMilliseconds(story.CreatedAtUnixMs)
+            .ToLocalTime().ToString("dd.MM HH:mm");
+
         _caption.Text = story.Text;
         _caption.IsVisible = !string.IsNullOrWhiteSpace(story.Text);
         _caption.FontSize = story.FontSize > 0 ? story.FontSize : 18;
-        _caption.TextColor = string.IsNullOrEmpty(story.TextHex)
-            ? Colors.White
-            : Color.FromArgb(story.TextHex);
+        _caption.TextColor = string.IsNullOrEmpty(story.TextHex) ? Colors.White : Color.FromArgb(story.TextHex);
         _caption.BackgroundColor = string.IsNullOrEmpty(story.ImageBase64)
             ? Colors.Transparent
             : Color.FromArgb("#99000000");
-        _image.BackgroundColor = string.IsNullOrEmpty(story.ImageBase64)
-            ? Color.FromArgb(string.IsNullOrEmpty(story.BackgroundHex) ? "#3B6FE8" : story.BackgroundHex)
-            : Colors.Black;
+
+        var hasImage = !string.IsNullOrEmpty(story.ImageBase64);
+        _image.IsVisible = hasImage;
         _image.Source = null;
-        if (!string.IsNullOrEmpty(story.ImageBase64))
+        _backdrop.Color = hasImage
+            ? Colors.Black
+            : Color.FromArgb(string.IsNullOrEmpty(story.BackgroundHex) ? "#3B6FE8" : story.BackgroundHex);
+        if (hasImage)
         {
             try { _image.Source = ImageSource.FromStream(() => new MemoryStream(Convert.FromBase64String(story.ImageBase64))); }
-            catch (FormatException) { _image.BackgroundColor = Colors.Black; }
+            catch (FormatException) { _image.IsVisible = false; }
         }
+
         _views.Text = $"👁 {story.ViewCount}";
         _delete.IsVisible = story.IsMine;
         _reply.IsVisible = !story.IsMine;
         _replyEntry.IsVisible = false;
         _replyEntry.Text = string.Empty;
         BuildSegments();
+
         if (!story.ViewedByMe)
         {
             _ = _stories.MarkViewedAsync(story.Id);
@@ -233,6 +259,36 @@ public sealed class StoryViewerPage : ContentPage
         RestartTimer();
     }
 
+    private void OnReplyClicked(object? sender, EventArgs e)
+    {
+        _cts?.Cancel();
+        _replyEntry.IsVisible = true;
+        _replyEntry.Focus();
+    }
+
+    private async void OnReplyCompleted(object? sender, EventArgs e) => await SendReplyAsync();
+
+    private async Task SendReplyAsync()
+    {
+        var text = _replyEntry.Text?.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+        var story = _items[_index];
+        _replyEntry.IsVisible = false;
+        _replyEntry.Text = string.Empty;
+        try
+        {
+            var chat = AppServices.Get<ChatManager>();
+            await chat.RefreshContactProfileAsync(story.OwnerUsername);
+            await chat.SendMessageAsync(story.OwnerUsername, "↪ " + text);
+            await DisplayAlert(Loc.T("stories_reply", "Reply"), Loc.T("stories_reply_sent", "Ответ отправлен"), "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(Loc.T("stories_error", "Ошибка"), ex.Message, "OK");
+        }
+        RestartTimer();
+    }
+
     protected override void OnAppearing()
     {
         base.OnAppearing();
@@ -270,39 +326,5 @@ public sealed class StoryViewerPage : ContentPage
     {
         _cts?.Cancel();
         base.OnDisappearing();
-    }
-
-    private void OnReplyClicked(object? sender, EventArgs e)
-    {
-        _cts?.Cancel();
-        _replyEntry.IsVisible = true;
-        _replyEntry.Focus();
-    }
-
-    private async void OnReplyCompleted(object? sender, EventArgs e)
-    {
-        await SendReplyAsync();
-    }
-
-    private async Task SendReplyAsync()
-    {
-        var text = _replyEntry.Text?.Trim();
-        if (string.IsNullOrEmpty(text)) return;
-        var story = _items[_index];
-        _replyEntry.IsVisible = false;
-        _replyEntry.Text = string.Empty;
-        try
-        {
-            var chat = AppServices.Get<ChatManager>();
-            // История может быть от пользователя, с которым ещё нет чата — создаём контакт.
-            await chat.RefreshContactProfileAsync(story.OwnerUsername);
-            await chat.SendMessageAsync(story.OwnerUsername, "↪ " + text);
-            await DisplayAlert(Loc.T("stories_reply", "Ответить"), Loc.T("stories_reply_sent", "Ответ отправлен"), "OK");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert(Loc.T("stories_error", "Ошибка"), ex.Message, "OK");
-        }
-        RestartTimer();
     }
 }
