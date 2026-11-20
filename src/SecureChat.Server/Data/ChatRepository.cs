@@ -262,6 +262,33 @@ public sealed class ChatRepository
         }
     }
 
+    public async Task<IReadOnlyList<UserRecord>> GetContactsAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT DISTINCT u.Id, u.Username, u.Email, u.AuthHash, u.AuthSalt,
+                   u.EncryptionPublicKey, u.SigningPublicKey, u.CreatedAt,
+                   u.Nickname, u.Bio, u.AvatarBase64, u.StatusMessage, u.LastSeenUnixMs,
+                   u.IsAdmin
+            FROM Users u
+            WHERE u.Id <> $me AND u.Id IN (
+                SELECT CASE WHEN SenderId = $me THEN RecipientId ELSE SenderId END
+                FROM Messages
+                WHERE SenderId = $me OR RecipientId = $me
+            )
+            ORDER BY u.Username;
+            """;
+        command.Parameters.AddWithValue("$me", userId);
+        var result = new List<UserRecord>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken)) result.Add(MapUser(reader));
+        return result;
+    }
+
     public async Task<IReadOnlyList<UserRecord>> ListUsersAsync(CancellationToken cancellationToken = default)
     {
         await using var connection = new SqliteConnection(_connectionString);

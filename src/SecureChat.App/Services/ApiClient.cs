@@ -198,6 +198,18 @@ public sealed class ApiException : Exception
     }
 
 
+    public async Task<IReadOnlyList<UserProfileDto>> GetContactsAsync(
+        string serverUrl,
+        string token,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, BuildUri(serverUrl, "api/users/contacts"));
+        request.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        return await ReadAsync<IReadOnlyList<UserProfileDto>>(response, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<UserProfileDto>> ListUsersAsync(
         string serverUrl,
         string token,

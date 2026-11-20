@@ -42,6 +42,15 @@ public sealed class UsersController : ControllerBase
         return Ok(users.Select(u => AuthController.ToProfile(u, _presence)).ToList());
     }
 
+    [HttpGet("contacts")]
+    public async Task<IActionResult> Contacts(CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var users = await _repository.GetContactsAsync(userId, cancellationToken);
+        return Ok(users.Select(u => AuthController.ToProfile(u, _presence)).ToList());
+    }
+
     [HttpGet("{username}")]
     public async Task<IActionResult> GetByUsername(
         string username,

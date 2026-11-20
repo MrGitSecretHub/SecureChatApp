@@ -38,11 +38,12 @@ public sealed class StoryService
         var created = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         var users = await _api.ListUsersAsync(_session.ServerUrl, _session.Token!);
-        var recipients = users.Where(u => !string.Equals(u.Id, user.Id, StringComparison.Ordinal)).ToList();
+        // Including self lets the author see their own story on any device.
+        var recipients = users.ToList();
         if (contactsOnly)
         {
-            var conversations = await _store.GetConversationsAsync();
-            var names = conversations.Select(c => c.Username).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var names = (await _api.GetContactsAsync(_session.ServerUrl, _session.Token!))
+                .Select(u => u.Username).ToHashSet(StringComparer.OrdinalIgnoreCase);
             recipients = recipients.Where(u => names.Contains(u.Username)).ToList();
         }
         if (recipients.Count == 0)
@@ -94,32 +95,10 @@ public sealed class StoryService
         if (identity is null || _session.Token is null) return Array.Empty<StoryItem>();
 
         var result = new List<StoryItem>();
-        foreach (var own in await _store.GetActiveStoriesAsync())
-        {
-            result.Add(new StoryItem
-            {
-                Id = own.Id,
-                OwnerUsername = own.OwnerUsername,
-                Text = own.Text,
-                ImageBase64 = own.ImageBase64,
-                AvatarBase64 = _session.AvatarBase64,
-                CreatedAtUnixMs = own.CreatedAtUnixMs,
-                ExpiresAtUnixMs = own.ExpiresAtUnixMs,
-                IsMine = true
-            });
-        }
-        IReadOnlyList<StoryDto> dtos;
         try
         {
-            dtos = await _api.GetStoriesAsync(_session.ServerUrl, _session.Token);
-        }
-        catch
-        {
-            return result;
-        }
-        foreach (var dto in dtos)
-        {
-            try
+            var dtos = await _api.GetStoriesAsync(_session.ServerUrl, _session.Token);
+            foreach (var dto in dtos)
             {
                 var envelope = JsonSerializer.Deserialize<EncryptedEnvelope>(dto.EnvelopeJson);
                 if (envelope is null) continue;
@@ -129,22 +108,39 @@ public sealed class StoryService
                 var content = JsonSerializer.Deserialize<StoryContent>(payload.Text);
                 if (content is null) continue;
 
-                var conversation = await _store.GetConversationAsync(dto.OwnerUsername);
+                var mine = string.Equals(dto.OwnerId, _session.User?.Id, StringComparison.Ordinal);
                 result.Add(new StoryItem
                 {
                     Id = dto.Id,
-                    OwnerUsername = dto.OwnerUsername,
+                    OwnerUsername = mine ? (_session.User?.Username ?? dto.OwnerUsername) : dto.OwnerUsername,
                     Text = content.Text,
                     ImageBase64 = content.ImageBase64,
-                    AvatarBase64 = conversation?.AvatarBase64 ?? profile.AvatarBase64,
+                    AvatarBase64 = mine ? _session.AvatarBase64 : profile.AvatarBase64,
                     CreatedAtUnixMs = dto.CreatedAtUnixMs,
                     ExpiresAtUnixMs = dto.ExpiresAtUnixMs,
-                    IsMine = string.Equals(dto.OwnerId, _session.User?.Id, StringComparison.Ordinal)
+                    IsMine = mine
                 });
             }
-            catch (JsonException) { }
-            catch (CryptographicException) { }
+            return result.OrderByDescending(s => s.CreatedAtUnixMs).ToList();
         }
-        return result.OrderByDescending(s => s.CreatedAtUnixMs).ToList();
+        catch
+        {
+            // offline: локальная копия своих историй
+            foreach (var own in await _store.GetActiveStoriesAsync())
+            {
+                result.Add(new StoryItem
+                {
+                    Id = own.Id,
+                    OwnerUsername = own.OwnerUsername,
+                    Text = own.Text,
+                    ImageBase64 = own.ImageBase64,
+                    AvatarBase64 = _session.AvatarBase64,
+                    CreatedAtUnixMs = own.CreatedAtUnixMs,
+                    ExpiresAtUnixMs = own.ExpiresAtUnixMs,
+                    IsMine = true
+                });
+            }
+            return result;
+        }
     }
 }
