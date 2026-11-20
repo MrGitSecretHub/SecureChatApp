@@ -1331,7 +1331,11 @@
                     </Border>
 
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                        <HorizontalStackLayout Grid.Column="0"
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never"
+                            Grid.Column="0"
+                            WidthRequest="{OnPlatform Android=120, WinUI=300}"
+                            VerticalOptions="End">
+                        <HorizontalStackLayout
                                                Spacing="8"
                                                VerticalOptions="End">
                             <Button x:Name="AttachButton"
@@ -1371,9 +1375,10 @@
                                     Clicked="OnViewOnceToggled"
                                     ToolTipProperties.Text="{DynamicResource s_ui_093}" />
                         </HorizontalStackLayout>
+                        </ScrollView>
 
                         <views:MentionEntryView Grid.Column="1"
-                                                x:Name="MessageEntry"
+                                                x:Name="MessageEntry" MinimumWidthRequest="120"
                                                 VerticalOptions="Center"
                                                 Placeholder="{DynamicResource s_ui_077}"
                                                 Completed="OnSendClicked"
