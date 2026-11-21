@@ -1,8 +1,4 @@
-using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
-#if ANDROID
-using MPowerKit.Lottie;
-#endif
 using SecureChat.App.Pages;
 using SecureChat.App.Scheduling;
 using SecureChat.App.Services;
@@ -15,7 +11,6 @@ public static class MauiProgram
     {
         var builder = MauiApp.CreateBuilder();
         builder.UseMauiApp<App>();
-        builder.UseMauiCommunityToolkit();
 
         builder.Services.AddSingleton<SecretStore>();
         builder.Services.AddSingleton<QuickRepliesService>();
