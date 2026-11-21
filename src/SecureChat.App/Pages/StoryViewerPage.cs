@@ -178,15 +178,52 @@ public sealed class StoryViewerPage : ContentPage
         _segments.ColumnDefinitions.Clear();
         for (var i = 0; i < _items.Count; i++)
         {
-            var segment = new BoxView
+            var track = new Grid { HorizontalOptions = LayoutOptions.Fill };
+            track.Add(new BoxView
             {
-                Color = i < _index ? Colors.White : Color.FromArgb("#66FFFFFF"),
+                Color = Color.FromArgb("#66FFFFFF"),
+                HeightRequest = 3,
+                HorizontalOptions = LayoutOptions.Fill
+            });
+            var fill = new BoxView
+            {
+                Color = Colors.White,
+                HeightRequest = 3,
                 HorizontalOptions = LayoutOptions.Fill,
-                HeightRequest = 3
+                VerticalOptions = LayoutOptions.Fill,
+                AnchorX = 0,
+                ScaleX = i < _index ? 1 : 0
             };
+            track.Add(fill);
             _segments.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-            _segments.Add(segment, 0, i);
+            _segments.Add(track, 0, i);
         }
+    }
+
+    /// <summary>Плавно заполняет текущий сегмент за 5 секунд.</summary>
+    private void AnimateCurrentSegment(CancellationToken token)
+    {
+        if (_index < 0 || _index >= _segments.Children.Count ||
+            _segments.Children[_index] is not Grid track ||
+            track.Children.LastOrDefault() is not BoxView fill)
+        {
+            return;
+        }
+
+        fill.ScaleX = 0;
+        var animation = new Animation(v => fill.ScaleX = v, 0, 1, Easing.Linear);
+        animation.Commit(this, "story_progress", 16, 5000, Easing.Linear);
+        _ = CompleteAfterAsync(token);
+    }
+
+    private async Task CompleteAfterAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(5000, token);
+            MainThread.BeginInvokeOnMainThread(Next);
+        }
+        catch (TaskCanceledException) { }
     }
 
     private void ShowCurrent()
@@ -317,33 +354,17 @@ public sealed class StoryViewerPage : ContentPage
     private void RestartTimer()
     {
         _cts?.Cancel();
+        this.AbortAnimation("story_progress");
         _cts = new CancellationTokenSource();
-        _ = RunTimerAsync(_cts.Token);
+        AnimateCurrentSegment(_cts.Token);
     }
 
-    private async Task RunTimerAsync(CancellationToken token)
-    {
-        const int seconds = 5;
-        try
-        {
-            for (var i = 1; i <= seconds; i++)
-            {
-                await Task.Delay(1000, token);
-                var idx = i - 1;
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    if (idx < _segments.Children.Count && _segments.Children[idx] is BoxView box)
-                        box.Color = Colors.White;
-                });
-            }
-            MainThread.BeginInvokeOnMainThread(Next);
-        }
-        catch (TaskCanceledException) { }
-    }
+
 
     protected override void OnDisappearing()
     {
         _cts?.Cancel();
+        this.AbortAnimation("story_progress");
         base.OnDisappearing();
     }
 }

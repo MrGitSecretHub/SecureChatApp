@@ -427,8 +427,7 @@ KeyWaitBanner.IsVisible = false;
             // Отложенные посты доступны во всех типах пространств, где можно писать:
             // группы, каналы, темы форума и сообщества.
             ScheduleButton.IsVisible = _canPost;
-
-            // Закрытая тема форума: писать в неё нельзя.
+// Закрытая тема форума: писать в неё нельзя.
             TopicClosedBanner.IsVisible = _currentTopicClosed && _canPost;
             TopicClosedLabel.Text = _topicTitle is null
                 ? "Тема закрыта — писать в неё нельзя."
@@ -451,6 +450,11 @@ KeyWaitBanner.IsVisible = false;
             }
 
             await this.ShowErrorAsync(ex);
+        }
+        finally
+        {
+            LoadingIndicator.IsRunning = false;
+            LoadingIndicator.IsVisible = false;
         }
     }
 
@@ -1924,7 +1928,9 @@ KeyWaitBanner.IsVisible = false;
     {
         if (AttachMenuPanel.IsVisible)
         {
+            await AttachMenuPanel.ScaleTo(0.85, 100, Easing.CubicIn);
             AttachMenuPanel.IsVisible = false;
+            AttachMenuPanel.Scale = 1;
             return;
         }
 
@@ -1933,7 +1939,9 @@ KeyWaitBanner.IsVisible = false;
             return;
         }
 
+        AttachMenuPanel.Scale = 0.85;
         AttachMenuPanel.IsVisible = true;
+        await AttachMenuPanel.ScaleTo(1, 160, Easing.CubicOut);
     }
 
     /// <summary>Выбор пункта меню скрепки: фото/видео, файл, музыка, голосовое, кружок.</summary>
