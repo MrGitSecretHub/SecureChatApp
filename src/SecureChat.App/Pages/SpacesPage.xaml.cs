@@ -11,8 +11,10 @@ public partial class SpacesPage : ContentPage
 {
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
     private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
+    private readonly LocalStore _localStore = AppServices.Get<LocalStore>();
     private List<SpaceDto> _all = new();
     private string _filter = "all";
+    private CancellationTokenSource? _searchCts;
 
     public SpacesPage()
     {
@@ -64,6 +66,7 @@ public partial class SpacesPage : ContentPage
             JoinRequestsButton.IsVisible = _all.Any(space =>
                 space.MyRole is SpaceRoles.Owner or SpaceRoles.Admin);
             ApplyFilter();
+            _ = ApplyMessageSearchAsync();
         }
         catch (Exception ex)
         {
@@ -221,7 +224,89 @@ public partial class SpacesPage : ContentPage
         SpacesList.Add(row);
     }
 
-    private void OnSearchTextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
+    private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
+    {
+        ApplyFilter();
+        _ = ApplyMessageSearchAsync();
+    }
+
+    private async Task ApplyMessageSearchAsync()
+    {
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
+        var query = SearchEntry.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(query)) return;
+        try
+        {
+            await Task.Delay(300, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+        if (token.IsCancellationRequested) return;
+
+        var results = await _localStore.SearchSpaceMessagesAsync(query);
+        if (token.IsCancellationRequested) return;
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (results.Count == 0) return;
+            AddSection(Loc.T("spaces_messages", "Messages"));
+            foreach (var result in results) AddMessageRow(result);
+        });
+    }
+
+    private void AddMessageRow(StoredSpaceMessageSearchResult result)
+    {
+        var space = _all.FirstOrDefault(s => s.Id == result.SpaceId);
+        var spaceName = space?.Name ?? "Пространство";
+        var date = DateTimeOffset.FromUnixTimeMilliseconds(result.SentAtUnixMs)
+            .ToLocalTime().ToString("dd.MM HH:mm");
+
+        var info = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
+        info.Add(new Label
+        {
+            Text = spaceName + " • " + result.SenderUsername,
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White,
+            LineBreakMode = LineBreakMode.TailTruncation
+        });
+        info.Add(new Label
+        {
+            Text = result.Text,
+            FontSize = 11,
+            TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray,
+            LineBreakMode = LineBreakMode.TailTruncation
+        });
+
+        var meta = new Label
+        {
+            Text = date,
+            FontSize = 10,
+            TextColor = (Color?)Application.Current?.Resources["TextDisabled"] ?? Colors.DimGray,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var row = new Grid { ColumnSpacing = 10, Padding = new Thickness(12, 6), HeightRequest = 56 };
+        row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+        row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+        Grid.SetColumn(info, 0);
+        Grid.SetColumn(meta, 1);
+        row.Children.Add(info);
+        row.Children.Add(meta);
+
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += async (_, _) =>
+        {
+            if (space is null) return;
+            await Navigation.PushAsync(new SpaceChatPage(
+                space.Id, space.Name, space.Type, space.CanPost));
+        };
+        row.GestureRecognizers.Add(tap);
+        SpacesList.Add(row);
+    }
 
     private void OnFilterClicked(object sender, EventArgs e)
     {

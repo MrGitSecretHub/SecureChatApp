@@ -93,6 +93,16 @@ public sealed class StoredChatFolder
     public List<string> Usernames { get; set; } = new();
 }
 
+/// <summary>Результат поиска по локальному кэшу сообщений пространств.</summary>
+public sealed class StoredSpaceMessageSearchResult
+{
+    public string SpaceId { get; set; } = string.Empty;
+    public string MessageId { get; set; } = string.Empty;
+    public string SenderUsername { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+    public long SentAtUnixMs { get; set; }
+}
+
 /// <summary>Расшифрованная копия сообщения пространства для офлайн-доступа.</summary>
 public sealed class StoredSpaceMessage
 {
@@ -2415,6 +2425,43 @@ public sealed class LocalStore
                         ViewCount = m.ViewCount
                     },
                     PayloadJson: m.PayloadJson))
+                .ToList();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Ищет по расшифрованным сообщениям всех пространств (только локальный кэш).</summary>
+    public async Task<IReadOnlyList<StoredSpaceMessageSearchResult>> SearchSpaceMessagesAsync(
+        string query,
+        int limit = 40)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return Array.Empty<StoredSpaceMessageSearchResult>();
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            static string TextOf(StoredSpaceMessage m)
+            {
+                try { return SpacePayloadCodec.Decode(m.PayloadJson).Text ?? string.Empty; }
+                catch { return string.Empty; }
+            }
+
+            return _state!.SpaceMessages
+                .Select(m => new { Message = m, Text = TextOf(m) })
+                .Where(x => x.Text.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(x => x.Message.SentAtUnixMs)
+                .Take(limit)
+                .Select(x => new StoredSpaceMessageSearchResult
+                {
+                    SpaceId = x.Message.SpaceId,
+                    MessageId = x.Message.Id,
+                    SenderUsername = x.Message.SenderUsername,
+                    Text = x.Text.Length > 160 ? x.Text[..160] + "…" : x.Text,
+                    SentAtUnixMs = x.Message.SentAtUnixMs
+                })
                 .ToList();
         }
         finally
