@@ -14,13 +14,6 @@ public partial class SpacesPage : ContentPage
     private List<SpaceDto> _all = new();
     private string _filter = "all";
 
-    /// <summary>Группа строк списка: «Мои пространства» / «Доступные».</summary>
-    private sealed class SpaceGroup : List<SpaceVm>
-    {
-        public string Title { get; }
-        public SpaceGroup(string title, IEnumerable<SpaceVm> items) : base(items) => Title = title;
-    }
-
     public SpacesPage()
     {
         InitializeComponent();
@@ -84,6 +77,7 @@ public partial class SpacesPage : ContentPage
 
     private void ApplyFilter()
     {
+        SpacesList.Clear();
         var query = SearchEntry.Text?.Trim();
         var filtered = new List<SpaceVm>();
         foreach (var space in _all)
@@ -105,12 +99,117 @@ public partial class SpacesPage : ContentPage
 
         var mine = filtered.Where(s => !string.IsNullOrEmpty(s.MyRole)).ToList();
         var available = filtered.Where(s => string.IsNullOrEmpty(s.MyRole)).ToList();
-        var groups = new List<SpaceGroup>();
+
         if (mine.Count > 0)
-            groups.Add(new SpaceGroup(Loc.T("spaces_section_my", "My spaces"), mine));
+        {
+            AddSection(Loc.T("spaces_section_my", "My spaces"));
+            foreach (var space in mine) AddRow(space);
+        }
         if (available.Count > 0)
-            groups.Add(new SpaceGroup(Loc.T("spaces_section_available", "Available"), available));
-        SpacesView.ItemsSource = groups;
+        {
+            AddSection(Loc.T("spaces_section_available", "Available"));
+            foreach (var space in available) AddRow(space);
+        }
+    }
+
+    private void AddSection(string title)
+    {
+        SpacesList.Add(new Label
+        {
+            Text = title,
+            FontSize = 12,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray,
+            Margin = new Thickness(16, 10, 16, 4)
+        });
+    }
+
+    private void AddRow(SpaceVm space)
+    {
+        var avatar = new Border
+        {
+            WidthRequest = 44,
+            HeightRequest = 44,
+            BackgroundColor = (Color?)Application.Current?.Resources["AccentSoft"] ?? Colors.CornflowerBlue,
+            VerticalOptions = LayoutOptions.Center,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
+            Content = new Label
+            {
+                Text = space.Icon,
+                FontSize = 18,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            }
+        };
+
+        var info = new VerticalStackLayout
+        {
+            Spacing = 2,
+            VerticalOptions = LayoutOptions.Center
+        };
+        info.Add(new Label
+        {
+            Text = space.Name,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White,
+            LineBreakMode = LineBreakMode.TailTruncation
+        });
+        info.Add(new Label
+        {
+            Text = space.PreviewLine,
+            FontSize = 11,
+            TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray,
+            LineBreakMode = LineBreakMode.TailTruncation
+        });
+        info.Add(new Label
+        {
+            Text = space.MembersText,
+            FontSize = 10,
+            TextColor = (Color?)Application.Current?.Resources["TextDisabled"] ?? Colors.DimGray,
+            LineBreakMode = LineBreakMode.TailTruncation
+        });
+
+        var meta = new VerticalStackLayout
+        {
+            Spacing = 3,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.End
+        };
+        meta.Add(new Label
+        {
+            Text = space.TimeText,
+            FontSize = 10,
+            TextColor = (Color?)Application.Current?.Resources["TextDisabled"] ?? Colors.DimGray,
+            HorizontalOptions = LayoutOptions.End
+        });
+        meta.Add(new Label
+        {
+            Text = space.TypeBadge,
+            FontSize = 10,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue,
+            HorizontalOptions = LayoutOptions.End
+        });
+
+        var row = new Grid
+        {
+            ColumnSpacing = 10,
+            Padding = new Thickness(12, 6),
+            HeightRequest = 64
+        };
+        row.ColumnDefinitions.Clear();
+        row.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(46)));
+        row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+        row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+        row.Add(avatar, 0, 0);
+        row.Add(info, 0, 1);
+        row.Add(meta, 0, 2);
+
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (_, _) => OpenSpace(space);
+        row.GestureRecognizers.Add(tap);
+        SpacesList.Add(row);
     }
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
@@ -129,15 +228,8 @@ public partial class SpacesPage : ContentPage
         ApplyFilter();
     }
 
-    private async void OnSpaceSelected(object sender, SelectionChangedEventArgs e)
+    private async void OpenSpace(SpaceVm item)
     {
-        if (e.CurrentSelection.FirstOrDefault() is not SpaceVm item)
-        {
-            return;
-        }
-
-        SpacesView.SelectedItem = null;
-
         // Публичное пространство: вступить может каждый, без приглашения.
         if (item.IsJoinable)
         {

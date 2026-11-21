@@ -98,89 +98,14 @@
             </Label.GestureRecognizers>
         </Label>
 
-        <!-- Компактный список с группировкой -->
-        <CollectionView Grid.Row="4"
-                        x:Name="SpacesView"
-                        SelectionMode="Single"
-                        SelectionChanged="OnSpaceSelected"
-                        BackgroundColor="Transparent">
-            <CollectionView.EmptyView>
-                <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
-                    <Label Text="📢"
-                           Style="{DynamicResource EmptyStateIcon}" />
-                    <Label Text="{DynamicResource s_ui_135}"
-                           Style="{DynamicResource EmptyStateTitle}" />
-                    <Label Text="{DynamicResource s_ui_151}"
-                           Style="{DynamicResource EmptyStateCaption}" />
-                </VerticalStackLayout>
-            </CollectionView.EmptyView>
-
-            <CollectionView.GroupHeaderTemplate>
-                <DataTemplate>
-                    <Label Text="{Binding Title}"
-                           FontSize="12"
-                           FontAttributes="Bold"
-                           TextColor="{DynamicResource TextMuted}"
-                           Padding="16,10,16,4"
-                           BackgroundColor="Transparent" />
-                </DataTemplate>
-            </CollectionView.GroupHeaderTemplate>
-
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="views:SpaceVm">
-                    <Grid ColumnDefinitions="46,*,Auto"
-                          ColumnSpacing="10"
-                          Padding="12,6"
-                          HeightRequest="64">
-                        <Border WidthRequest="44"
-                                HeightRequest="44"
-                                BackgroundColor="{DynamicResource AccentSoft}"
-                                VerticalOptions="Center">
-                            <Border.StrokeShape>
-                                <Ellipse />
-                            </Border.StrokeShape>
-                            <Label Text="{Binding Icon}"
-                                   FontSize="18"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center" />
-                        </Border>
-                        <VerticalStackLayout Grid.Column="1"
-                                             Spacing="2"
-                                             VerticalOptions="Center">
-                            <Label Text="{Binding Name}"
-                                   FontSize="14"
-                                   FontAttributes="Bold"
-                                   TextColor="{DynamicResource TextPrimary}"
-                                   LineBreakMode="TailTruncation" />
-                            <Label Text="{Binding PreviewLine}"
-                                   FontSize="11"
-                                   TextColor="{DynamicResource TextMuted}"
-                                   LineBreakMode="TailTruncation"
-                                   MaxLines="1" />
-                            <Label Text="{Binding MembersText}"
-                                   FontSize="10"
-                                   TextColor="{DynamicResource TextDisabled}"
-                                   LineBreakMode="TailTruncation"
-                                   MaxLines="1" />
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="2"
-                                             Spacing="3"
-                                             VerticalOptions="Center"
-                                             HorizontalOptions="End">
-                            <Label Text="{Binding TimeText}"
-                                   FontSize="10"
-                                   TextColor="{DynamicResource TextDisabled}"
-                                   HorizontalOptions="End" />
-                            <Label Text="{Binding TypeBadge}"
-                                   FontSize="10"
-                                   FontAttributes="Bold"
-                                   TextColor="{DynamicResource Accent}"
-                                   HorizontalOptions="End" />
-                        </VerticalStackLayout>
-                    </Grid>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+        <!-- Компактный список (строки строятся в коде) -->
+        <ScrollView Grid.Row="4"
+                    x:Name="SpacesScroll"
+                    VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout x:Name="SpacesList"
+                                 Spacing="0"
+                                 Padding="0,0,0,80" />
+        </ScrollView>
 
         <!-- Плавающая кнопка создания -->
         <Button Grid.Row="4"
