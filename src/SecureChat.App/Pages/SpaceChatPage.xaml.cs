@@ -1726,6 +1726,10 @@ public partial class SpaceChatPage : ContentPage
         {
             switch (action)
             {
+                case "poll":
+                    OnCreatePollClicked(this, EventArgs.Empty);
+                    break;
+
                 case "photo":
                     var mediaFiles = await FilePicker.Default.PickMultipleAsync(
                         new PickOptions { PickerTitle = Loc.T("rs_036", "Выберите фото или видео") });
