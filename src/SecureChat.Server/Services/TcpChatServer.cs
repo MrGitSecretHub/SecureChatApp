@@ -1,4 +1,4 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
@@ -228,7 +228,7 @@ public sealed class TcpChatServer : BackgroundService
                 var messages = await _spaces.ListEncryptedMessagesAsync(
                     request.SpaceId,
                     request.TopicId,
-                    Math.Clamp(request.Limit, 1, 500),
+                    Math.Clamp(request.Limit, 1, 1000),
                     request.TopicId is null && space.Type == SpaceTypes.Forum,
                     cancellationToken);
 

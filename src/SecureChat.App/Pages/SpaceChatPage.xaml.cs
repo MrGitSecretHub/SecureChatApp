@@ -41,6 +41,7 @@ public partial class SpaceChatPage : ContentPage
     private string? _topicTitle;
 
     /// <summary>Текущая тема закрыта — в неё нельзя писать.</summary>
+    private IDispatcherTimer? _keyRetryTimer;
     private bool _currentTopicClosed;
     private SpaceMessageVm? _pinnedMessage;
     private string? _myUserId;
@@ -1078,6 +1079,36 @@ public partial class SpaceChatPage : ContentPage
         {
             // Сообщение может быть ещё не отрисовано.
         }
+    }
+
+    /// <summary>Ключ доставлен — сбрасываем баннер и загружаем историю.</summary>
+    private void OnSpaceKeyReady(string spaceId)
+    {
+        if (!string.Equals(spaceId, _spaceId, StringComparison.Ordinal)) return;
+        StopKeyRetryTimer();
+        MainThread.BeginInvokeOnMainThread(async () => await LoadAsync());
+    }
+
+    private void OnRequestKeyClicked(object sender, EventArgs e) => _ = RequestKeyAsync();
+
+    private async Task RequestKeyAsync()
+    {
+        await _spaces.RequestSpaceKeyAsync(_spaceId);
+    }
+
+    private void StartKeyRetryTimer()
+    {
+        StopKeyRetryTimer();
+        _keyRetryTimer = Dispatcher.CreateTimer();
+        _keyRetryTimer.Interval = TimeSpan.FromSeconds(30);
+        _keyRetryTimer.Tick += (_, _) => _ = RequestKeyAsync();
+        _keyRetryTimer.Start();
+    }
+
+    private void StopKeyRetryTimer()
+    {
+        _keyRetryTimer?.Stop();
+        _keyRetryTimer = null;
     }
 
     private void OnCancelActionClicked(object sender, EventArgs e)

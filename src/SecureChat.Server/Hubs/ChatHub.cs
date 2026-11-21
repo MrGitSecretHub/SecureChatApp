@@ -379,6 +379,36 @@ public sealed class ChatHub : Hub
     }
 
     /// <summary>Сохраняет «конверт» с ключом пространства для участника (шифрует клиент).</summary>
+    /// <summary>Участник без ключа просит группу прислать его ещё раз.</summary>
+    public async Task<bool> RequestSpaceKey(string spaceId)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId))
+        {
+            return false;
+        }
+
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null || string.IsNullOrEmpty(space.MyRole))
+        {
+            return false;
+        }
+
+        var key = await _spaces.GetSpaceKeyAsync(spaceId, userId);
+        if (!string.IsNullOrWhiteSpace(key))
+        {
+            return true; // ключ уже есть — повторный запрос не нужен
+        }
+
+        var profile = await _repository.GetUserByIdAsync(userId);
+        await Clients.Group($"space:{spaceId}").SendAsync(
+            "SpaceMemberNeedKey",
+            spaceId,
+            userId,
+            profile?.Username ?? string.Empty);
+        return true;
+    }
+
     public async Task<bool> SaveSpaceMemberKey(string spaceId, string targetUserId, string envelopeJson)
     {
         var requesterId = Context.UserIdentifier;
@@ -449,6 +479,21 @@ public sealed class ChatHub : Hub
         foreach (var space in spaces)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, $"space:{space.Id}");
+
+            // Если у нас есть ключ, подскажем, кому из участников он ещё не доставлен —
+            // запрос при вступлении мог никого не застать онлайн.
+            var keys = await _spaces.GetSpaceKeysAsync(space.Id);
+            if (!keys.ContainsKey(userId)) continue;
+            var members = await _spaces.GetMembersAsync(space.Id);
+            foreach (var member in members.Where(m => !keys.ContainsKey(m.UserId)))
+            {
+                var profile = await _repository.GetUserByIdAsync(member.UserId);
+                await Clients.Caller.SendAsync(
+                    "SpaceMemberNeedKey",
+                    space.Id,
+                    member.UserId,
+                    profile?.Username ?? string.Empty);
+            }
         }
 
         return true;
@@ -997,7 +1042,7 @@ public sealed class ChatHub : Hub
 
         // Корень форума — только сообщения вне тем: иначе лента перемешана с топиками.
         var withoutTopicOnly = topicId is null && space.Type == SpaceTypes.Forum;
-        return await _spaces.ListEncryptedMessagesAsync(spaceId, topicId, 200, withoutTopicOnly);
+        return await _spaces.ListEncryptedMessagesAsync(spaceId, topicId, 1000, withoutTopicOnly);
     }
 
     public async Task<List<TopicDto>> GetTopics(string spaceId)

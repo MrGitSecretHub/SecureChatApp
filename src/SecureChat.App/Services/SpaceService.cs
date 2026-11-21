@@ -72,6 +72,12 @@ public sealed class SpaceService
         }
     }
 
+    /// <summary>Сбросить кэшированный ключ, чтобы получить актуальный с сервера.</summary>
+    public void InvalidateSpaceKey(string spaceId)
+    {
+        _spaceKeys.Remove(spaceId);
+    }
+
     /// <summary>Возвращает активное подключение, при необходимости переподключаясь.</summary>
     private async Task<HubConnection> GetConnectionAsync()
     {
@@ -109,6 +115,9 @@ public sealed class SpaceService
 
     /// <summary>Заявку приняли или отклонили (у заявителя).</summary>
     public event Action<string, bool, string>? JoinRequestResolved;
+
+    /// <summary>Ключ пространства доставлен — можно загружать историю.</summary>
+    public event Action<string>? SpaceKeyReady;
 
     private HubConnection? _subscribedConnection;
     public void Subscribe()
@@ -153,13 +162,32 @@ public sealed class SpaceService
         // чтобы получать сообщения без переподключения к серверу.
         connection.On<SpaceDto>(
             "SpaceAdded",
-            async _ => { await JoinGroupsForCurrentConnectionAsync(); });
+            async space =>
+            {
+                InvalidateSpaceKey(space.Id);
+                SpaceKeyReady?.Invoke(space.Id);
+                await JoinGroupsForCurrentConnectionAsync();
+            });
 
         // Кто-то вступил в публичное пространство: ключ до него должен доставить
         // любой онлайн-участник — пробуем мы, если ключ у нас есть.
         connection.On<string, string, string>(
             "SpaceMemberNeedKey",
             (spaceId, userId, username) => _ = ProvideSpaceKeyAsync(spaceId, userId, username));
+    }
+
+    /// <summary>Просим группу ещё раз прислать ключ этому участнику.</summary>
+    public async Task RequestSpaceKeyAsync(string spaceId)
+    {
+        try
+        {
+            var connection = await GetConnectionAsync();
+            await connection.InvokeAsync("RequestSpaceKey", spaceId);
+        }
+        catch
+        {
+            // сервер может быть офлайн — повторим по таймеру
+        }
     }
 
     /// <summary>Авто-раздача E2E-ключа новому участнику публичного пространства.</summary>
@@ -500,7 +528,7 @@ public sealed class SpaceService
         {
             SpaceId = spaceId,
             TopicId = topicId,
-            Limit = 200
+            Limit = 1000
         }, cancellationToken);
         if (tcp.HasValue)
         {

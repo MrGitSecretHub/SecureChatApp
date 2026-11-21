@@ -1216,7 +1216,15 @@
                        TextColor="{DynamicResource TextPrimary}"
                        LineBreakMode="WordWrap"
                        VerticalOptions="Center" />
-            </HorizontalStackLayout>
+            
+                <Button x:Name="RequestKeyButton"
+                        Text="🔑"
+                        FontSize="16"
+                        WidthRequest="36"
+                        HeightRequest="36"
+                        Padding="0"
+                        Clicked="OnRequestKeyClicked"
+                        ToolTipProperties.Text="Запросить ключ" /></HorizontalStackLayout>
         </Border>
     </Grid>
 </ContentPage>
