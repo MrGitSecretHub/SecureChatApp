@@ -226,6 +226,7 @@ public partial class SpaceChatPage : ContentPage
             _messages.Add(CreateVm(message, payload));
             RefreshDateLabels();
             MessagesView.ScrollTo(_messages[^1], position: ScrollToPosition.End, animate: false);
+            HideScrollToBottom();
         });
     }
 
@@ -1167,6 +1168,25 @@ KeyWaitBanner.IsVisible = false;
         {
             // фоновая подгрузка не должна ломать экран
         }
+    }
+
+    private void OnMessagesScrolled(object? sender, ItemsViewScrolledEventArgs e)
+    {
+        var remaining = _messages.Count - 1 - e.LastVisibleItemIndex;
+        ScrollToBottomButton.IsVisible = remaining > 2 && _messages.Count > 0;
+        ScrollToBottomButton.Text = remaining > 0 ? $"↓ {remaining}" : "↓";
+    }
+
+    private void OnScrollToBottomClicked(object sender, EventArgs e)
+    {
+        if (_messages.Count == 0) return;
+        MessagesView.ScrollTo(_messages[^1], position: ScrollToPosition.End, animate: true);
+        ScrollToBottomButton.IsVisible = false;
+    }
+
+    private void HideScrollToBottom()
+    {
+        ScrollToBottomButton.IsVisible = false;
     }
 
     private void OnCancelActionClicked(object sender, EventArgs e)
