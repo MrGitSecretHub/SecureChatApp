@@ -42,6 +42,7 @@ public partial class SpaceChatPage : ContentPage
 
     /// <summary>Текущая тема закрыта — в неё нельзя писать.</summary>
     private IDispatcherTimer? _keyRetryTimer;
+    private IDispatcherTimer? _spaceRefreshTimer;
     private bool _currentTopicClosed;
     private SpaceMessageVm? _pinnedMessage;
     private string? _myUserId;
@@ -374,6 +375,12 @@ KeyWaitBanner.IsVisible = false;
                         Kind = "text",
                         Text = Loc.T("rs_216", "🔒 Сообщение не удалось расшифровать")
                     }));
+            }
+
+            // Сервер иногда отдаёт пустой список — не стираем показанные сообщения.
+            if (messages.Count == 0 && _messages.Count > 0)
+            {
+                return;
             }
 
             _messages.Clear();
@@ -1112,6 +1119,54 @@ KeyWaitBanner.IsVisible = false;
     {
         _keyRetryTimer?.Stop();
         _keyRetryTimer = null;
+    }
+
+    private void StartSpaceRefreshTimer()
+    {
+        StopSpaceRefreshTimer();
+        _spaceRefreshTimer = Dispatcher.CreateTimer();
+        _spaceRefreshTimer.Interval = TimeSpan.FromSeconds(20);
+        _spaceRefreshTimer.Tick += (_, _) => _ = MergeNewMessagesAsync();
+        _spaceRefreshTimer.Start();
+    }
+
+    private void StopSpaceRefreshTimer()
+    {
+        _spaceRefreshTimer?.Stop();
+        _spaceRefreshTimer = null;
+    }
+
+    /// <summary>Подливает новые сообщения, не перезагружая и не очищая ленту.</summary>
+    private async Task MergeNewMessagesAsync()
+    {
+        try
+        {
+            if (await _spaces.GetSpaceKeyAsync(_spaceId) is null) return;
+            var messages = await _spaces.GetMessagesAsync(_spaceId, _topicId);
+            if (messages.Count == 0) return;
+
+            var added = false;
+            foreach (var message in messages)
+            {
+                if (_messages.Any(item => item.Id == message.Id)) continue;
+                var payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
+                if (payload?.CommentToMessageId is not null) continue;
+                _messages.Add(CreateVm(message, payload ?? new SpaceMessagePayload
+                {
+                    Kind = "text",
+                    Text = Loc.T("rs_216", "🔒 Сообщение не удалось расшифровать")
+                }));
+                added = true;
+            }
+            if (added)
+            {
+                RefreshDateLabels();
+            }
+        }
+        catch
+        {
+            // фоновая подгрузка не должна ломать экран
+        }
     }
 
     private void OnCancelActionClicked(object sender, EventArgs e)
