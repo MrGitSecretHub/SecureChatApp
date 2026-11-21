@@ -78,7 +78,7 @@ public partial class SpaceSettingsPage : ContentPage
 
                 PublicRow.IsVisible = isAdmin;
                 PublicSwitch.IsToggled = _space.IsPublic;
-                HiddenRow.IsVisible = isAdmin && _space.IsPublic;
+                HiddenRow.IsVisible = isAdmin;
                 HiddenSwitch.IsToggled = _space.IsHidden;
                 SignRow.IsVisible = isAdmin && _spaceType == SpaceTypes.Channel;
                 SignSwitch.IsToggled = _space.SignMessages;
@@ -150,7 +150,7 @@ public partial class SpaceSettingsPage : ContentPage
                 name,
                 DescriptionEditor.Text ?? string.Empty,
                 isPublic: canEdit ? PublicSwitch.IsToggled : null,
-                isHidden: canEdit && _space.IsPublic ? HiddenSwitch.IsToggled : null,
+                isHidden: canEdit ? HiddenSwitch.IsToggled : null,
                 signMessages: canEdit && _spaceType == SpaceTypes.Channel
                     ? SignSwitch.IsToggled
                     : null);
