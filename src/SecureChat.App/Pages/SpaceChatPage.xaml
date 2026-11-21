@@ -949,6 +949,7 @@
                                 ToolTipProperties.Text="{DynamicResource s_ui_133}" />
 
                         <Button x:Name="PollButton"
+                                IsVisible="False"
                                 Text="📊"
                                 Style="{DynamicResource IconButton}"
                                 WidthRequest="34" HeightRequest="34"
