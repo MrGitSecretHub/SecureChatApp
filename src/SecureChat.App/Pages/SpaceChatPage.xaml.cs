@@ -1162,6 +1162,7 @@ KeyWaitBanner.IsVisible = false;
             if (added)
             {
                 RefreshDateLabels();
+                HideScrollToBottom();
             }
         }
         catch
@@ -1172,8 +1173,9 @@ KeyWaitBanner.IsVisible = false;
 
     private void OnMessagesScrolled(object? sender, ItemsViewScrolledEventArgs e)
     {
-        var remaining = _messages.Count - 1 - e.LastVisibleItemIndex;
-        ScrollToBottomButton.IsVisible = remaining > 2 && _messages.Count > 0;
+        var lastIndex = _messages.Count - 1;
+        var remaining = lastIndex - e.LastVisibleItemIndex;
+        ScrollToBottomButton.IsVisible = remaining > 2 && lastIndex >= 0;
         ScrollToBottomButton.Text = remaining > 0 ? $"↓ {remaining}" : "↓";
     }
 

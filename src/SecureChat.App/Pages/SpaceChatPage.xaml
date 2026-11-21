@@ -286,7 +286,8 @@
                         SelectionMode="None"
                         ItemsUpdatingScrollMode="KeepLastItemInView"
                         BackgroundColor="Transparent"
-                        Scrolled="OnMessagesScrolled">
+                        Scrolled="OnMessagesScrolled"
+                        VerticalOptions="End">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="views:SpaceMessageVm">
                     <VerticalStackLayout Spacing="0" IsVisible="{Binding VisibleInFeed}">
