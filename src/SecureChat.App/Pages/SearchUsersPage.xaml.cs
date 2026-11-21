@@ -52,10 +52,16 @@ public sealed class SearchUserVm
 
     public string UsernameText => "@" + Username;
 
-    public string StatusText =>
-        string.IsNullOrWhiteSpace(Nickname)
-            ? "• " + CreatedAtText
-            : Nickname.Length > 40 ? Nickname[..40] + "…" : Nickname;
+    public string SubtitleText
+    {
+        get
+        {
+            var date = HasCreatedAt ? CreatedAtText : string.Empty;
+            if (string.IsNullOrWhiteSpace(Nickname))
+                return string.IsNullOrWhiteSpace(date) ? "Пользователь SecureChat" : "На SecureChat с " + date;
+            return string.IsNullOrWhiteSpace(date) ? Nickname : Nickname + " • " + date;
+        }
+    }
 
     public bool HasCreatedAt => CreatedAt != default;
 }

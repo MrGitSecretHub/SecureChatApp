@@ -86,20 +86,10 @@
                                 <Label Text="{Binding UsernameText}"
                                        FontSize="12"
                                        TextColor="{DynamicResource Accent}" />
-                                <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
-                                    <Label Text="{Binding StatusText}"
-                                           Style="{DynamicResource Caption}"
-                                           FontFamily="{DynamicResource FontFamilyMono}"
-                                           LineBreakMode="WordWrap"
-                                           MaxLines="2"
-                                           IsVisible="{Binding HasFingerprint}" />
-                                    <Label Text="•"
-                                           Style="{DynamicResource Caption}"
-                                           IsVisible="{Binding HasFingerprint}" />
-                                    <Label Text="{Binding CreatedAtText}"
-                                           Style="{DynamicResource Caption}"
-                                           IsVisible="{Binding HasCreatedAt}" />
-                                </Grid>
+                                <Label Text="{Binding SubtitleText}"
+                                        Style="{DynamicResource Caption}"
+                                        LineBreakMode="TailTruncation"
+                                        MaxLines="1" />
                             </VerticalStackLayout>
 
                             <!-- Кнопка -->
