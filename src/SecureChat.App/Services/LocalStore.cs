@@ -93,6 +93,21 @@ public sealed class StoredChatFolder
     public List<string> Usernames { get; set; } = new();
 }
 
+/// <summary>Расшифрованная копия сообщения пространства для офлайн-доступа.</summary>
+public sealed class StoredSpaceMessage
+{
+    public string Id { get; set; } = string.Empty;
+    public string SpaceId { get; set; } = string.Empty;
+    public string? TopicId { get; set; }
+    public string SenderId { get; set; } = string.Empty;
+    public string SenderUsername { get; set; } = string.Empty;
+    public long SentAtUnixMs { get; set; }
+    public long EditedAtUnixMs { get; set; }
+    public bool IsPinned { get; set; }
+    public int ViewCount { get; set; }
+    public string PayloadJson { get; set; } = string.Empty;
+}
+
 public sealed class LocalState
 {
     public List<StoredConversation> Conversations { get; set; } = new();
@@ -114,6 +129,9 @@ public sealed class LocalState
 
     /// <summary>Отложенные посты пространств (уже зашифрованные, ждут своего времени).</summary>
     public List<ScheduledSpacePost> ScheduledSpacePosts { get; set; } = new();
+
+    /// <summary>Кэш расшифрованных сообщений пространств.</summary>
+    public List<StoredSpaceMessage> SpaceMessages { get; set; } = new();
 
     /// <summary>Истории (24 часа).</summary>
     public List<StoredStory> Stories { get; set; } = new();
@@ -2327,4 +2345,82 @@ public sealed class LocalStore
             return Loc.T("poll_preview", "📊 Опрос");
         }
     }
+    /// <summary>Сохраняет расшифрованные сообщения пространства в локальный кэш.</summary>
+    public async Task CacheSpaceMessagesAsync(
+        string spaceId,
+        IReadOnlyList<(SpaceMessageDto Message, string PayloadJson)> items)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            foreach (var item in items)
+            {
+                _state!.SpaceMessages.RemoveAll(m => m.Id == item.Message.Id);
+                _state.SpaceMessages.Add(new StoredSpaceMessage
+                {
+                    Id = item.Message.Id,
+                    SpaceId = spaceId,
+                    TopicId = item.Message.TopicId,
+                    SenderId = item.Message.SenderId,
+                    SenderUsername = item.Message.SenderUsername,
+                    SentAtUnixMs = item.Message.SentAtUnixMs,
+                    EditedAtUnixMs = item.Message.EditedAtUnixMs,
+                    IsPinned = item.Message.IsPinned,
+                    ViewCount = item.Message.ViewCount,
+                    PayloadJson = item.PayloadJson
+                });
+            }
+
+            // Ограничиваем кэш 1000 сообщений на пространство.
+            var forSpace = _state.SpaceMessages.Where(m => m.SpaceId == spaceId).ToList();
+            foreach (var old in forSpace.OrderByDescending(m => m.SentAtUnixMs).Skip(1000))
+                _state.SpaceMessages.Remove(old);
+
+            await SaveAsync();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Возвращает кэшированные сообщения пространства (без сети и ключей).</summary>
+    public async Task<IReadOnlyList<(SpaceMessageDto Message, string PayloadJson)>> GetCachedSpaceMessagesAsync(
+        string spaceId,
+        string? topicId)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            return _state!.SpaceMessages
+                .Where(m => m.SpaceId == spaceId && m.TopicId == topicId)
+                .OrderBy(m => m.SentAtUnixMs)
+                .Select(m => (
+                    Message: new SpaceMessageDto
+                    {
+                        Id = m.Id,
+                        SpaceId = m.SpaceId,
+                        TopicId = m.TopicId,
+                        SenderId = m.SenderId,
+                        SenderUsername = m.SenderUsername,
+                        Nonce = string.Empty,
+                        Tag = string.Empty,
+                        Ciphertext = string.Empty,
+                        Signature = string.Empty,
+                        SentAtUnixMs = m.SentAtUnixMs,
+                        EditedAtUnixMs = m.EditedAtUnixMs,
+                        IsPinned = m.IsPinned,
+                        ViewCount = m.ViewCount
+                    },
+                    PayloadJson: m.PayloadJson))
+                .ToList();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
 }

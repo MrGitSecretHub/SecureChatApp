@@ -15,6 +15,7 @@ namespace SecureChat.App.Pages;
 public partial class PostCommentsPage : ContentPage
 {
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
+    private readonly LocalStore _localStore = AppServices.Get<LocalStore>();
     private readonly ObservableCollection<SpaceMessageVm> _comments = new();
     private readonly string _spaceId;
     private readonly string? _topicId;
@@ -94,26 +95,58 @@ public partial class PostCommentsPage : ContentPage
                 string.Equals(member.UserId, _myUserId, StringComparison.Ordinal) &&
                 (member.Role == SpaceRoles.Owner || member.Role == SpaceRoles.Admin));
 
-            var messages = await _spaces.GetMessagesAsync(_spaceId, _topicId);
-            var found = new List<SpaceMessageVm>();
-
-            foreach (var message in messages)
+            var source = new List<(SpaceMessageDto Message, SpaceMessagePayload? Payload)>();
+            var cacheItems = new List<(SpaceMessageDto, string)>();
+            var fromCache = false;
+            try
             {
-                SpaceMessagePayload? payload;
-                try
+                var remote = await _spaces.GetMessagesAsync(_spaceId, _topicId);
+                if (remote.Count > 0)
                 {
-                    payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
+                    foreach (var message in remote)
+                    {
+                        SpaceMessagePayload? payload;
+                        try
+                        {
+                            payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
+                        }
+                        catch
+                        {
+                            payload = null;
+                        }
+                        source.Add((message, payload));
+                        if (payload is not null)
+                            cacheItems.Add((message, SpacePayloadCodec.Encode(payload)));
+                    }
+                    if (cacheItems.Count > 0)
+                        _ = _localStore.CacheSpaceMessagesAsync(_spaceId, cacheItems);
                 }
-                catch
+                else
                 {
-                    payload = null;
+                    fromCache = true;
                 }
+            }
+            catch
+            {
+                fromCache = true;
+            }
+
+            if (fromCache)
+            {
+                var cached = await _localStore.GetCachedSpaceMessagesAsync(_spaceId, _topicId);
+                source = cached.Select(c => (
+                    c.Message,
+                    (SpaceMessagePayload?)SpacePayloadCodec.Decode(c.PayloadJson))).ToList();
+            }
+
+            var found = new List<SpaceMessageVm>();
+            foreach (var (message, payload) in source)
+            {
                 if (!string.Equals(payload?.CommentToMessageId, _postId, StringComparison.Ordinal))
                 {
                     continue;
                 }
-
-                found.Add(CreateVm(message, payload));
+                found.Add(CreateVm(message, payload!));
             }
 
             _comments.Clear();
@@ -125,7 +158,7 @@ public partial class PostCommentsPage : ContentPage
             EmptyLabel.IsVisible = _comments.Count == 0;
             if (EmptyLabel.IsVisible)
             {
-                EmptyLabel.Text = $"Комментариев нет. Всего сообщений в пространстве: {messages.Count}";
+                EmptyLabel.Text = $"Комментариев нет. Всего сообщений в пространстве: {source.Count}";
             }
         }
         catch (Exception ex)

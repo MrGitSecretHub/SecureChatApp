@@ -24,6 +24,7 @@ namespace SecureChat.App.Pages;
 public partial class SpaceChatPage : ContentPage
 {
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
+    private readonly LocalStore _localStore = AppServices.Get<LocalStore>();
     private readonly ChatService _chatService = AppServices.Get<ChatService>();
     private readonly Dictionary<string, (PollVoteData Data, string Voter)> _spaceVotes = new();
     private readonly ChatManager _chat = AppServices.Get<ChatManager>();
@@ -358,7 +359,8 @@ public partial class SpaceChatPage : ContentPage
 
             // Публичное пространство после вступления: ключа может ещё не быть —
             // тогда лента не читается, показываем баннер ожидания.
-            if (await _spaces.GetSpaceKeyAsync(_spaceId) is null)
+            if (await _spaces.GetSpaceKeyAsync(_spaceId) is null &&
+                (await _localStore.GetCachedSpaceMessagesAsync(_spaceId, _topicId)).Count == 0)
             {
                 _messages.Clear();
                 Composer.IsVisible = false;
@@ -373,28 +375,62 @@ public partial class SpaceChatPage : ContentPage
             _ = _spaces.EnsureKeyDistributedAsync(_spaceId);
 KeyWaitBanner.IsVisible = false;
             OfflineBanner.IsVisible = false;
-            var messages = await _spaces.GetMessagesAsync(_spaceId, _topicId);
+            // Сначала пробуем сервер; расшифрованное сохраняем в локальный кэш.
+            // Если сети нет или сервер вернул пусто — берём кэш (он уже расшифрован,
+            // поэтому ключ пространства для чтения не нужен).
+            var source = new List<(SpaceMessageDto Message, SpaceMessagePayload? Payload)>();
+            var cacheItems = new List<(SpaceMessageDto, string)>();
+            var fromCache = false;
+            try
+            {
+                var remote = await _spaces.GetMessagesAsync(_spaceId, _topicId);
+                if (remote.Count > 0)
+                {
+                    foreach (var message in remote)
+                    {
+                        SpaceMessagePayload? payload;
+                        try
+                        {
+                            payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
+                        }
+                        catch
+                        {
+                            payload = null;
+                        }
+
+                        source.Add((message, payload));
+                        if (payload is not null)
+                            cacheItems.Add((message, SpacePayloadCodec.Encode(payload)));
+                    }
+                    if (cacheItems.Count > 0)
+                        _ = _localStore.CacheSpaceMessagesAsync(_spaceId, cacheItems);
+                }
+                else
+                {
+                    fromCache = true;
+                }
+            }
+            catch
+            {
+                fromCache = true;
+            }
+
+            if (fromCache)
+            {
+                var cached = await _localStore.GetCachedSpaceMessagesAsync(_spaceId, _topicId);
+                source = cached.Select(c => (
+                    c.Message,
+                    (SpaceMessagePayload?)SpacePayloadCodec.Decode(c.PayloadJson))).ToList();
+            }
 
             var commentCounts = new Dictionary<string, int>(StringComparer.Ordinal);
             var feed = new List<SpaceMessageVm>();
             _spaceVotes.Clear();
 
-            foreach (var message in messages)
+            foreach (var (message, payload) in source)
             {
-                SpaceMessagePayload? payload;
-                try
-                {
-                    payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
-                }
-                catch
-                {
-                    // Одно битое сообщение не должно обрывать всю ленту.
-                    payload = null;
-                }
-
                 if (payload?.CommentToMessageId is not null)
                 {
-                    // Комментарий к посту: не в ленту, только в счётчик поста.
                     commentCounts[payload.CommentToMessageId] =
                         commentCounts.TryGetValue(payload.CommentToMessageId, out var count)
                             ? count + 1
@@ -412,7 +448,7 @@ KeyWaitBanner.IsVisible = false;
             }
 
             // Сервер иногда отдаёт пустой список — не стираем показанные сообщения.
-            if (messages.Count == 0 && _messages.Count > 0)
+            if (source.Count == 0 && _messages.Count > 0)
             {
                 HideScrollToBottom();
                 return;
@@ -605,6 +641,10 @@ KeyWaitBanner.IsVisible = false;
         }
 
         var payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
+        if (payload is not null)
+        {
+            _ = _localStore.CacheSpaceMessagesAsync(_spaceId, new[] { (message, SpacePayloadCodec.Encode(payload)) });
+        }
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
