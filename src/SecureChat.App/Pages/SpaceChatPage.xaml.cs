@@ -111,6 +111,30 @@ public partial class SpaceChatPage : ContentPage
     public SpaceChatPage(string spaceId, string name, string type, bool canPost = true)
     {
         InitializeComponent();
+#if ANDROID
+        var loadingLottie = new MPowerKit.Lottie.LottieView
+        {
+            AutoPlay = true,
+            RepeatCount = -1,
+            WidthRequest = 44,
+            HeightRequest = 44,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Source = new MPowerKit.Lottie.JsonLottieAnimationSource
+            {
+                Json = LoadLottieJson()
+            }
+        };
+        LoadingPlaceholder.Content = loadingLottie;
+#else
+        LoadingPlaceholder.Content = new ActivityIndicator
+        {
+            IsRunning = true,
+            Color = (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+#endif
         _spaceId = spaceId;
         _spaceName = name;
         _spaceType = type;
@@ -453,8 +477,8 @@ KeyWaitBanner.IsVisible = false;
         }
         finally
         {
-            LoadingIndicator.IsRunning = false;
-            LoadingIndicator.IsVisible = false;
+            SetLoadingRunning(false);
+            LoadingPlaceholder.IsVisible = false;
         }
     }
 
@@ -2835,5 +2859,31 @@ KeyWaitBanner.IsVisible = false;
         await page.DisplayActionSheet(title, "Закрыть", null,
             viewers.Count == 0 ? new[] { "Пока никто" } : viewers.ToArray());
     }
+#if ANDROID
+    private static string LoadLottieJson()
+    {
+        using var stream = FileSystem.OpenAppPackageFileAsync("loading.json")
+            .GetAwaiter().GetResult();
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    }
+#endif
+
+    private void SetLoadingRunning(bool running)
+    {
+        var content = LoadingPlaceholder.Content;
+        if (content is ActivityIndicator indicator)
+        {
+            indicator.IsRunning = running;
+        }
+#if ANDROID
+        else if (content is MPowerKit.Lottie.LottieView view)
+        {
+            if (running) view.Play();
+            else view.Stop();
+        }
+#endif
+    }
+
 }
 

@@ -1,4 +1,7 @@
 using Microsoft.Extensions.Logging;
+#if ANDROID
+using MPowerKit.Lottie;
+#endif
 using SecureChat.App.Pages;
 using SecureChat.App.Scheduling;
 using SecureChat.App.Services;

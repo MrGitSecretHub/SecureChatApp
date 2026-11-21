@@ -818,16 +818,13 @@
         </CollectionView>
 
         <!-- Индикатор загрузки истории -->
-        <ActivityIndicator Grid.Row="4"
-                           x:Name="LoadingIndicator"
+        <ContentView x:Name="LoadingPlaceholder"
                            IsVisible="False"
-                           IsRunning="False"
-                           Color="{DynamicResource Accent}"
-                           WidthRequest="32"
-                           HeightRequest="32"
+                           InputTransparent="True"
+                           WidthRequest="44"
+                           HeightRequest="44"
                            HorizontalOptions="Center"
-                           VerticalOptions="Center"
-                           InputTransparent="True" />
+                           VerticalOptions="Center" />
 
         <!-- Прыжок к последнему сообщению -->
         <Button Grid.Row="4"

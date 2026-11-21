@@ -44,6 +44,11 @@
 
   </ItemGroup>
 
+  <!-- Lottie (Apache-2.0, github.com/MPowerKit/Lottie) — только Android -->
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+    <PackageReference Include="MPowerKit.Lottie" Version="1.2.0" />
+  </ItemGroup>
+
   <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250909003" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
