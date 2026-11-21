@@ -202,9 +202,18 @@ public partial class SpacesPage : ContentPage
         row.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(46)));
         row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
         row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-        row.Add(avatar, 0, 0);
-        row.Add(info, 0, 1);
-        row.Add(meta, 0, 2);
+
+        Grid.SetRow(avatar, 0);
+        Grid.SetColumn(avatar, 0);
+        row.Children.Add(avatar);
+
+        Grid.SetRow(info, 0);
+        Grid.SetColumn(info, 1);
+        row.Children.Add(info);
+
+        Grid.SetRow(meta, 0);
+        Grid.SetColumn(meta, 2);
+        row.Children.Add(meta);
 
         var tap = new TapGestureRecognizer();
         tap.Tapped += (_, _) => OpenSpace(space);
