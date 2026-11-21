@@ -6,6 +6,18 @@
        Title="SecureChat"
        FlyoutBehavior="Flyout"
        FlyoutBackgroundColor="{DynamicResource Surface}">
+    <Shell.ItemTemplate>
+        <DataTemplate>
+            <ViewCell>
+                <Grid Padding="18,12" ColumnSpacing="12">
+                    <Label Text="{Binding Title}"
+                           FontSize="15"
+                           TextColor="{DynamicResource TextPrimary}"
+                           VerticalOptions="Center" />
+                </Grid>
+            </ViewCell>
+        </DataTemplate>
+    </Shell.ItemTemplate>
     <Shell.FlyoutHeader>
         <Grid Padding="20,32,20,20" RowDefinitions="Auto,Auto,Auto" RowSpacing="6"
               BackgroundColor="{DynamicResource Surface}">
@@ -25,16 +37,16 @@
         </Grid>
     </Shell.FlyoutHeader>
 
-    <FlyoutItem Title="Чаты" Route="chats">
+    <FlyoutItem Title="{DynamicResource s_chats_title}" Route="chats">
         <ShellContent ContentTemplate="{DataTemplate pages:ChatsPage}" />
     </FlyoutItem>
-    <FlyoutItem Title="Контакты" Route="contacts">
+    <FlyoutItem Title="{DynamicResource s_ui_059}" Route="contacts">
         <ShellContent ContentTemplate="{DataTemplate pages:ContactsPage}" />
     </FlyoutItem>
-    <FlyoutItem Title="Поиск по @username" Route="search-users">
+    <FlyoutItem Title="{DynamicResource s_ui_122}" Route="search-users">
         <ShellContent ContentTemplate="{DataTemplate pages:SearchUsersPage}" />
     </FlyoutItem>
-    <FlyoutItem Title="Настройки" Route="settings">
+    <FlyoutItem Title="{DynamicResource s_common_settings}" Route="settings">
         <ShellContent ContentTemplate="{DataTemplate pages:SettingsPage}" />
     </FlyoutItem>
 </Shell>
