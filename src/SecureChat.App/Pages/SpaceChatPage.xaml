@@ -760,7 +760,8 @@
                                 <!-- Контекстное меню actions -->
                                 <HorizontalStackLayout Spacing="6"
                                                        HorizontalOptions="End"
-                                                       Margin="0,4,0,0">
+                                                       Margin="0,4,0,0"
+                                                       IsVisible="{Binding IsSelected}">
                                     <Button Style="{StaticResource SpaceActionButton}"
                                             Text="📋"
                                             CommandParameter="{Binding .}"

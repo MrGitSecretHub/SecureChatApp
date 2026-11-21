@@ -627,7 +627,7 @@ public partial class SpaceChatPage : ContentPage
                 Kind = "text",
                 Text = text,
                 ReplyToMessageId = replyTarget?.Id,
-                ReplyToText = replyTarget?.ReplyToText,
+                ReplyToText = MessagePreview(replyTarget),
                 ReplyToSender = replyTarget?.Sender,
                 Silent = _silentPosting,
                 Mentions = SpaceMentions.ParseForSend(
@@ -1143,7 +1143,7 @@ public partial class SpaceChatPage : ContentPage
         }
 
         _replyingTo = message;
-        ReplyPreviewLabel.Text = string.Format(Loc.T("uc_071"), Shorten(message.ReplyToText, 70));
+        ReplyPreviewLabel.Text = string.Format(Loc.T("uc_071"), Shorten(MessagePreview(message), 70));
         ReplyBar.IsVisible = true;
         MessageEntry.FocusInput();
     }
@@ -1192,9 +1192,68 @@ public partial class SpaceChatPage : ContentPage
             return;
         }
 
-        MessageEntry.Text = $"↩️ {message.Text}";
-        MessageEntry.FocusInput();
+        var conversations = (await _chat.GetConversationsAsync())
+            .Where(c => !string.IsNullOrWhiteSpace(c.Username))
+            .ToList();
+        if (conversations.Count == 0)
+        {
+            await DisplayAlert(Loc.T("dg_047", "Переслать в:"),
+                Loc.T("rs_101", "Нет других чатов для пересылки."), "OK");
+            return;
+        }
+
+        var choice = await DisplayActionSheet(
+            Loc.T("dg_047", "Переслать в:"),
+            Loc.T("common_cancel", "Отмена"),
+            null,
+            conversations.Select(c => c.Username).ToArray());
+        if (string.IsNullOrWhiteSpace(choice) || choice == Loc.T("common_cancel", "Отмена"))
+        {
+            return;
+        }
+
+        var target = conversations.FirstOrDefault(c =>
+            string.Equals(c.Username, choice, StringComparison.OrdinalIgnoreCase));
+        if (target is null) return;
+
+        try
+        {
+            var origin = !string.IsNullOrWhiteSpace(message.AuthorText)
+                ? message.AuthorText
+                : message.Sender;
+            var text = !string.IsNullOrWhiteSpace(message.Text)
+                ? message.Text
+                : MessagePreview(message);
+
+            await _chat.SendMessageToUserAsync(
+                target.UserId,
+                target.Username,
+                text,
+                target.EncryptionPublicKey,
+                isForwarded: true,
+                forwardedFrom: origin);
+
+            foreach (var m in _messages) m.IsSelected = false;
+            await DisplayAlert(Loc.T("dg_047", "Переслать в:"),
+                string.Format(Loc.T("rs_125"), target.Username), "OK");
+        }
+        catch (Exception ex)
+        {
+            await this.ShowErrorAsync(ex);
+        }
     }
+
+    /// <summary>Короткий текст сообщения для ответа и пересылки.</summary>
+    private static string MessagePreview(SpaceMessageVm? message)
+    {
+        if (message is null) return string.Empty;
+        if (!string.IsNullOrWhiteSpace(message.Text)) return message.Text;
+        if (!string.IsNullOrWhiteSpace(message.FileName)) return message.FileName;
+        if (message.IsImage) return "🖼";
+        if (message.IsVoice) return "🎙";
+        return string.Empty;
+    }
+
 
     private async void OnActionEditClicked(object sender, EventArgs e)
     {
@@ -1701,7 +1760,7 @@ public partial class SpaceChatPage : ContentPage
                 Kind = MessageKinds.Sticker,
                 Text = glyph,
                 ReplyToMessageId = _replyingTo?.Id,
-                ReplyToText = _replyingTo?.ReplyToText,
+                ReplyToText = MessagePreview(_replyingTo),
                 ReplyToSender = _replyingTo?.Sender,
                 Silent = _silentPosting,
                 Mentions = SpaceMentions.Parse(glyph, _members.Select(member => member.Username))
