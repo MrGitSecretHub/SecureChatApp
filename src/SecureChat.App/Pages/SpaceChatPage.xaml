@@ -819,8 +819,8 @@
                 x:Name="Composer"
                 BackgroundColor="{DynamicResource Surface}"
                 StrokeThickness="0"
-                Padding="12,10">
-            <VerticalStackLayout Spacing="8">
+                Padding="8,6">
+            <VerticalStackLayout Spacing="4">
                 <!-- Эмодзи-панель (показывается по кнопке 😊) -->
                 <views:EmojiPickerView x:Name="EmojiPicker"
                                        IsVisible="False"
@@ -911,11 +911,13 @@
 
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                     <HorizontalStackLayout Grid.Column="0"
-                                           Spacing="8"
+                                           Spacing="2"
                                            VerticalOptions="End">
                         <Button x:Name="AttachButton"
                                 Text="📎"
                                 Style="{DynamicResource IconButton}"
+                                WidthRequest="34" HeightRequest="34"
+                                Padding="0" FontSize="16"
                                 VerticalOptions="End"
                                 Clicked="OnAttachClicked"
                                 ToolTipProperties.Text="{DynamicResource s_ui_133}" />
@@ -923,24 +925,32 @@
                         <Button x:Name="PollButton"
                                 Text="📊"
                                 Style="{DynamicResource IconButton}"
+                                WidthRequest="34" HeightRequest="34"
+                                Padding="0" FontSize="16"
                                 VerticalOptions="End"
                                 Clicked="OnCreatePollClicked"
                                 ToolTipProperties.Text="Опрос" />
                         <Button x:Name="EmojiButton"
                                 Text="😊"
                                 Style="{DynamicResource IconButton}"
+                                WidthRequest="34" HeightRequest="34"
+                                Padding="0" FontSize="16"
                                 VerticalOptions="End"
                                 Clicked="OnEmojiButtonClicked"
                                 ToolTipProperties.Text="{DynamicResource s_ui_175}" />
                         <Button x:Name="CustomPackButton"
                                 Text="🎨"
                                 Style="{DynamicResource IconButton}"
+                                WidthRequest="34" HeightRequest="34"
+                                Padding="0" FontSize="16"
                                 VerticalOptions="End"
                                 Clicked="OnCustomPackButtonClicked"
                                 ToolTipProperties.Text="{DynamicResource s_ui_146}" />
                         <Button x:Name="SilentButton"
                                 Text="🔕"
                                 Style="{DynamicResource IconButton}"
+                                WidthRequest="34" HeightRequest="34"
+                                Padding="0" FontSize="16"
                                 VerticalOptions="End"
                                 IsVisible="False"
                                 BackgroundColor="Transparent"
@@ -949,6 +959,8 @@
                         <Button x:Name="ScheduleButton"
                                 Text="⏰"
                                 Style="{DynamicResource IconButton}"
+                                WidthRequest="34" HeightRequest="34"
+                                Padding="0" FontSize="16"
                                 VerticalOptions="End"
                                 IsVisible="False"
                                 Clicked="OnScheduleClicked"
@@ -964,9 +976,9 @@
                             Text="➤"
                             Style="{DynamicResource PrimaryButton}"
                             Clicked="OnSendClicked"
-                            WidthRequest="44"
-                            HeightRequest="44"
-                            CornerRadius="22"
+                            WidthRequest="38"
+                             HeightRequest="38"
+                             CornerRadius="19"
                             Padding="0"
                             VerticalOptions="End" />
                 </Grid>
