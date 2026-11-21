@@ -1207,24 +1207,26 @@
             <Border.StrokeShape>
                 <RoundRectangle CornerRadius="10" />
             </Border.StrokeShape>
-            <HorizontalStackLayout VerticalOptions="Center" Spacing="8">
-                <Label Text="🔑"
-                       FontSize="15"
-                       VerticalOptions="Center" />
-                <Label Text="{DynamicResource s_ui_052}"
-                       FontSize="14"
-                       TextColor="{DynamicResource TextPrimary}"
-                       LineBreakMode="WordWrap"
-                       VerticalOptions="Center" />
-            
-                <Button x:Name="RequestKeyButton"
-                        Text="🔑"
-                        FontSize="16"
-                        WidthRequest="36"
-                        HeightRequest="36"
-                        Padding="0"
-                        Clicked="OnRequestKeyClicked"
-                        ToolTipProperties.Text="Запросить ключ" /></HorizontalStackLayout>
+            <Grid ColumnDefinitions="Auto,*,Auto"
+                      ColumnSpacing="8"
+                      VerticalOptions="Center">
+                    <Label Grid.Column="0" Text="🔑" FontSize="15" VerticalOptions="Center" />
+                    <Label Grid.Column="1"
+                           Text="{DynamicResource s_ui_052}"
+                           FontSize="13"
+                           TextColor="{DynamicResource TextPrimary}"
+                           LineBreakMode="WordWrap"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="2"
+                            x:Name="RequestKeyButton"
+                            Text="🔄"
+                            FontSize="16"
+                            WidthRequest="40"
+                            HeightRequest="40"
+                            Padding="0"
+                            Clicked="OnRequestKeyClicked"
+                            ToolTipProperties.Text="Запросить ключ" />
+                </Grid>
         </Border>
     </Grid>
 </ContentPage>
