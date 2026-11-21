@@ -20,6 +20,11 @@
                    FontSize="11"
                    TextColor="{DynamicResource TextMuted}"
                    LineBreakMode="TailTruncation" />
+            <Button Text="⟳ Обновить"
+                    FontSize="12"
+                    HeightRequest="32"
+                    HorizontalOptions="Start"
+                    Clicked="OnRefreshClicked" />
         </VerticalStackLayout>
 
         <!-- Комментарии -->

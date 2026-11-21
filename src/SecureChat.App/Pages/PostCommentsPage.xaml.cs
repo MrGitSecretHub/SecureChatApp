@@ -99,7 +99,15 @@ public partial class PostCommentsPage : ContentPage
 
             foreach (var message in messages)
             {
-                var payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
+                SpaceMessagePayload? payload;
+                try
+                {
+                    payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
+                }
+                catch
+                {
+                    payload = null;
+                }
                 if (!string.Equals(payload?.CommentToMessageId, _postId, StringComparison.Ordinal))
                 {
                     continue;
@@ -115,6 +123,10 @@ public partial class PostCommentsPage : ContentPage
             }
 
             EmptyLabel.IsVisible = _comments.Count == 0;
+            if (EmptyLabel.IsVisible)
+            {
+                EmptyLabel.Text = $"Комментариев нет. Всего сообщений в пространстве: {messages.Count}";
+            }
         }
         catch (Exception ex)
         {
@@ -129,6 +141,8 @@ public partial class PostCommentsPage : ContentPage
             await this.ShowErrorAsync(ex);
         }
     }
+
+    private async void OnRefreshClicked(object sender, EventArgs e) => await LoadAsync();
 
     private SpaceMessageVm CreateVm(SpaceMessageDto message, SpaceMessagePayload payload)
     {
