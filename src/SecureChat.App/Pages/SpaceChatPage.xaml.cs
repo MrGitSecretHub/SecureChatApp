@@ -381,6 +381,7 @@ KeyWaitBanner.IsVisible = false;
             // Сервер иногда отдаёт пустой список — не стираем показанные сообщения.
             if (messages.Count == 0 && _messages.Count > 0)
             {
+                HideScrollToBottom();
                 return;
             }
 

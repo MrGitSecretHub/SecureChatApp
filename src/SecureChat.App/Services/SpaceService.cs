@@ -595,8 +595,13 @@ public sealed class SpaceService
         }, cancellationToken);
         if (tcp.HasValue)
         {
-            return tcp.Value.Deserialize<List<SpaceMessageDto>>(ChatJson.Options)
+            var tcpMessages = tcp.Value.Deserialize<List<SpaceMessageDto>>(ChatJson.Options)
                 ?? new List<SpaceMessageDto>();
+            // Пустой ответ по TCP может быть гонкой подключения — страхуемся WebSocket.
+            if (tcpMessages.Count > 0)
+            {
+                return tcpMessages;
+            }
         }
 
         var connection = await GetConnectionAsync();
