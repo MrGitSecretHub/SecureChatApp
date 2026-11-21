@@ -65,6 +65,7 @@ public sealed class SpaceRepository
                 Type        TEXT NOT NULL,
                 Description TEXT NOT NULL DEFAULT '',
                 IsPublic    INTEGER NOT NULL DEFAULT 0,
+                IsHidden    INTEGER NOT NULL DEFAULT 0,
                 OwnerId     TEXT NOT NULL,
                 CreatedAt   TEXT NOT NULL,
                 SignMessages INTEGER NOT NULL DEFAULT 0
@@ -357,6 +358,13 @@ public sealed class SpaceRepository
         while (await reader.ReadAsync(cancellationToken))
         {
             existing.Add(reader.GetString(1));
+        }
+
+        if (!existing.Contains("IsHidden"))
+        {
+            await using var alterHidden = connection.CreateCommand();
+            alterHidden.CommandText = "ALTER TABLE Spaces ADD COLUMN IsHidden INTEGER NOT NULL DEFAULT 0;";
+            await alterHidden.ExecuteNonQueryAsync(cancellationToken);
         }
 
         if (!existing.Contains("SignMessages"))
