@@ -85,6 +85,11 @@
                     <Button Text="Сохранить"
                             Style="{DynamicResource PrimaryButton}"
                             Clicked="OnSaveClicked" />
+                    <Button x:Name="DistributeKeyButton"
+                            Text="🔑 Раздать ключ всем"
+                            Style="{DynamicResource SecondaryButton}"
+                            IsVisible="False"
+                            Clicked="OnDistributeKeyClicked" />
                 </VerticalStackLayout>
             </Border>
 

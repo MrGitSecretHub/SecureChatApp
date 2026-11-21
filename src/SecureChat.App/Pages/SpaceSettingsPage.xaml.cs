@@ -20,6 +20,7 @@ public partial class SpaceSettingsPage : ContentPage
     private readonly string _spaceId;
     private readonly string _spaceType;
     private SpaceDto? _space;
+    private bool _isAdmin;
     private string? _currentWallpaperPath;
     private bool _currentWallpaperDim;
 
@@ -70,6 +71,8 @@ public partial class SpaceSettingsPage : ContentPage
                 DescriptionEditor.Text = _space.Description;
 
                 var isAdmin = _space.MyRole is SpaceRoles.Owner or SpaceRoles.Admin;
+                _isAdmin = isAdmin;
+                DistributeKeyButton.IsVisible = isAdmin;
                 NameEntry.IsEnabled = isAdmin;
                 DescriptionEditor.IsEnabled = isAdmin;
 
@@ -114,6 +117,18 @@ public partial class SpaceSettingsPage : ContentPage
         _currentWallpaperDim = await session.GetSpaceWallpaperDimAsync(_spaceId);
         UpdateWallpaperPreview();
         SpaceWallpaperDimSwitch.IsToggled = _currentWallpaperDim;
+    }
+
+    private async void OnDistributeKeyClicked(object sender, EventArgs e)
+    {
+        if (!_isAdmin) return;
+        var count = await _spaces.EnsureKeyDistributedAsync(_spaceId);
+        await DisplayAlert(
+            "Раздача ключа",
+            count > 0
+                ? $"Ключ выдан {count} участникам. Теперь они смогут прочитать историю."
+                : "Всем участникам ключ уже выдан.",
+            "OK");
     }
 
     private async void OnSaveClicked(object sender, EventArgs e)

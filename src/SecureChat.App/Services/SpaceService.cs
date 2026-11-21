@@ -99,6 +99,7 @@ public sealed class SpaceService
         // Новое подключение нужно заново подписать и ввести в группы пространств.
         Subscribe();
         await JoinGroupsForCurrentConnectionAsync();
+        _ = DistributeKeysForAllSpacesAsync();
         return restored;
     }
 
@@ -181,19 +182,19 @@ public sealed class SpaceService
     /// Вызывается при открытии пространства — чинит историю для новичков,
     /// вступивших, когда nikto из участников не был онлайн.
     /// </summary>
-    public async Task EnsureKeyDistributedAsync(string spaceId)
+    public async Task<int> EnsureKeyDistributedAsync(string spaceId)
     {
         try
         {
             var token = _session.Token;
-            if (string.IsNullOrWhiteSpace(token)) return;
+            if (string.IsNullOrWhiteSpace(token)) return 0;
             var connection = await GetConnectionAsync();
             var missing = await connection.InvokeAsync<List<string>>(
                 "GetSpaceMembersWithoutKey", spaceId);
-            if (missing is null || missing.Count == 0) return;
+            if (missing is null || missing.Count == 0) return 0;
 
             var key = await GetSpaceKeyAsync(spaceId);
-            if (key is null) return;
+            if (key is null) return 0;
 
             var users = await _apiClient.ListUsersAsync(_session.ServerUrl, token);
             var byId = users.ToDictionary(u => u.Id, StringComparer.Ordinal);
@@ -205,12 +206,36 @@ public sealed class SpaceService
                 envelopes[userId] = ChatJson.Serialize(SpaceCrypto.EncryptSpaceKey(
                     key, spaceId, userId, user.EncryptionPublicKey));
             }
-            if (envelopes.Count == 0) return;
+            if (envelopes.Count == 0) return 0;
             await connection.InvokeAsync<bool>("SaveSpaceMemberKeys", spaceId, envelopes);
+            return envelopes.Count;
         }
         catch
         {
             // раздача не критична: сработает авто-доставка при следующем входе
+            return 0;
+        }
+    }
+
+    private int _distributingForAll;
+
+    /// <summary>При запуске приложения раздаём ключ везде, где мы админ/владелец.</summary>
+    private async Task DistributeKeysForAllSpacesAsync()
+    {
+        if (Interlocked.Exchange(ref _distributingForAll, 1) == 1) return;
+        try
+        {
+            var spaces = await ListAsync();
+            foreach (var space in spaces.Where(x =>
+                x.MyRole is SpaceRoles.Owner or SpaceRoles.Admin))
+            {
+                await EnsureKeyDistributedAsync(space.Id);
+            }
+        }
+        catch { }
+        finally
+        {
+            Interlocked.Exchange(ref _distributingForAll, 0);
         }
     }
 
