@@ -342,7 +342,10 @@ public partial class SpaceChatPage : ContentPage
                 return;
             }
 
-            KeyWaitBanner.IsVisible = false;
+                        // Админ/владелец при открытии чата раздаёт ключ новичкам,
+            // которые вступили, когда никто из участников не был онлайн.
+            _ = _spaces.EnsureKeyDistributedAsync(_spaceId);
+KeyWaitBanner.IsVisible = false;
             OfflineBanner.IsVisible = false;
             var messages = await _spaces.GetMessagesAsync(_spaceId, _topicId);
 

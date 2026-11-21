@@ -176,6 +176,44 @@ public sealed class SpaceService
             (spaceId, userId, username) => _ = ProvideSpaceKeyAsync(spaceId, userId, username));
     }
 
+    /// <summary>
+    /// Раздаёт ключ участникам, которым он ещё не выдан (только админ/владелец).
+    /// Вызывается при открытии пространства — чинит историю для новичков,
+    /// вступивших, когда nikto из участников не был онлайн.
+    /// </summary>
+    public async Task EnsureKeyDistributedAsync(string spaceId)
+    {
+        try
+        {
+            var token = _session.Token;
+            if (string.IsNullOrWhiteSpace(token)) return;
+            var connection = await GetConnectionAsync();
+            var missing = await connection.InvokeAsync<List<string>>(
+                "GetSpaceMembersWithoutKey", spaceId);
+            if (missing is null || missing.Count == 0) return;
+
+            var key = await GetSpaceKeyAsync(spaceId);
+            if (key is null) return;
+
+            var users = await _apiClient.ListUsersAsync(_session.ServerUrl, token);
+            var byId = users.ToDictionary(u => u.Id, StringComparer.Ordinal);
+            var envelopes = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var userId in missing.Take(500))
+            {
+                if (!byId.TryGetValue(userId, out var user) ||
+                    string.IsNullOrWhiteSpace(user.EncryptionPublicKey)) continue;
+                envelopes[userId] = ChatJson.Serialize(SpaceCrypto.EncryptSpaceKey(
+                    key, spaceId, userId, user.EncryptionPublicKey));
+            }
+            if (envelopes.Count == 0) return;
+            await connection.InvokeAsync<bool>("SaveSpaceMemberKeys", spaceId, envelopes);
+        }
+        catch
+        {
+            // раздача не критична: сработает авто-доставка при следующем входе
+        }
+    }
+
     /// <summary>Просим группу ещё раз прислать ключ этому участнику.</summary>
     public async Task RequestSpaceKeyAsync(string spaceId)
     {

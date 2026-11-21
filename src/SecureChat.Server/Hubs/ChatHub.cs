@@ -247,6 +247,19 @@ public sealed class ChatHub : Hub
                 userId,
                 owner.EncryptionPublicKey)));
 
+        // Заготавливаем конверты для ВСЕХ пользователей заранее: новый участник
+        // получит ключ сразу, даже если при вступлении никто не в сети.
+        var allUsers = await _repository.ListUsersAsync();
+        foreach (var user in allUsers.Take(500))
+        {
+            if (string.IsNullOrWhiteSpace(user.EncryptionPublicKey)) continue;
+            await _spaces.SaveSpaceKeyAsync(
+                space.Id,
+                user.Id,
+                ChatJson.Serialize(SpaceCrypto.EncryptSpaceKey(
+                    spaceKey, space.Id, user.Id, user.EncryptionPublicKey)));
+        }
+
         foreach (var member in request.Members.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             if (string.IsNullOrWhiteSpace(member) || string.Equals(member, userId, StringComparison.Ordinal))
@@ -380,6 +393,51 @@ public sealed class ChatHub : Hub
 
     /// <summary>Сохраняет «конверт» с ключом пространства для участника (шифрует клиент).</summary>
     /// <summary>Участник без ключа просит группу прислать его ещё раз.</summary>
+    /// <summary>Список участников, которым ещё не выдан ключ пространства.</summary>
+    public async Task<List<string>> GetSpaceMembersWithoutKey(string spaceId)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId))
+        {
+            return new List<string>();
+        }
+
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null || !IsAdmin(space.MyRole))
+        {
+            return new List<string>();
+        }
+
+        var keys = await _spaces.GetSpaceKeysAsync(spaceId);
+        var members = await _spaces.GetMembersAsync(spaceId);
+        return members.Where(m => !keys.ContainsKey(m.UserId)).Select(m => m.UserId).ToList();
+    }
+
+    /// <summary>Пакетная выдача ключа (только админ/владелец).</summary>
+    public async Task<bool> SaveSpaceMemberKeys(string spaceId, Dictionary<string, string> envelopes)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId) || envelopes.Count == 0)
+        {
+            return false;
+        }
+
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null || !IsAdmin(space.MyRole))
+        {
+            return false;
+        }
+
+        var members = await _spaces.GetMembersAsync(spaceId);
+        var valid = members.Select(m => m.UserId).ToHashSet(StringComparer.Ordinal);
+        foreach (var pair in envelopes)
+        {
+            if (!valid.Contains(pair.Key) || pair.Value.Length > 64 * 1024) continue;
+            await _spaces.SaveSpaceKeyAsync(spaceId, pair.Key, pair.Value);
+        }
+        return true;
+    }
+
     public async Task<bool> RequestSpaceKey(string spaceId)
     {
         var userId = Context.UserIdentifier;
