@@ -1,3 +1,4 @@
+using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 #if ANDROID
 using MPowerKit.Lottie;
@@ -14,6 +15,7 @@ public static class MauiProgram
     {
         var builder = MauiApp.CreateBuilder();
         builder.UseMauiApp<App>();
+        builder.UseMauiCommunityToolkit();
 
         builder.Services.AddSingleton<SecretStore>();
         builder.Services.AddSingleton<QuickRepliesService>();
