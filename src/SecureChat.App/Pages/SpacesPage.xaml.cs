@@ -11,14 +11,19 @@ public partial class SpacesPage : ContentPage
 {
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
     private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
-    private readonly ObservableCollection<SpaceVm> _items = new();
     private List<SpaceDto> _all = new();
     private string _filter = "all";
+
+    /// <summary>Группа строк списка: «Мои пространства» / «Доступные».</summary>
+    private sealed class SpaceGroup : List<SpaceVm>
+    {
+        public string Title { get; }
+        public SpaceGroup(string title, IEnumerable<SpaceVm> items) : base(items) => Title = title;
+    }
 
     public SpacesPage()
     {
         InitializeComponent();
-        SpacesView.ItemsSource = _items;
     }
 
     protected override async void OnAppearing()
@@ -79,8 +84,8 @@ public partial class SpacesPage : ContentPage
 
     private void ApplyFilter()
     {
-        _items.Clear();
         var query = SearchEntry.Text?.Trim();
+        var filtered = new List<SpaceVm>();
         foreach (var space in _all)
         {
             if (_filter != "all" && space.Type != _filter)
@@ -95,22 +100,31 @@ public partial class SpacesPage : ContentPage
                 continue;
             }
 
-            _items.Add(SpaceVm.From(space));
+            filtered.Add(SpaceVm.From(space));
         }
+
+        var mine = filtered.Where(s => !string.IsNullOrEmpty(s.MyRole)).ToList();
+        var available = filtered.Where(s => string.IsNullOrEmpty(s.MyRole)).ToList();
+        var groups = new List<SpaceGroup>();
+        if (mine.Count > 0)
+            groups.Add(new SpaceGroup(Loc.T("spaces_section_my", "My spaces"), mine));
+        if (available.Count > 0)
+            groups.Add(new SpaceGroup(Loc.T("spaces_section_available", "Available"), available));
+        SpacesView.ItemsSource = groups;
     }
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
 
     private void OnFilterClicked(object sender, EventArgs e)
     {
-        _filter = sender switch
-        {
-            Button { Text: "Группы" } => SpaceTypes.Group,
-            Button { Text: "Каналы" } => SpaceTypes.Channel,
-            Button { Text: "Форумы" } => SpaceTypes.Forum,
-            Button { Text: "Сообщества" } => SpaceTypes.Community,
-            _ => "all"
-        };
+        if (sender is not Button clicked)
+            return;
+
+        _filter = clicked.ClassId ?? "all";
+        var pills = new[] { AllFilterButton, GroupsFilterButton, ChannelsFilterButton,
+                            ForumsFilterButton, CommunitiesFilterButton };
+        foreach (var pill in pills)
+            pill.Style = (Style)Resources[pill == clicked ? "FilterPillActive" : "FilterPill"];
 
         ApplyFilter();
     }

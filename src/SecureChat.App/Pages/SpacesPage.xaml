@@ -4,11 +4,29 @@
              xmlns:views="clr-namespace:SecureChat.App.Views"
              x:Class="SecureChat.App.Pages.SpacesPage"
              Title="{DynamicResource s_ui_024}">
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+    <ContentPage.Resources>
+        <!-- Компактные «пилюли» фильтров -->
+        <Style x:Key="FilterPill" TargetType="Button">
+            <Setter Property="HeightRequest" Value="32" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="BackgroundColor" Value="{DynamicResource SurfaceAlt}" />
+            <Setter Property="TextColor" Value="{DynamicResource TextMuted}" />
+            <Setter Property="BorderColor" Value="Transparent" />
+            <Setter Property="BorderWidth" Value="0" />
+        </Style>
+        <Style x:Key="FilterPillActive" TargetType="Button" BasedOn="{StaticResource FilterPill}">
+            <Setter Property="BackgroundColor" Value="{DynamicResource Accent}" />
+            <Setter Property="TextColor" Value="{DynamicResource AccentText}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
 
         <!-- Шапка -->
         <VerticalStackLayout Grid.Row="0"
-                             Padding="16,14,16,4"
+                             Padding="16,12,16,2"
                              Spacing="2">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <VerticalStackLayout Grid.Column="0" Spacing="2">
@@ -33,38 +51,43 @@
                    Margin="16,0,16,0"
                    TextChanged="OnSearchTextChanged" />
 
-        <!-- Фильтр по типу -->
+        <!-- Фильтр по типу: пилюли -->
         <ScrollView Grid.Row="2"
                     Orientation="Horizontal"
-                    HeightRequest="44">
-            <HorizontalStackLayout Padding="16,8"
-                                   Spacing="8">
+                    HeightRequest="44"
+                    HorizontalScrollBarVisibility="Never">
+            <HorizontalStackLayout Padding="16,6" Spacing="6">
                 <Button x:Name="AllFilterButton"
                         Text="{DynamicResource s_spaces_all}"
-                        Clicked="OnFilterClicked"
-                        Style="{DynamicResource GhostButton}" />
+                        ClassId="all"
+                        Style="{StaticResource FilterPillActive}"
+                        Clicked="OnFilterClicked" />
                 <Button x:Name="GroupsFilterButton"
                         Text="{DynamicResource s_spaces_groups}"
-                        Clicked="OnFilterClicked"
-                        Style="{DynamicResource GhostButton}" />
+                        ClassId="group"
+                        Style="{StaticResource FilterPill}"
+                        Clicked="OnFilterClicked" />
                 <Button x:Name="ChannelsFilterButton"
                         Text="{DynamicResource s_spaces_channels}"
-                        Clicked="OnFilterClicked"
-                        Style="{DynamicResource GhostButton}" />
+                        ClassId="channel"
+                        Style="{StaticResource FilterPill}"
+                        Clicked="OnFilterClicked" />
                 <Button x:Name="ForumsFilterButton"
                         Text="{DynamicResource s_spaces_forums}"
-                        Clicked="OnFilterClicked"
-                        Style="{DynamicResource GhostButton}" />
+                        ClassId="forum"
+                        Style="{StaticResource FilterPill}"
+                        Clicked="OnFilterClicked" />
                 <Button x:Name="CommunitiesFilterButton"
                         Text="{DynamicResource s_spaces_communities}"
-                        Clicked="OnFilterClicked"
-                        Style="{DynamicResource GhostButton}" />
+                        ClassId="community"
+                        Style="{StaticResource FilterPill}"
+                        Clicked="OnFilterClicked" />
             </HorizontalStackLayout>
         </ScrollView>
 
         <Label x:Name="OfflineLabel"
                Grid.Row="3"
-               Margin="16,0,16,8"
+               Margin="16,0,16,6"
                FontSize="12"
                TextColor="{DynamicResource Warning}"
                LineBreakMode="WordWrap"
@@ -75,6 +98,7 @@
             </Label.GestureRecognizers>
         </Label>
 
+        <!-- Компактный список с группировкой -->
         <CollectionView Grid.Row="4"
                         x:Name="SpacesView"
                         SelectionMode="Single"
@@ -91,63 +115,87 @@
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
 
+            <CollectionView.GroupHeaderTemplate>
+                <DataTemplate>
+                    <Label Text="{Binding Title}"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="{DynamicResource TextMuted}"
+                           Padding="16,10,16,4"
+                           BackgroundColor="Transparent" />
+                </DataTemplate>
+            </CollectionView.GroupHeaderTemplate>
+
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="views:SpaceVm">
-                    <Border Style="{DynamicResource Card}"
-                            Margin="12,6"
-                            Padding="14">
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                            <Border WidthRequest="42"
-                                    HeightRequest="42"
-                                    BackgroundColor="{DynamicResource AccentSoft}"
-                                    VerticalOptions="Center">
-                                <Border.StrokeShape>
-                                    <Ellipse />
-                                </Border.StrokeShape>
-                                <Label Text="{Binding Icon}"
-                                       FontSize="19"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center" />
-                            </Border>
-                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
-                                <Label Text="{Binding Name}"
-                                       FontSize="15"
-                                       FontAttributes="Bold"
-                                       TextColor="{DynamicResource TextPrimary}"
-                                       LineBreakMode="TailTruncation" />
-                                <Label Text="{Binding PreviewLine}"
-                                       FontSize="12"
-                                       TextColor="{DynamicResource TextMuted}"
-                                       LineBreakMode="TailTruncation"
-                                       MaxLines="1" />
-                                <Label Text="{Binding MembersText}"
-                                       FontSize="11"
-                                       TextColor="{DynamicResource TextDisabled}" />
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
-                                <Label Text="{Binding TypeBadge}"
-                                       FontSize="10"
-                                       FontAttributes="Bold"
-                                       TextColor="{DynamicResource Accent}" />
-                                <Label Text="{DynamicResource s_ui_192}"
-                                       FontSize="10"
-                                       TextColor="{DynamicResource TextDisabled}"
-                                       HorizontalOptions="End"
-                                       IsVisible="{Binding IsJoinable}" />
-                                <Label Text="{Binding TimeText}"
-                                       FontSize="10"
-                                       TextColor="{DynamicResource TextDisabled}" />
-                            </VerticalStackLayout>
-                        </Grid>
-                    </Border>
+                    <Grid ColumnDefinitions="46,*,Auto"
+                          ColumnSpacing="10"
+                          Padding="12,6"
+                          HeightRequest="64">
+                        <Border WidthRequest="44"
+                                HeightRequest="44"
+                                BackgroundColor="{DynamicResource AccentSoft}"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <Ellipse />
+                            </Border.StrokeShape>
+                            <Label Text="{Binding Icon}"
+                                   FontSize="18"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1"
+                                             Spacing="2"
+                                             VerticalOptions="Center">
+                            <Label Text="{Binding Name}"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource TextPrimary}"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding PreviewLine}"
+                                   FontSize="11"
+                                   TextColor="{DynamicResource TextMuted}"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
+                            <Label Text="{Binding MembersText}"
+                                   FontSize="10"
+                                   TextColor="{DynamicResource TextDisabled}"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="2"
+                                             Spacing="3"
+                                             VerticalOptions="Center"
+                                             HorizontalOptions="End">
+                            <Label Text="{Binding TimeText}"
+                                   FontSize="10"
+                                   TextColor="{DynamicResource TextDisabled}"
+                                   HorizontalOptions="End" />
+                            <Label Text="{Binding TypeBadge}"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource Accent}"
+                                   HorizontalOptions="End" />
+                        </VerticalStackLayout>
+                    </Grid>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <Button Grid.Row="5"
-                Text="{DynamicResource s_ui_152}"
-                Style="{DynamicResource PrimaryButton}"
+        <!-- Плавающая кнопка создания -->
+        <Button Grid.Row="4"
+                x:Name="CreateFab"
+                Text="＋"
+                FontSize="26"
+                WidthRequest="54"
+                HeightRequest="54"
+                CornerRadius="27"
+                Padding="0"
+                HorizontalOptions="End"
+                VerticalOptions="End"
                 Margin="16"
-                Clicked="OnCreateClicked" />
+                Style="{DynamicResource PrimaryButton}"
+                Clicked="OnCreateClicked"
+                ToolTipProperties.Text="{DynamicResource s_ui_152}" />
     </Grid>
 </ContentPage>
