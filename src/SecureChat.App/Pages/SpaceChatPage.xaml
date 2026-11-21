@@ -821,6 +821,32 @@
                 StrokeThickness="0"
                 Padding="8,6">
             <VerticalStackLayout Spacing="4">
+                <!-- Общие закладки эмодзи / мои пакеты -->
+                <Grid x:Name="PickerTabs"
+                      IsVisible="False"
+                      ColumnDefinitions="*,*"
+                      ColumnSpacing="6"
+                      Padding="4,4,4,0">
+                    <Button x:Name="EmojiTabButton"
+                            Grid.Column="0"
+                            Text="😊"
+                            StyleId="emoji"
+                            Clicked="OnPickerTabClicked"
+                            BackgroundColor="{DynamicResource Accent}"
+                            TextColor="{DynamicResource AccentText}"
+                            FontSize="16"
+                            HeightRequest="34" />
+                    <Button x:Name="PackTabButton"
+                            Grid.Column="1"
+                            Text="🎨"
+                            StyleId="pack"
+                            Clicked="OnPickerTabClicked"
+                            BackgroundColor="{DynamicResource SurfaceAlt}"
+                            TextColor="{DynamicResource TextSecondary}"
+                            FontSize="16"
+                            HeightRequest="34" />
+                </Grid>
+
                 <!-- Эмодзи-панель (показывается по кнопке 😊) -->
                 <views:EmojiPickerView x:Name="EmojiPicker"
                                        IsVisible="False"
@@ -931,6 +957,7 @@
                                 Clicked="OnCreatePollClicked"
                                 ToolTipProperties.Text="Опрос" />
                         <Button x:Name="EmojiButton"
+                                 IsVisible="False"
                                 Text="😊"
                                 Style="{DynamicResource IconButton}"
                                 WidthRequest="34" HeightRequest="34"

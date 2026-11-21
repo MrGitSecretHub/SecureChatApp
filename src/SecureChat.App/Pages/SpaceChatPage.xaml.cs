@@ -1526,20 +1526,58 @@ public partial class SpaceChatPage : ContentPage
         }
     }
 
-    /// <summary>Панель своих пакетов (импорт своих GIF и стикеров).</summary>
+    /// <summary>Одна кнопка для эмодзи и своих пакетов: показывает общие закладки.</summary>
     private async void OnCustomPackButtonClicked(object sender, EventArgs e)
     {
         AttachMenuPanel.IsVisible = false;
-        EmojiPicker.IsVisible = false;
+        var show = !PickerTabs.IsVisible;
+        PickerTabs.IsVisible = show;
+        EmojiPicker.IsVisible = show;
         StickerPicker.IsVisible = false;
         GifPicker.IsVisible = false;
-
-        CustomPackPicker.IsVisible = !CustomPackPicker.IsVisible;
-        if (CustomPackPicker.IsVisible)
-        {
-            await CustomPackPicker.ReloadAsync();
+        CustomPackPicker.IsVisible = false;
+        PickerTabs.IsVisible = show;
+        SetPickerTab("emoji");
+        if (show)
             MessageEntry.FocusInput();
+    }
+
+    /// <summary>Переключение закладок «эмодзи» / «мои пакеты».</summary>
+    private async void OnPickerTabClicked(object sender, EventArgs e)
+    {
+        var tab = (sender as Element)?.StyleId ?? "emoji";
+        SetPickerTab(tab);
+        if (tab == "pack")
+        {
+            EmojiPicker.IsVisible = false;
+            CustomPackPicker.IsVisible = true;
+            PickerTabs.IsVisible = true;
+            await CustomPackPicker.ReloadAsync();
         }
+        else
+        {
+            CustomPackPicker.IsVisible = false;
+        PickerTabs.IsVisible = false;
+            EmojiPicker.IsVisible = true;
+            PickerTabs.IsVisible = true;
+        }
+        MessageEntry.FocusInput();
+    }
+
+    private void SetPickerTab(string tab)
+    {
+        EmojiTabButton.BackgroundColor = tab == "emoji"
+            ? (Color)Application.Current!.Resources["Accent"]
+            : (Color)Application.Current!.Resources["SurfaceAlt"];
+        EmojiTabButton.TextColor = tab == "emoji"
+            ? (Color)Application.Current!.Resources["AccentText"]
+            : (Color)Application.Current!.Resources["TextSecondary"];
+        PackTabButton.BackgroundColor = tab == "pack"
+            ? (Color)Application.Current!.Resources["Accent"]
+            : (Color)Application.Current!.Resources["SurfaceAlt"];
+        PackTabButton.TextColor = tab == "pack"
+            ? (Color)Application.Current!.Resources["AccentText"]
+            : (Color)Application.Current!.Resources["TextSecondary"];
     }
 
     /// <summary>Импорт своих GIF или картинок-стикеров в локальный пак.</summary>
@@ -1618,6 +1656,8 @@ public partial class SpaceChatPage : ContentPage
             StickerPicker.IsVisible = false;
             GifPicker.IsVisible = false;
             CustomPackPicker.IsVisible = false;
+        PickerTabs.IsVisible = false;
+        PickerTabs.IsVisible = false;
 
             await _spaces.SendMediaAsync(
                 _spaceId,
