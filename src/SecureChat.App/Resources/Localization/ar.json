@@ -50,6 +50,8 @@
   "menu_poll": "استطلاع",
   "spaces_section_my": "مساحاتي",
   "spaces_messages": "الرسائل",
+  "spaces_hidden_title": "إخفاء من البحث",
+  "spaces_hidden_hint": "غير مدرج في البحث — بالدعوة فقط",
   "spaces_section_available": "متاحة",
   "settings_title": "\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a",
   "settings_profile": "\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a",

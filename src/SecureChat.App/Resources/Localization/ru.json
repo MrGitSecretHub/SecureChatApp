@@ -50,6 +50,8 @@
   "menu_poll": "Опрос",
   "spaces_section_my": "Мои пространства",
   "spaces_messages": "Сообщения",
+  "spaces_hidden_title": "Скрыть в поиске",
+  "spaces_hidden_hint": "Не отображается в поиске — вступление только по приглашению",
   "spaces_section_available": "Доступные",
   "settings_title": "\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438",
   "settings_profile": "\u041f\u0440\u043e\u0444\u0438\u043b\u044c",

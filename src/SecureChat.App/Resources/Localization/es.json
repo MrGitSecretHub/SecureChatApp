@@ -50,6 +50,8 @@
   "menu_poll": "Encuesta",
   "spaces_section_my": "Mis espacios",
   "spaces_messages": "Mensajes",
+  "spaces_hidden_title": "Ocultar en búsqueda",
+  "spaces_hidden_hint": "No aparece en búsquedas — solo por invitación",
   "spaces_section_available": "Disponibles",
   "settings_title": "Ajustes",
   "settings_profile": "Perfil",

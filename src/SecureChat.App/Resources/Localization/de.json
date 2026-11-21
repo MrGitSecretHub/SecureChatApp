@@ -50,6 +50,8 @@
   "menu_poll": "Umfrage",
   "spaces_section_my": "Meine Bereiche",
   "spaces_messages": "Nachrichten",
+  "spaces_hidden_title": "In Suche ausblenden",
+  "spaces_hidden_hint": "Nicht in der Suche gelistet — nur auf Einladung",
   "spaces_section_available": "Verfügbar",
   "settings_title": "Einstellungen",
   "settings_profile": "Profil",

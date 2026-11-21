@@ -24,6 +24,7 @@ public sealed class CreateSpaceRequest
     public required string Type { get; set; } = SpaceTypes.Group;
     public string? Description { get; set; }
     public bool IsPublic { get; set; }
+    public bool IsHidden { get; set; }
     public List<string> Members { get; set; } = new();
 }
 
@@ -36,6 +37,9 @@ public sealed class UpdateSpaceRequest
     /// <summary>Публичность: null — не менять, true/false — задать.</summary>
     public bool? IsPublic { get; set; }
 
+    /// <summary>Скрыть в поиске/списке доступных: null — не менять.</summary>
+    public bool? IsHidden { get; set; }
+
     /// <summary>Подписывать посты канала именем автора («через @админ»): null — не менять.</summary>
     public bool? SignMessages { get; set; }
 }
@@ -47,6 +51,7 @@ public sealed class SpaceDto
     public required string Type { get; set; }
     public string Description { get; set; } = string.Empty;
     public bool IsPublic { get; set; }
+    public bool IsHidden { get; set; }
     public required string OwnerId { get; set; }
     public required string OwnerUsername { get; set; }
     public string MyRole { get; set; } = SpaceRoles.Member;

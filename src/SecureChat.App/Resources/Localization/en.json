@@ -50,6 +50,8 @@
   "menu_poll": "Poll",
   "spaces_section_my": "My spaces",
   "spaces_messages": "Messages",
+  "spaces_hidden_title": "Hide from search",
+  "spaces_hidden_hint": "Not listed in search — join by invitation only",
   "spaces_section_available": "Available",
   "settings_title": "Settings",
   "settings_profile": "Profile",

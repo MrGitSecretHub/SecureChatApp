@@ -50,6 +50,8 @@
   "menu_poll": "Anket",
   "spaces_section_my": "Alanlarım",
   "spaces_messages": "Mesajlar",
+  "spaces_hidden_title": "Aramada gizle",
+  "spaces_hidden_hint": "Aramada listelenmez — yalnızca davetle",
   "spaces_section_available": "Kullanılabilir",
   "settings_title": "Ayarlar",
   "settings_profile": "Profil",

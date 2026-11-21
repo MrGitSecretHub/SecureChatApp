@@ -50,6 +50,8 @@
   "menu_poll": "投票",
   "spaces_section_my": "我的空间",
   "spaces_messages": "消息",
+  "spaces_hidden_title": "在搜索中隐藏",
+  "spaces_hidden_hint": "不在搜索中显示 — 仅限邀请",
   "spaces_section_available": "可加入",
   "settings_title": "\u8bbe\u7f6e",
   "settings_profile": "\u4e2a\u4eba\u8d44\u6599",

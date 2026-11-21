@@ -493,6 +493,7 @@ public sealed class SpaceRepository
                 insert.Parameters.AddWithValue("$type", request.Type);
                 insert.Parameters.AddWithValue("$description", request.Description?.Trim() ?? string.Empty);
                 insert.Parameters.AddWithValue("$isPublic", request.IsPublic ? 1 : 0);
+                insert.Parameters.AddWithValue("$isHidden", request.IsHidden ? 1 : 0);
                 insert.Parameters.AddWithValue("$ownerId", ownerId);
                 insert.Parameters.AddWithValue("$createdAt", now.ToString("O"));
                 // У каналов подписи постов включаем сразу: видно, кто опубликовал.
@@ -533,7 +534,7 @@ public sealed class SpaceRepository
 
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT s.Id, s.Name, s.Type, s.Description, s.IsPublic, s.OwnerId,
+            SELECT s.Id, s.Name, s.Type, s.Description, s.IsPublic, s.IsHidden, s.OwnerId,
                    COALESCE(m.Role, ''), COALESCE(m.CanPost, 0),
                    (SELECT COUNT(*) FROM SpaceMembers sm WHERE sm.SpaceId = s.Id),
                    (SELECT COUNT(*) FROM Topics t WHERE t.SpaceId = s.Id),
@@ -553,8 +554,8 @@ public sealed class SpaceRepository
             return null;
         }
 
-        var ownerId = reader.GetString(5);
-        var ownerUsername = reader.IsDBNull(10) ? ownerId : reader.GetString(10);
+        var ownerId = reader.GetString(6);
+        var ownerUsername = reader.IsDBNull(11) ? ownerId : reader.GetString(11);
 
         return new SpaceDto
         {
@@ -563,13 +564,14 @@ public sealed class SpaceRepository
             Type = reader.GetString(2),
             Description = reader.GetString(3),
             IsPublic = reader.GetInt64(4) == 1,
+            IsHidden = reader.GetInt64(5) == 1,
             OwnerId = ownerId,
             OwnerUsername = ownerUsername,
-            MyRole = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
-            CanPost = !reader.IsDBNull(7) && reader.GetInt64(7) == 1,
-            MemberCount = reader.GetInt32(8),
-            TopicCount = reader.GetInt32(9),
-            SignMessages = reader.GetInt64(11) == 1
+            MyRole = reader.IsDBNull(7) ? string.Empty : reader.GetString(7),
+            CanPost = !reader.IsDBNull(8) && reader.GetInt64(8) == 1,
+            MemberCount = reader.GetInt32(9),
+            TopicCount = reader.GetInt32(10),
+            SignMessages = reader.GetInt64(12) == 1
         };
     }
 
@@ -582,7 +584,7 @@ public sealed class SpaceRepository
 
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT s.Id, s.Name, s.Type, s.Description, s.IsPublic, s.OwnerId,
+            SELECT s.Id, s.Name, s.Type, s.Description, s.IsPublic, s.IsHidden, s.OwnerId,
                    COALESCE(m.Role, ''), COALESCE(m.CanPost, 0),
                    (SELECT COUNT(*) FROM SpaceMembers sm WHERE sm.SpaceId = s.Id),
                    (SELECT COUNT(*) FROM Topics t WHERE t.SpaceId = s.Id),
@@ -593,7 +595,7 @@ public sealed class SpaceRepository
                    s.SignMessages
             FROM Spaces s
             LEFT JOIN SpaceMembers m ON m.SpaceId = s.Id AND m.UserId = $userId
-            WHERE m.UserId IS NOT NULL OR s.IsPublic = 1
+            WHERE m.UserId IS NOT NULL OR (s.IsPublic = 1 AND s.IsHidden = 0)
             ORDER BY 11 DESC, s.Name COLLATE NOCASE;
             """;
         command.Parameters.AddWithValue("$userId", userId);
@@ -609,15 +611,16 @@ public sealed class SpaceRepository
                 Type = reader.GetString(2),
                 Description = reader.GetString(3),
                 IsPublic = reader.GetInt64(4) == 1,
-                OwnerId = reader.GetString(5),
-                MyRole = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
-                CanPost = !reader.IsDBNull(7) && reader.GetInt64(7) == 1,
-                MemberCount = reader.GetInt32(8),
-                TopicCount = reader.GetInt32(9),
-                LastMessageAtUnixMs = reader.GetInt64(10),
-                LastMessageText = reader.IsDBNull(11) ? string.Empty : reader.GetString(11),
-                OwnerUsername = reader.IsDBNull(12) ? reader.GetString(5) : reader.GetString(12),
-                SignMessages = reader.GetInt64(13) == 1
+            IsHidden = reader.GetInt64(5) == 1,
+                OwnerId = reader.GetString(6),
+                MyRole = reader.IsDBNull(7) ? string.Empty : reader.GetString(7),
+                CanPost = !reader.IsDBNull(8) && reader.GetInt64(8) == 1,
+                MemberCount = reader.GetInt32(9),
+                TopicCount = reader.GetInt32(10),
+                LastMessageAtUnixMs = reader.GetInt64(11),
+                LastMessageText = reader.IsDBNull(12) ? string.Empty : reader.GetString(12),
+                OwnerUsername = reader.IsDBNull(13) ? reader.GetString(6) : reader.GetString(13),
+                SignMessages = reader.GetInt64(14) == 1
             });
         }
 

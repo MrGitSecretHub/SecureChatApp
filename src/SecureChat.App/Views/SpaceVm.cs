@@ -19,6 +19,7 @@ public sealed class SpaceVm
     public string LastMessage { get; init; } = string.Empty;
 
     public bool IsPublic { get; init; }
+    public bool IsHidden { get; init; }
 
     /// <summary>Вторая строка карточки: последнее сообщение, а если его нет — описание.</summary>
     public string PreviewLine => string.IsNullOrWhiteSpace(LastMessage) ? Description : LastMessage;
@@ -80,6 +81,7 @@ public sealed class SpaceVm
             TimeText = time,
             LastMessage = source.LastMessageText,
             IsPublic = source.IsPublic,
+            IsHidden = source.IsHidden,
             TopicCount = source.TopicCount,
             CanPost = source.CanPost,
             MyRole = source.MyRole,

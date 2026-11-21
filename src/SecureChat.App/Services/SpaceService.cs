@@ -365,6 +365,7 @@ public sealed class SpaceService
         string description,
         bool isPublic,
         IEnumerable<string> members,
+        bool isHidden = false,
         CancellationToken cancellationToken = default)
     {
         var connection = await GetConnectionAsync();
@@ -379,6 +380,7 @@ public sealed class SpaceService
             Type = type,
             Description = description,
             IsPublic = isPublic,
+            IsHidden = isHidden,
             Members = members.ToList()
         };
 
@@ -963,6 +965,7 @@ public sealed class SpaceService
         string name,
         string description,
         bool? isPublic = null,
+        bool? isHidden = null,
         bool? signMessages = null,
         CancellationToken cancellationToken = default)
     {
@@ -978,6 +981,7 @@ public sealed class SpaceService
             Name = name,
             Description = description,
             IsPublic = isPublic,
+            IsHidden = isHidden,
             SignMessages = signMessages
         };
 
