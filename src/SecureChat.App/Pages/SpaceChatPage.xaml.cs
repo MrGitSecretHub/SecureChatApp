@@ -357,7 +357,16 @@ KeyWaitBanner.IsVisible = false;
 
             foreach (var message in messages)
             {
-                var payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
+                SpaceMessagePayload? payload;
+                try
+                {
+                    payload = await _spaces.DecryptPayloadAsync(_spaceId, message);
+                }
+                catch
+                {
+                    // Одно битое сообщение не должно обрывать всю ленту.
+                    payload = null;
+                }
 
                 if (payload?.CommentToMessageId is not null)
                 {
@@ -1175,8 +1184,13 @@ KeyWaitBanner.IsVisible = false;
     private void OnMessagesScrolled(object? sender, ItemsViewScrolledEventArgs e)
     {
         var lastIndex = _messages.Count - 1;
+        if (lastIndex < 3)
+        {
+            ScrollToBottomButton.IsVisible = false;
+            return;
+        }
         var remaining = lastIndex - e.LastVisibleItemIndex;
-        ScrollToBottomButton.IsVisible = remaining > 2 && lastIndex >= 0;
+        ScrollToBottomButton.IsVisible = remaining > 2;
         ScrollToBottomButton.Text = remaining > 0 ? $"↓ {remaining}" : "↓";
     }
 
