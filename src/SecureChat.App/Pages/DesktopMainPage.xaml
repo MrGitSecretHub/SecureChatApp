@@ -326,7 +326,7 @@
             </CollectionView>
 
             <!-- Нижняя панель: быстрые действия и выход -->
-            <Grid Grid.Row="5"
+            <Grid Grid.Row="6"
                   Padding="12,8,12,12"
                   RowDefinitions="Auto,Auto"
                   RowSpacing="8">
