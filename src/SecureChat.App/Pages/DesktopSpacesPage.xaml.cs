@@ -55,34 +55,27 @@ public partial class DesktopSpacesPage : ContentPage
         var mine = filtered.Where(s => !string.IsNullOrEmpty(s.MyRole)).ToList();
         if (mine.Count > 0)
         {
-            AddStrip($"Мои пространства ({mine.Count})", mine);
+            SpaceGroups.Children.Add(new Label
+            {
+                Text = $"Мои пространства ({mine.Count})",
+                FontSize = 13, FontAttributes = FontAttributes.Bold,
+                TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White,
+                Margin = new Thickness(6, 8, 6, 4)
+            });
             AddCards(mine);
         }
         var others = filtered.Where(s => string.IsNullOrEmpty(s.MyRole)).ToList();
         if (others.Count > 0)
         {
-            AddStrip($"Доступные ({others.Count})", others);
+            SpaceGroups.Children.Add(new Label
+            {
+                Text = $"Доступные ({others.Count})",
+                FontSize = 13, FontAttributes = FontAttributes.Bold,
+                TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White,
+                Margin = new Thickness(6, 8, 6, 4)
+            });
             AddCards(others);
         }
-    }
-
-    private void AddStrip(string title, List<SpaceDto> items)
-    {
-        var row = new HorizontalStackLayout { Spacing = 8, VerticalOptions = LayoutOptions.Center };
-        row.Children.Add(new Label { Text = title, FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray, VerticalOptions = LayoutOptions.Center });
-        foreach (var space in items.Take(8))
-        {
-            var chip = new Button
-            {
-                Text = string.IsNullOrEmpty(space.Name) ? "?" : space.Name[..1].ToUpperInvariant(),
-                WidthRequest = 34, HeightRequest = 34, CornerRadius = 17, Padding = 0, FontSize = 12,
-                BackgroundColor = (Color?)Application.Current?.Resources["AccentSoft"] ?? Colors.CornflowerBlue,
-                TextColor = Colors.White
-            };
-            chip.Clicked += (_, _) => SelectSpace(space);
-            row.Children.Add(chip);
-        }
-        SpaceGroups.Children.Add(row);
     }
 
     private void AddCards(List<SpaceDto> items)
