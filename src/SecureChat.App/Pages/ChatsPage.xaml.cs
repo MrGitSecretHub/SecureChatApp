@@ -438,7 +438,8 @@ public partial class ChatsPage : ContentPage
         ChatsStoriesStrip.Clear();
         try
         {
-            var items = await AppServices.Get<StoryService>().GetAsync();
+            var items = (await AppServices.Get<StoryService>().GetAsync())
+                .Where(s => string.IsNullOrWhiteSpace(s.SpaceId)).ToList();
             var groups = items.GroupBy(s => s.OwnerUsername, StringComparer.OrdinalIgnoreCase)
                 .OrderByDescending(g => g.Max(s => s.CreatedAtUnixMs));
 

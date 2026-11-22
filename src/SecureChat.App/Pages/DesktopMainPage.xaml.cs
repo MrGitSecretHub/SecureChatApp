@@ -106,7 +106,8 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         DesktopStoriesStrip.Clear();
         try
         {
-            var items = await AppServices.Get<StoryService>().GetAsync();
+            var items = (await AppServices.Get<StoryService>().GetAsync())
+                .Where(s => string.IsNullOrWhiteSpace(s.SpaceId)).ToList();
             var groups = items.GroupBy(x => x.OwnerUsername, StringComparer.OrdinalIgnoreCase)
                 .OrderByDescending(g => g.Max(x => x.CreatedAtUnixMs));
             if (!groups.Any())
