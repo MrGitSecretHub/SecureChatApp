@@ -673,8 +673,8 @@ public sealed class SpaceRepository
     public async Task<bool> AddMemberAsync(
         string spaceId,
         string userId,
-        string role,
-        bool canPost,
+        string? role,
+        bool? canPost,
         CancellationToken cancellationToken = default)
     {
         await _writeLock.WaitAsync(cancellationToken);
@@ -693,8 +693,8 @@ public sealed class SpaceRepository
                 """;
             command.Parameters.AddWithValue("$spaceId", spaceId);
             command.Parameters.AddWithValue("$userId", userId);
-            command.Parameters.AddWithValue("$role", role);
-            command.Parameters.AddWithValue("$canPost", canPost ? 1 : 0);
+            command.Parameters.AddWithValue("$role", string.IsNullOrWhiteSpace(role) ? "member" : role);
+            command.Parameters.AddWithValue("$canPost", canPost.HasValue ? (canPost.Value ? 1 : 0) : 1);
 
             return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
         }
@@ -944,6 +944,7 @@ public sealed class SpaceRepository
         string name,
         string description,
         bool? isPublic = null,
+        bool? isHidden = null,
         bool? signMessages = null,
         CancellationToken cancellationToken = default)
     {
@@ -959,6 +960,7 @@ public sealed class SpaceRepository
                 SET Name = $name,
                     Description = $description,
                     IsPublic = COALESCE($isPublic, IsPublic),
+                    IsHidden = COALESCE($isHidden, IsHidden),
                     SignMessages = COALESCE($signMessages, SignMessages)
                 WHERE Id = $spaceId;
                 """;
@@ -967,6 +969,9 @@ public sealed class SpaceRepository
             command.Parameters.AddWithValue(
                 "$isPublic",
                 isPublic.HasValue ? (isPublic.Value ? 1 : 0) : DBNull.Value);
+            command.Parameters.AddWithValue(
+                "$isHidden",
+                isHidden.HasValue ? (isHidden.Value ? 1 : 0) : DBNull.Value);
             command.Parameters.AddWithValue(
                 "$signMessages",
                 signMessages.HasValue ? (signMessages.Value ? 1 : 0) : DBNull.Value);

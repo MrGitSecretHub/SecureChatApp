@@ -601,12 +601,33 @@ KeyWaitBanner.IsVisible = false;
             return;
         }
 
-        if (type == "spaceMessage")
+        switch (type)
         {
-            var message = payload.Value.Deserialize<SpaceMessageDto>(ChatJson.Options);
-            if (message is not null)
+            case "spaceMessage":
             {
-                OnSpaceMessageReceived(message);
+                var message = payload.Value.Deserialize<SpaceMessageDto>(ChatJson.Options);
+                if (message is not null) OnSpaceMessageReceived(message);
+                break;
+            }
+            case "spaceMessageUpdated":
+            {
+                var message = payload.Value.Deserialize<SpaceMessageDto>(ChatJson.Options);
+                if (message is not null) OnSpaceMessageUpdated(message);
+                break;
+            }
+            case "spaceMessageDeleted":
+            {
+                var id = payload.HasValue && payload.Value.ValueKind == System.Text.Json.JsonValueKind.String
+                    ? payload.Value.GetString()
+                    : null;
+                if (!string.IsNullOrWhiteSpace(id)) OnSpaceMessageDeleted(_spaceId, id);
+                break;
+            }
+            case "topicCreated":
+            {
+                var topic = payload.Value.Deserialize<TopicDto>(ChatJson.Options);
+                if (topic is not null) _ = LoadAsync();
+                break;
             }
         }
     }

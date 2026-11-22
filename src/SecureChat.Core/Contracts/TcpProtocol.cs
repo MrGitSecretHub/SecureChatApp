@@ -50,6 +50,14 @@ public static class TcpMethods
     public const string SpaceList = "spaces.list";
     public const string SpaceCreate = "spaces.create";
     public const string SpaceKey = "spaces.key";
+    public const string SpaceKeyRequest = "spaces.keyRequest";
+    public const string SpaceKeySave = "spaces.keySave";
+    public const string SpaceKeysMissing = "spaces.keysMissing";
+    public const string SpaceKeysSaveAll = "spaces.keysSaveAll";
+    public const string SpaceInvite = "spaces.invite";
+    public const string SpaceRequestJoin = "spaces.requestJoin";
+    public const string SpaceJoinRequests = "spaces.joinRequests";
+    public const string SpaceResolveJoin = "spaces.resolveJoin";
     public const string SpaceMembers = "spaces.members";
     public const string SpaceJoin = "spaces.join";
     public const string SpaceLeave = "spaces.leave";

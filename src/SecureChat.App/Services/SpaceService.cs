@@ -45,10 +45,26 @@ public sealed class SpaceService
             return null;
         }
 
-        var connection = await GetConnectionAsync();
-        var envelope = await connection.InvokeAsync<SpaceKeyEnvelope?>(
-            "GetSpaceKey",
-            spaceId);
+        var tcpKey = await TryTcpAsync("spaces.key", new TcpSpaceIdRequest { SpaceId = spaceId }, CancellationToken.None);
+        SpaceKeyEnvelope? envelope;
+        if (tcpKey.HasValue)
+        {
+            var json = tcpKey.Value;
+            string? raw = null;
+            if (json.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                json.TryGetProperty("envelope", out var envElement))
+            {
+                raw = envElement.ValueKind == System.Text.Json.JsonValueKind.String
+                    ? envElement.GetString()
+                    : envElement.GetRawText();
+            }
+            envelope = string.IsNullOrWhiteSpace(raw) ? null : ChatJson.Deserialize<SpaceKeyEnvelope>(raw);
+        }
+        else
+        {
+            var connection = await GetConnectionAsync();
+            envelope = await connection.InvokeAsync<SpaceKeyEnvelope?>("GetSpaceKey", spaceId);
+        }
 
         if (envelope is null)
         {
@@ -121,6 +137,7 @@ public sealed class SpaceService
     public event Action<string>? SpaceKeyReady;
 
     private HubConnection? _subscribedConnection;
+    private bool _tcpSpaceSubscribed;
     public void Subscribe()
     {
         var connection = Connection;
@@ -130,6 +147,9 @@ public sealed class SpaceService
         }
 
         _subscribedConnection = connection;
+
+        _chatService.Tcp.SpaceEventReceived -= OnTcpSpaceEvent;
+        _chatService.Tcp.SpaceEventReceived += OnTcpSpaceEvent;
 
         connection.On<SpaceMessageDto>(
             "SpaceMessage",
@@ -188,9 +208,11 @@ public sealed class SpaceService
         {
             var token = _session.Token;
             if (string.IsNullOrWhiteSpace(token)) return 0;
-            var connection = await GetConnectionAsync();
-            var missing = await connection.InvokeAsync<List<string>>(
-                "GetSpaceMembersWithoutKey", spaceId);
+            var tcpMissing = await TryTcpAsync("spaces.keysMissing",
+                new TcpSpaceKeyRequestAll { SpaceId = spaceId }, CancellationToken.None);
+            var missing = tcpMissing.HasValue
+                ? tcpMissing.Value.Deserialize<List<string>>(ChatJson.Options) ?? new List<string>()
+                : await (await GetConnectionAsync()).InvokeAsync<List<string>>("GetSpaceMembersWithoutKey", spaceId);
             if (missing is null || missing.Count == 0) return 0;
 
             var key = await GetSpaceKeyAsync(spaceId);
@@ -207,7 +229,10 @@ public sealed class SpaceService
                     key, spaceId, userId, user.EncryptionPublicKey));
             }
             if (envelopes.Count == 0) return 0;
-            await connection.InvokeAsync<bool>("SaveSpaceMemberKeys", spaceId, envelopes);
+            var tcpSave = await TryTcpAsync("spaces.keysSaveAll",
+                new TcpSpaceKeysSaveAllRequest { SpaceId = spaceId, Envelopes = envelopes }, CancellationToken.None);
+            if (!tcpSave.HasValue)
+                await (await GetConnectionAsync()).InvokeAsync<bool>("SaveSpaceMemberKeys", spaceId, envelopes);
             return envelopes.Count;
         }
         catch
@@ -244,8 +269,13 @@ public sealed class SpaceService
     {
         try
         {
-            var connection = await GetConnectionAsync();
-            await connection.InvokeAsync("RequestSpaceKey", spaceId);
+            var tcpReq = await TryTcpAsync("spaces.keyRequest",
+                new TcpSpaceKeyRequestAll { SpaceId = spaceId }, CancellationToken.None);
+            if (!tcpReq.HasValue)
+            {
+                var connection = await GetConnectionAsync();
+                await connection.InvokeAsync("RequestSpaceKey", spaceId);
+            }
         }
         catch
         {
@@ -391,6 +421,10 @@ public sealed class SpaceService
         string spaceId,
         CancellationToken cancellationToken = default)
     {
+        var tcpMembers = await TryTcpAsync("spaces.members", new TcpSpaceIdRequest { SpaceId = spaceId }, cancellationToken);
+        if (tcpMembers.HasValue)
+            return tcpMembers.Value.Deserialize<List<SpaceMemberDto>>(ChatJson.Options) ?? new List<SpaceMemberDto>();
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -455,6 +489,9 @@ public sealed class SpaceService
         string message,
         CancellationToken cancellationToken = default)
     {
+        var tcpReq = await TryTcpAsync("spaces.requestJoin", new TcpSpaceJoinRequestMessage { SpaceId = spaceId, Message = message }, cancellationToken);
+        if (tcpReq.HasValue) return true;
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -470,6 +507,10 @@ public sealed class SpaceService
         string spaceId,
         CancellationToken cancellationToken = default)
     {
+        var tcpReq = await TryTcpAsync("spaces.joinRequests", new TcpSpaceIdRequest { SpaceId = spaceId }, cancellationToken);
+        if (tcpReq.HasValue)
+            return tcpReq.Value.Deserialize<List<SpaceJoinRequestDto>>(ChatJson.Options) ?? new List<SpaceJoinRequestDto>();
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -487,6 +528,9 @@ public sealed class SpaceService
         bool approved,
         CancellationToken cancellationToken = default)
     {
+        var tcpReq = await TryTcpAsync("spaces.resolveJoin", new TcpSpaceJoinResolveRequest { RequestId = requestId, Approved = approved }, cancellationToken);
+        if (tcpReq.HasValue) return true;
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -538,8 +582,13 @@ public sealed class SpaceService
             return result;
         }
 
-        var connection = await GetConnectionAsync();
-        var invite = await connection.InvokeAsync<InviteSpaceMemberResult>(
+        var tcpInvite = await TryTcpAsync("spaces.invite", new TcpSpaceInviteRequest
+        {
+            SpaceId = spaceId, Username = username.Trim()
+        }, cancellationToken);
+        var invite = tcpInvite.HasValue
+            ? tcpInvite.Value.Deserialize<InviteSpaceMemberResult>(ChatJson.Options)
+            : await (await GetConnectionAsync()).InvokeAsync<InviteSpaceMemberResult>(
             "InviteSpaceMember",
             spaceId,
             profile.Id,
@@ -556,7 +605,14 @@ public sealed class SpaceService
             profile.Id,
             profile.EncryptionPublicKey);
 
-        var saved = await connection.InvokeAsync<bool>(
+        var connection = await GetConnectionAsync();
+        var tcpKeySave = await TryTcpAsync("spaces.keySave", new TcpSpaceKeySaveRequest
+        {
+            SpaceId = spaceId,
+            UserId = profile.Id,
+            EnvelopeJson = ChatJson.Serialize(envelope)
+        }, cancellationToken);
+        var saved = tcpKeySave.HasValue || await connection.InvokeAsync<bool>(
             "SaveSpaceMemberKey",
             spaceId,
             profile.Id,
@@ -581,6 +637,8 @@ public sealed class SpaceService
             return false;
         }
 
+        var tcpLeave = await TryTcpAsync("spaces.leave", new TcpSpaceIdRequest { SpaceId = spaceId }, cancellationToken);
+        if (tcpLeave.HasValue) return true;
         return await connection.InvokeAsync<bool>("LeaveSpace", spaceId, cancellationToken);
     }
 
@@ -839,6 +897,9 @@ public sealed class SpaceService
         CancellationToken cancellationToken = default)
     {
         var cipher = await EncryptPayloadAsync(spaceId, messageId, payload, null);
+        var tcpEdit = await TryTcpAsync("spaces.edit", new TcpSpaceEditRequest { SpaceId = spaceId, Cipher = cipher }, cancellationToken);
+        if (tcpEdit.HasValue)
+            return tcpEdit.Value.Deserialize<SpaceMessageDto>(ChatJson.Options);
 
         var connection = await GetConnectionAsync();
         return await connection.InvokeAsync<SpaceMessageDto?>(
@@ -853,6 +914,9 @@ public sealed class SpaceService
         string messageId,
         CancellationToken cancellationToken = default)
     {
+        var tcpDel = await TryTcpAsync("spaces.delete", new TcpSpaceDeleteRequest { SpaceId = spaceId, MessageId = messageId }, cancellationToken);
+        if (tcpDel.HasValue) return true;
+
         var connection = await GetConnectionAsync();
         return await connection.InvokeAsync<bool>(
             "DeleteSpaceMessage",
@@ -868,6 +932,9 @@ public sealed class SpaceService
         bool on,
         CancellationToken cancellationToken = default)
     {
+        var tcpReact = await TryTcpAsync("spaces.reaction", new TcpSpaceReactionRequest { SpaceId = spaceId, MessageId = messageId, Emoji = emoji, On = on }, cancellationToken);
+        if (tcpReact.HasValue) return null;
+
         var connection = await GetConnectionAsync();
         return await connection.InvokeAsync<SpaceMessageDto?>(
             "SetSpaceReaction",
@@ -884,6 +951,9 @@ public sealed class SpaceService
         bool pinned,
         CancellationToken cancellationToken = default)
     {
+        var tcpPin = await TryTcpAsync("spaces.pinned", new TcpSpacePinnedRequest { SpaceId = spaceId, MessageId = messageId, Pinned = pinned }, cancellationToken);
+        if (tcpPin.HasValue) return true;
+
         var connection = await GetConnectionAsync();
         return await connection.InvokeAsync<bool>(
             "SetSpacePinned",
@@ -950,6 +1020,9 @@ public sealed class SpaceService
         string spaceId,
         CancellationToken cancellationToken = default)
     {
+        var tcpDelete = await TryTcpAsync("spaces.deleteSpace", new TcpSpaceDeleteSpaceRequest { SpaceId = spaceId }, cancellationToken);
+        if (tcpDelete.HasValue) return true;
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -975,6 +1048,13 @@ public sealed class SpaceService
             return null;
         }
 
+        var tcpUpdate = await TryTcpAsync("spaces.update", new TcpSpaceUpdateRequest
+        {
+            SpaceId = spaceId, Name = name, Description = description
+        }, cancellationToken);
+        if (tcpUpdate.HasValue)
+            return tcpUpdate.Value.Deserialize<SpaceDto>(ChatJson.Options);
+
         var request = new UpdateSpaceRequest
         {
             SpaceId = spaceId,
@@ -996,6 +1076,12 @@ public sealed class SpaceService
         bool? canPost = null,
         CancellationToken cancellationToken = default)
     {
+        var tcpMember = await TryTcpAsync("spaces.updateMember", new TcpSpaceMemberRequest
+        {
+            SpaceId = spaceId, UserId = userId, Role = role, CanPost = canPost
+        }, cancellationToken);
+        if (tcpMember.HasValue) return true;
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -1045,6 +1131,9 @@ public sealed class SpaceService
         string userId,
         CancellationToken cancellationToken = default)
     {
+        var tcpRemove = await TryTcpAsync("spaces.removeMember", new TcpSpaceRemoveMemberRequest { SpaceId = spaceId, UserId = userId }, cancellationToken);
+        if (tcpRemove.HasValue) return true;
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -1061,6 +1150,9 @@ public sealed class SpaceService
         string topicId,
         CancellationToken cancellationToken = default)
     {
+        var tcpTopic = await TryTcpAsync("spaces.deleteTopic", new TcpTopicDeleteRequest { SpaceId = spaceId, TopicId = topicId }, cancellationToken);
+        if (tcpTopic.HasValue) return true;
+
         var connection = await GetConnectionAsync();
         if (connection is null)
         {
@@ -1193,4 +1285,24 @@ public sealed class SpaceService
         SpaceMessageDto message,
         CancellationToken cancellationToken = default) =>
         (await DecryptPayloadAsync(spaceId, message, cancellationToken))?.Text;
+    private void OnTcpSpaceEvent(string type, System.Text.Json.JsonElement? payload)
+    {
+        if (type == "spaceMemberNeedKey")
+        {
+            var spaceId = payload.HasValue && payload.Value.ValueKind == System.Text.Json.JsonValueKind.String
+                ? payload.Value.GetString()
+                : null;
+            var userId = payload.HasValue && payload.Value.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                         payload.Value.TryGetProperty("userId", out var uid) ? uid.GetString() : null;
+            var username = payload.HasValue && payload.Value.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                           payload.Value.TryGetProperty("username", out var un) ? un.GetString() : null;
+            if (!string.IsNullOrWhiteSpace(spaceId) && !string.IsNullOrWhiteSpace(userId))
+                _ = ProvideSpaceKeyAsync(spaceId, userId, username ?? string.Empty);
+        }
+        else if (type == "spaceAdded" || type == "joinRequest" || type == "topicCreated")
+        {
+            SpaceKeyReady?.Invoke(string.Empty);
+        }
+    }
+
 }

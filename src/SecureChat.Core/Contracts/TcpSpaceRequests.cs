@@ -19,3 +19,39 @@ public sealed class TcpSpaceJoinRequest
 {
     public required string SpaceId { get; set; }
 }
+
+public sealed class TcpSpaceJoinRequestMessage
+{
+    public required string SpaceId { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
+
+public sealed class TcpSpaceJoinResolveRequest
+{
+    public required string RequestId { get; set; }
+    public required bool Approved { get; set; }
+}
+
+public sealed class TcpSpaceInviteRequest
+{
+    public required string SpaceId { get; set; }
+    public required string Username { get; set; }
+}
+
+public sealed class TcpSpaceKeySaveRequest
+{
+    public required string SpaceId { get; set; }
+    public required string UserId { get; set; }
+    public required string EnvelopeJson { get; set; }
+}
+
+public sealed class TcpSpaceKeyRequestAll
+{
+    public required string SpaceId { get; set; }
+}
+
+public sealed class TcpSpaceKeysSaveAllRequest
+{
+    public required string SpaceId { get; set; }
+    public required Dictionary<string, string> Envelopes { get; set; }
+}

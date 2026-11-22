@@ -345,6 +345,312 @@ public sealed class TcpChatServer : BackgroundService
                 return;
             }
 
+            case "spaces.edit":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceEditRequest>(SpaceJsonOptions);
+                if (req?.Cipher is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                var message = await _spaces.GetEncryptedMessageAsync(req.SpaceId, req.Cipher.MessageId);
+                var sender = await _repository.GetUserByIdAsync(userId);
+                if (space is null || message is null || sender is null ||
+                    message.SenderId != userId ||
+                    !SpaceCrypto.VerifyMessage(req.SpaceId, req.Cipher.MessageId, userId, req.Cipher, sender.SigningPublicKey))
+                { await SendErrorAsync(principal, frame.Id, "Нет права на правку", cancellationToken); return; }
+                message.Nonce = req.Cipher.Nonce; message.Tag = req.Cipher.Tag;
+                message.Ciphertext = req.Cipher.Ciphertext; message.Signature = req.Cipher.Signature;
+                message.EditedAtUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                if (!await _spaces.UpdateEncryptedMessageAsync(message, cancellationToken))
+                { await SendErrorAsync(principal, frame.Id, "Не удалось изменить", cancellationToken); return; }
+                var ids = await _spaces.GetMemberIdsAsync(req.SpaceId, cancellationToken);
+                var evt = new TcpFrame { Type = "spaceMessageUpdated", Payload = JsonSerializer.SerializeToElement(message, SpaceJsonOptions) };
+                foreach (var id in ids) await SendToUserAsync(id, evt, cancellationToken);
+                await _hub.Clients.Group($"space:{req.SpaceId}").SendAsync("SpaceMessageUpdated", message, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.edit.result", Id = frame.Id, Payload = JsonSerializer.SerializeToElement(message, SpaceJsonOptions) }, cancellationToken);
+                return;
+            }
+
+            case "spaces.delete":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceDeleteRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                var message = await _spaces.GetEncryptedMessageAsync(req.SpaceId, req.MessageId);
+                if (space is null || message is null ||
+                    (space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin) && message.SenderId != userId))
+                { await SendErrorAsync(principal, frame.Id, "Нет права на удаление", cancellationToken); return; }
+                if (!await _spaces.DeleteEncryptedMessageAsync(req.SpaceId, req.MessageId, cancellationToken))
+                { await SendErrorAsync(principal, frame.Id, "Не удалось удалить", cancellationToken); return; }
+                var ids = await _spaces.GetMemberIdsAsync(req.SpaceId, cancellationToken);
+                var evt = new TcpFrame { Type = "spaceMessageDeleted", Message = req.MessageId, Id = req.SpaceId };
+                foreach (var id in ids) await SendToUserAsync(id, evt, cancellationToken);
+                await _hub.Clients.Group($"space:{req.SpaceId}").SendAsync("SpaceMessageDeleted", req.SpaceId, req.MessageId, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.delete.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.reaction":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceReactionRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || string.IsNullOrEmpty(space.MyRole)) { await SendErrorAsync(principal, frame.Id, "Нет доступа", cancellationToken); return; }
+                await _spaces.SetReactionAsync(req.MessageId, userId, req.Emoji, req.On, cancellationToken);
+                var msg = await _spaces.GetEncryptedMessageAsync(req.SpaceId, req.MessageId, cancellationToken);
+                if (msg is not null)
+                {
+                    var ids = await _spaces.GetMemberIdsAsync(req.SpaceId, cancellationToken);
+                    var evt = new TcpFrame { Type = "spaceMessageUpdated", Payload = JsonSerializer.SerializeToElement(msg, SpaceJsonOptions) };
+                    foreach (var id in ids) await SendToUserAsync(id, evt, cancellationToken);
+                    await _hub.Clients.Group($"space:{req.SpaceId}").SendAsync("SpaceMessageUpdated", msg, cancellationToken);
+                }
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.reaction.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.pinned":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpacePinnedRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin)) { await SendErrorAsync(principal, frame.Id, "Нет права закреплять", cancellationToken); return; }
+                await _spaces.SetPinnedAsync(req.SpaceId, req.MessageId, req.Pinned, cancellationToken);
+                var msg = await _spaces.GetEncryptedMessageAsync(req.SpaceId, req.MessageId, cancellationToken);
+                if (msg is not null)
+                {
+                    var ids = await _spaces.GetMemberIdsAsync(req.SpaceId, cancellationToken);
+                    var evt = new TcpFrame { Type = "spaceMessageUpdated", Payload = JsonSerializer.SerializeToElement(msg, SpaceJsonOptions) };
+                    foreach (var id in ids) await SendToUserAsync(id, evt, cancellationToken);
+                    await _hub.Clients.Group($"space:{req.SpaceId}").SendAsync("SpaceMessageUpdated", msg, cancellationToken);
+                }
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.pinned.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.members":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceIdRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || string.IsNullOrEmpty(space.MyRole)) { await SendErrorAsync(principal, frame.Id, "Нет доступа", cancellationToken); return; }
+                var members = await _spaces.GetMembersAsync(req.SpaceId, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.members.result", Id = frame.Id, Payload = JsonSerializer.SerializeToElement(members, SpaceJsonOptions) }, cancellationToken);
+                return;
+            }
+
+            case "spaces.leave":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceIdRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                await _spaces.RemoveMemberAsync(req.SpaceId, userId, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.leave.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.update":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceUpdateRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin)) { await SendErrorAsync(principal, frame.Id, "Нет права", cancellationToken); return; }
+                await _spaces.UpdateAsync(req.SpaceId, req.Name, req.Description, null, null, null, cancellationToken);
+                var updated = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.update.result", Id = frame.Id, Payload = JsonSerializer.SerializeToElement(updated, SpaceJsonOptions) }, cancellationToken);
+                return;
+            }
+
+            case "spaces.updateMember":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceMemberRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin)) { await SendErrorAsync(principal, frame.Id, "Нет права", cancellationToken); return; }
+                await _spaces.UpdateMemberAsync(req.SpaceId, req.UserId, req.Role ?? string.Empty, req.CanPost ?? false, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.updateMember.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.removeMember":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceRemoveMemberRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin)) { await SendErrorAsync(principal, frame.Id, "Нет права", cancellationToken); return; }
+                await _spaces.RemoveMemberAsync(req.SpaceId, req.UserId, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.removeMember.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.deleteSpace":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceDeleteSpaceRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || space.MyRole != SpaceRoles.Owner) { await SendErrorAsync(principal, frame.Id, "Нет права", cancellationToken); return; }
+                await _spaces.DeleteAsync(req.SpaceId, userId);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.deleteSpace.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.deleteTopic":
+            {
+                var req = frame.Payload?.Deserialize<TcpTopicDeleteRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin)) { await SendErrorAsync(principal, frame.Id, "Нет права", cancellationToken); return; }
+                await _spaces.DeleteTopicAsync(req.TopicId, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.deleteTopic.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.requestJoin":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceJoinRequestMessage>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null) { await SendErrorAsync(principal, frame.Id, "Пространство недоступно", cancellationToken); return; }
+                await _spaces.CreateJoinRequestAsync(req.SpaceId, userId, req.Message, cancellationToken);
+                var admins = await _spaces.GetMembersAsync(req.SpaceId, cancellationToken);
+                foreach (var admin in admins.Where(x => x.Role is SpaceRoles.Owner or SpaceRoles.Admin))
+                    await SendToUserAsync(admin.UserId, new TcpFrame
+                    {
+                        Type = "joinRequest",
+                        Payload = JsonSerializer.SerializeToElement(new { spaceId = req.SpaceId }, SpaceJsonOptions)
+                    }, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.requestJoin.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.joinRequests":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceIdRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin)) { await SendErrorAsync(principal, frame.Id, "Нет права", cancellationToken); return; }
+                var requests = await _spaces.ListPendingJoinRequestsAsync(req.SpaceId, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.joinRequests.result", Id = frame.Id, Payload = JsonSerializer.SerializeToElement(requests, SpaceJsonOptions) }, cancellationToken);
+                return;
+            }
+
+            case "spaces.resolveJoin":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceJoinResolveRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var existing = await _spaces.GetJoinRequestAsync(req.RequestId, cancellationToken);
+                if (existing is null) { await SendErrorAsync(principal, frame.Id, "Заявка не найдена", cancellationToken); return; }
+                var space = await _spaces.GetAsync(existing.SpaceId, userId, cancellationToken);
+                if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin)) { await SendErrorAsync(principal, frame.Id, "Нет права", cancellationToken); return; }
+                await _spaces.ResolveJoinRequestAsync(req.RequestId, req.Approved, userId, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.resolveJoin.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.invite":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceInviteRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                var target = await _repository.GetUserByUsernameAsync(req.Username, cancellationToken);
+                if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin) || target is null)
+                { await SendErrorAsync(principal, frame.Id, "Нет права или пользователь не найден", cancellationToken); return; }
+                await _spaces.AddMemberAsync(req.SpaceId, target.Id, SpaceRoles.Member, space.Type == SpaceTypes.Group, cancellationToken);
+                var inviteResult = new InviteSpaceMemberResult { Success = true, Username = target.Username, UserId = target.Id };
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.invite.result", Id = frame.Id, Payload = JsonSerializer.SerializeToElement(inviteResult, SpaceJsonOptions) }, cancellationToken);
+                return;
+            }
+
+            case "spaces.keySave":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceKeySaveRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                var members = await _spaces.GetMembersAsync(req.SpaceId, cancellationToken);
+                if (space is null || string.IsNullOrEmpty(space.MyRole) ||
+                    !members.Any(x => x.UserId == req.UserId))
+                { await SendErrorAsync(principal, frame.Id, "Нет права", cancellationToken); return; }
+                var existing = await _spaces.GetSpaceKeyAsync(req.SpaceId, req.UserId, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(existing) && space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin))
+                { await SendErrorAsync(principal, frame.Id, "Ключ уже выдан", cancellationToken); return; }
+                await _spaces.SaveSpaceKeyAsync(req.SpaceId, req.UserId, req.EnvelopeJson, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.keySave.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.key":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceIdRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || string.IsNullOrEmpty(space.MyRole)) { await SendErrorAsync(principal, frame.Id, "Нет доступа", cancellationToken); return; }
+                var envelope = await _spaces.GetSpaceKeyAsync(req.SpaceId, userId, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.key.result", Id = frame.Id, Payload = JsonSerializer.SerializeToElement(new { envelope }, SpaceJsonOptions) }, cancellationToken);
+                return;
+            }
+
+            case "spaces.keyRequest":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceKeyRequestAll>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || string.IsNullOrEmpty(space.MyRole)) { await SendErrorAsync(principal, frame.Id, "Нет доступа", cancellationToken); return; }
+                var keys = await _spaces.GetSpaceKeysAsync(req.SpaceId, cancellationToken);
+                if (keys.ContainsKey(userId)) { await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.keyRequest.result", Id = frame.Id, Accepted = true }, cancellationToken); return; }
+                var username = principal.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
+                var ids = await _spaces.GetMemberIdsAsync(req.SpaceId, cancellationToken);
+                foreach (var id in ids)
+                    await SendToUserAsync(id, new TcpFrame
+                    {
+                        Type = "spaceMemberNeedKey",
+                        Payload = JsonSerializer.SerializeToElement(new { spaceId = req.SpaceId, userId, username }, SpaceJsonOptions)
+                    }, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.keyRequest.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
+            case "spaces.keysMissing":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceKeyRequestAll>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin)) { await SendErrorAsync(principal, frame.Id, "Нет права", cancellationToken); return; }
+                var keys = await _spaces.GetSpaceKeysAsync(req.SpaceId, cancellationToken);
+                var members = await _spaces.GetMembersAsync(req.SpaceId, cancellationToken);
+                var missing = members.Where(x => !keys.ContainsKey(x.UserId)).Select(x => x.UserId).ToList();
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.keysMissing.result", Id = frame.Id, Payload = JsonSerializer.SerializeToElement(missing, SpaceJsonOptions) }, cancellationToken);
+                return;
+            }
+
+            case "spaces.keysSaveAll":
+            {
+                var req = frame.Payload?.Deserialize<TcpSpaceKeysSaveAllRequest>(SpaceJsonOptions);
+                if (req is null) { await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken); return; }
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin)) { await SendErrorAsync(principal, frame.Id, "Нет права", cancellationToken); return; }
+                foreach (var pair in req.Envelopes)
+                    await _spaces.SaveSpaceKeyAsync(req.SpaceId, pair.Key, pair.Value, cancellationToken);
+                await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.keysSaveAll.result", Id = frame.Id, Accepted = true }, cancellationToken);
+                return;
+            }
+
             case "spaces.topics":
             {
                 var request = frame.Payload?.Deserialize<TcpSpaceIdRequest>(SpaceJsonOptions);

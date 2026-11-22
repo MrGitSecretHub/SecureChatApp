@@ -196,6 +196,12 @@ public sealed class TcpTransport : IDisposable
                         TypingReceived?.Invoke(frame.Message ?? string.Empty, frame.Activities ?? "typing");
                         break;
 
+                    case "joinRequest":
+                    case "spaceAdded":
+                    case "spaceMemberNeedKey":
+                        SpaceEventReceived?.Invoke(frame.Type, frame.Payload);
+                        break;
+
                     case "ack" when !string.IsNullOrEmpty(frame.Id):
                         AckReceived?.Invoke(frame.Id, frame.Accepted);
                         if (!frame.Accepted && !string.IsNullOrEmpty(frame.Message))
