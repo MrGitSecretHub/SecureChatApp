@@ -125,9 +125,10 @@ public sealed class StoryRepository
         await connection.OpenAsync(ct);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT s.Id, s.OwnerId, s.OwnerUsername, e.EnvelopeJson, s.CreatedAt, s.ExpiresAt, s.SpaceId,
+            SELECT s.Id, s.OwnerId, s.OwnerUsername, e.EnvelopeJson, s.CreatedAt, s.ExpiresAt,
                    (SELECT COUNT(*) FROM StoryViews v WHERE v.StoryId = s.Id),
-                   EXISTS(SELECT 1 FROM StoryViews v WHERE v.StoryId = s.Id AND v.ViewerId = $me)
+                   EXISTS(SELECT 1 FROM StoryViews v WHERE v.StoryId = s.Id AND v.ViewerId = $me),
+                   s.SpaceId
             FROM Stories s
             JOIN StoryEnvelopes e ON e.StoryId = s.Id AND e.RecipientId = $me
             WHERE s.ExpiresAt > $now
@@ -148,7 +149,8 @@ public sealed class StoryRepository
                 CreatedAtUnixMs = reader.GetInt64(4),
                 ExpiresAtUnixMs = reader.GetInt64(5),
                 ViewCount = Convert.ToInt32(reader.GetInt64(6)),
-                ViewedByMe = reader.GetInt64(7) != 0
+                ViewedByMe = reader.GetInt64(7) != 0,
+                SpaceId = reader.IsDBNull(8) ? null : reader.GetString(8)
             });
         }
         return result;
