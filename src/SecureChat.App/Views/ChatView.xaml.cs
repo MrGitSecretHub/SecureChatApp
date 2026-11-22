@@ -1140,6 +1140,14 @@ public partial class ChatView : ContentView
         }
     }
 
+    private Task NotifyActivityAsync(string activity)
+    {
+        var conversation = _conversation;
+        if (conversation is null) return Task.CompletedTask;
+        return _chatManager.NotifyActivityAsync(
+            conversation.UserId, activity, conversation.Username);
+    }
+
     private void SendTypingIfNeeded()
     {
         if (_conversation is null || !_session.ShowTypingStatus || string.IsNullOrEmpty(MessageEntry.Text))
@@ -1153,7 +1161,7 @@ public partial class ChatView : ContentView
         }
 
         _lastTypingSentUtc = DateTime.UtcNow;
-        _ = _chatManager.NotifyActivityAsync(_conversation.UserId, "typing");
+        _ = _chatManager.NotifyActivityAsync(_conversation.UserId, "typing", _conversation.Username);
     }
 
     private void ScheduleDraftSave(string user, string text)
@@ -1364,7 +1372,7 @@ public partial class ChatView : ContentView
         switch (action)
         {
             case "photo":
-                _ = _chatManager.NotifyActivityAsync(user, "uploading_photo");
+                _ = NotifyActivityAsync("uploading_photo");
                 // Вид сообщения определяется по расширению в ResolveContentType:
                 // картинки сжимаются и уходят как фото, всё остальное — как файл.
                 var mediaFiles = await FilePicker.Default.PickMultipleAsync(
@@ -1385,7 +1393,7 @@ public partial class ChatView : ContentView
                 break;
 
             case "voice":
-                _ = _chatManager.NotifyActivityAsync(user, "recording_voice");
+                _ = NotifyActivityAsync("recording_voice");
                 var recorded = await RecordVoiceMessageAsync(page);
                 if (recorded is null)
                 {
@@ -1397,7 +1405,7 @@ public partial class ChatView : ContentView
                 break;
 
             case "circle":
-                _ = _chatManager.NotifyActivityAsync(user, "recording_video");
+                _ = NotifyActivityAsync("recording_video");
                 var circle = await RecordVideoCircleAsync(page);
                 if (circle is null)
                 {

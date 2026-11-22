@@ -1733,7 +1733,7 @@ public sealed class ChatManager
             _ => $"📎 {fileName}"
         };
 
-    public async Task NotifyActivityAsync(string recipientId, string activity)
+    public async Task NotifyActivityAsync(string recipientId, string activity, string recipientUsername = "")
     {
         if (!_session.ShowTypingStatus)
         {
@@ -1742,7 +1742,7 @@ public sealed class ChatManager
 
         try
         {
-            await _chatService.SendTypingAsync(recipientId, activity);
+            await _chatService.SendTypingAsync(recipientId, activity, recipientUsername);
         }
         catch
         {

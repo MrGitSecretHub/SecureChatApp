@@ -340,7 +340,7 @@ public sealed class ChatService : IDisposable
             cancellationToken);
     }
 
-    public async Task SendTypingAsync(string recipientId, string activity = "typing")
+    public async Task SendTypingAsync(string recipientId, string activity = "typing", string recipientUsername = "")
     {
         if (!IsConnected)
         {
@@ -350,7 +350,9 @@ public sealed class ChatService : IDisposable
         if (_usingTcp)
         {
             // TCP поддерживает активность отдельным кадром.
-            await _tcp.SendTypingAsync(recipientId, activity);
+            await _tcp.SendTypingAsync(
+                string.IsNullOrWhiteSpace(recipientUsername) ? recipientId : recipientUsername,
+                activity);
             return;
         }
 
