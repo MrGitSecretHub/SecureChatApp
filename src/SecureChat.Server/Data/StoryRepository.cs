@@ -76,8 +76,8 @@ public sealed class StoryRepository
         {
             cmd.Transaction = (SqliteTransaction)transaction;
             cmd.CommandText = """
-                INSERT OR REPLACE INTO Stories (Id, OwnerId, OwnerUsername, Visibility, CreatedAt, ExpiresAt)
-                VALUES ($id, $owner, $name, $vis, $created, $expires);
+                INSERT OR REPLACE INTO Stories (Id, OwnerId, OwnerUsername, Visibility, SpaceId, CreatedAt, ExpiresAt)
+                VALUES ($id, $owner, $name, $vis, $space, $created, $expires);
                 """;
             cmd.Parameters.AddWithValue("$id", Guid.NewGuid().ToString("N"));
             cmd.Parameters.AddWithValue("$owner", ownerId);
