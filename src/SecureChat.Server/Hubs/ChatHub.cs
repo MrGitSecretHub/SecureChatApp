@@ -745,6 +745,21 @@ public sealed class ChatHub : Hub
         return added;
     }
 
+    /// <summary>Активность участника в пространстве (печатает, загрузка, запись).</summary>
+    public async Task SpaceActivity(string spaceId, string activity)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId)) return;
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null || string.IsNullOrEmpty(space.MyRole)) return;
+        var allowed = new[] { "typing", "uploading_photo", "uploading_video", "recording_voice", "recording_video", "seen" };
+        if (!allowed.Contains(activity, StringComparer.OrdinalIgnoreCase)) activity = "typing";
+        var sender = await _repository.GetUserByIdAsync(userId);
+        if (sender is null) return;
+        await Clients.GroupExcept($"space:{spaceId}", Context.ConnectionId)
+            .SendAsync("SpaceActivity", spaceId, sender.Username, activity);
+    }
+
     public async Task<bool> LeaveSpace(string spaceId)
     {
         var userId = Context.UserIdentifier;

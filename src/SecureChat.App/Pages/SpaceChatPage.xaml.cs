@@ -142,6 +142,7 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageUpdated += OnSpaceMessageUpdated;
         _spaces.SpaceMessageDeleted += OnSpaceMessageDeleted;
         _spaces.TopicUpdated += OnTopicUpdated;
+        _spaces.SpaceActivityReceived += OnSpaceActivityReceived;
 
         // TCP-транспорт: события пространств приходят не через SignalR.
         _chatService.Tcp.SpaceEventReceived += OnTcpSpaceEvent;
@@ -198,6 +199,7 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageUpdated -= OnSpaceMessageUpdated;
         _spaces.SpaceMessageDeleted -= OnSpaceMessageDeleted;
         _spaces.TopicUpdated -= OnTopicUpdated;
+        _spaces.SpaceActivityReceived -= OnSpaceActivityReceived;
         _scheduledPosts.PostSent -= OnScheduledPostSent;
         _chatService.Tcp.SpaceEventReceived -= OnTcpSpaceEvent;
         AppServices.Get<AppSession>().AppearanceChanged -= OnAppearanceChanged;
@@ -296,6 +298,37 @@ public partial class SpaceChatPage : ContentPage
             UpdatePinnedBanner();
         });
     }
+
+
+    private void OnSpaceActivityReceived(string spaceId, string username, string activity)
+    {
+        if (!string.Equals(spaceId, _spaceId, StringComparison.Ordinal)) return;
+        var key = activity switch
+        {
+            "uploading_photo" => "act_upload_photo",
+            "uploading_video" => "act_upload_video",
+            "recording_voice" => "act_record_voice",
+            "recording_video" => "act_record_video",
+            "seen" => "act_seen",
+            _ => "rs_006"
+        };
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            ActivityLabel.Text = string.Format(Loc.T(key), username);
+            ActivityLabel.IsVisible = true;
+            ActivityLabel.Opacity = 1;
+            try
+            {
+                await ActivityLabel.FadeTo(0, 400);
+            }
+            catch { }
+            ActivityLabel.IsVisible = false;
+            ActivityLabel.Opacity = 1;
+        });
+    }
+
+    private void SendActivity(string activity) =>
+        _ = _spaces.NotifyActivityAsync(_spaceId, activity);
 
     private async Task LoadAsync()
     {
@@ -2080,6 +2113,7 @@ KeyWaitBanner.IsVisible = false;
                     break;
 
                 case "photo":
+                SendActivity("uploading_photo");
                     var mediaFiles = await FilePicker.Default.PickMultipleAsync(
                         new PickOptions { PickerTitle = Loc.T("rs_036", "Выберите фото или видео") });
                     if (mediaFiles is null || !mediaFiles.Any()) return;
@@ -2101,12 +2135,14 @@ KeyWaitBanner.IsVisible = false;
                     break;
 
                 case "voice":
+                SendActivity("recording_voice");
                     var voice = await RecordVoiceMessageAsync(this);
                     if (voice is null) return;
                     EnqueueMediaItem("voice.m4a", voice.Value.ContentType, voice.Value.Data, MessageKinds.Voice);
                     break;
 
                 case "circle":
+                SendActivity("recording_video");
                     var video = await RecordVideoCircleAsync();
                     if (video is null) return;
                     EnqueueMediaItem("circle.mp4", video.Value.ContentType, video.Value.Data, MessageKinds.VideoCircle);

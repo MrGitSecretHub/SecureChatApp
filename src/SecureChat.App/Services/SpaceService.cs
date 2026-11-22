@@ -135,6 +135,7 @@ public sealed class SpaceService
 
     /// <summary>Ключ пространства доставлен — можно загружать историю.</summary>
     public event Action<string>? SpaceKeyReady;
+    public event Action<string, string, string>? SpaceActivityReceived;
 
     private HubConnection? _subscribedConnection;
     private bool _tcpSpaceSubscribed;
@@ -192,6 +193,10 @@ public sealed class SpaceService
 
         // Кто-то вступил в публичное пространство: ключ до него должен доставить
         // любой онлайн-участник — пробуем мы, если ключ у нас есть.
+        connection.On<string, string, string>(
+            "SpaceActivity",
+            (spaceId, username, activity) => SpaceActivityReceived?.Invoke(spaceId, username, activity));
+
         connection.On<string, string, string>(
             "SpaceMemberNeedKey",
             (spaceId, userId, username) => _ = ProvideSpaceKeyAsync(spaceId, userId, username));
@@ -262,6 +267,16 @@ public sealed class SpaceService
         {
             Interlocked.Exchange(ref _distributingForAll, 0);
         }
+    }
+
+    public async Task NotifyActivityAsync(string spaceId, string activity)
+    {
+        try
+        {
+            var connection = await GetConnectionAsync();
+            await connection.InvokeAsync("SpaceActivity", spaceId, activity);
+        }
+        catch { }
     }
 
     /// <summary>Просим группу ещё раз прислать ключ этому участнику.</summary>

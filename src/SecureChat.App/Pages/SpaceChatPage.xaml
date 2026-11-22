@@ -279,6 +279,17 @@
             </Grid>
         </Border>
 
+        <!-- Индикатор активности участников -->
+        <Label x:Name="ActivityLabel"
+               Grid.Row="4"
+               IsVisible="False"
+               TextColor="{DynamicResource Accent}"
+               FontSize="12"
+               Margin="16,2,16,0"
+               VerticalOptions="Start"
+               HorizontalOptions="Start"
+               InputTransparent="True" />
+
         <!-- Сообщения пространства -->
         <CollectionView Grid.Row="4"
                         x:Name="MessagesView"
