@@ -266,11 +266,12 @@ public sealed class StoryViewerPage : ContentPage
             catch (FormatException) { _avatar.IsVisible = false; }
         }
 
-        _name.Text = !string.IsNullOrWhiteSpace(story.SpaceName)
-            ? story.SpaceName
-            : (story.IsMine && string.IsNullOrWhiteSpace(story.SpaceId)
-                ? Loc.T("stories_my", "Мои истории")
-                : story.OwnerUsername);
+        var author = string.IsNullOrWhiteSpace(story.OwnerUsername)
+            ? Loc.T("stories_my", "Мои истории")
+            : "@" + story.OwnerUsername;
+        _name.Text = string.IsNullOrWhiteSpace(story.SpaceName)
+            ? author
+            : story.SpaceName + " • " + author;
         _time.Text = DateTimeOffset.FromUnixTimeMilliseconds(story.CreatedAtUnixMs)
             .ToLocalTime().ToString("dd.MM HH:mm");
 
