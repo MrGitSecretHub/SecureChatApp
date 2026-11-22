@@ -55,13 +55,13 @@ public partial class DesktopSpacesPage : ContentPage
         var mine = filtered.Where(s => !string.IsNullOrEmpty(s.MyRole)).ToList();
         if (mine.Count > 0)
         {
-            AddStrip("Мои пространства", mine);
+            AddStrip($"Мои пространства ({mine.Count})", mine);
             AddCards(mine);
         }
         var others = filtered.Where(s => string.IsNullOrEmpty(s.MyRole)).ToList();
         if (others.Count > 0)
         {
-            AddStrip("Доступные", others);
+            AddStrip($"Доступные ({others.Count})", others);
             AddCards(others);
         }
     }
@@ -87,43 +87,57 @@ public partial class DesktopSpacesPage : ContentPage
 
     private void AddCards(List<SpaceDto> items)
     {
-        var grid = new Grid { ColumnSpacing = 10, RowSpacing = 10 };
-        grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-        grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-        var index = 0;
         foreach (var space in items)
         {
-            var card = new Border
-            {
-                Style = (Style)Application.Current!.Resources["Card"],
-                Padding = 12,
-                MinimumHeightRequest = 84
-            };
-            var inner = new Grid { ColumnDefinitions = new ColumnDefinitionCollection { new ColumnDefinition(44), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 10 };
             var avatar = new Border
             {
-                WidthRequest = 44, HeightRequest = 44,
+                WidthRequest = 38, HeightRequest = 38,
                 BackgroundColor = (Color?)Application.Current?.Resources["AccentSoft"] ?? Colors.CornflowerBlue,
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
-                Content = new Label { Text = string.IsNullOrEmpty(space.Name) ? "?" : space.Name[..1].ToUpperInvariant(), FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center }
+                Content = new Label
+                {
+                    Text = string.IsNullOrEmpty(space.Name) ? "?" : space.Name[..1].ToUpperInvariant(),
+                    FontSize = 14, FontAttributes = FontAttributes.Bold,
+                    TextColor = Colors.White,
+                    HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center
+                }
             };
-            Grid.SetRow(avatar, 0); Grid.SetColumn(avatar, 0); inner.Children.Add(avatar);
             var info = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
-            info.Children.Add(new Label { Text = space.Name, FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White, LineBreakMode = LineBreakMode.TailTruncation });
-            info.Children.Add(new Label { Text = space.Type, FontSize = 11, TextColor = (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue });
-            info.Children.Add(new Label { Text = $"{space.MemberCount} участников", FontSize = 11, TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray });
-            Grid.SetRow(info, 0); Grid.SetColumn(info, 1); inner.Children.Add(info);
-            card.Content = inner;
+            info.Children.Add(new Label
+            {
+                Text = space.Name,
+                FontSize = 14, FontAttributes = FontAttributes.Bold,
+                TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White,
+                LineBreakMode = LineBreakMode.TailTruncation
+            });
+            info.Children.Add(new Label
+            {
+                Text = $"{space.Type} • {space.MemberCount} участников",
+                FontSize = 11,
+                TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray,
+                LineBreakMode = LineBreakMode.TailTruncation
+            });
+            var meta = new Label
+            {
+                Text = space.LastMessageAtUnixMs > 0
+                    ? DateTimeOffset.FromUnixTimeMilliseconds(space.LastMessageAtUnixMs).ToLocalTime().ToString("dd.MM")
+                    : string.Empty,
+                FontSize = 10,
+                TextColor = (Color?)Application.Current?.Resources["TextDisabled"] ?? Colors.DimGray,
+                VerticalOptions = LayoutOptions.Center
+            };
+            var row = new Grid { ColumnSpacing = 10, Padding = new Thickness(6, 4), MinimumHeightRequest = 52 };
+            row.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(38)));
+            row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+            Grid.SetRow(avatar, 0); Grid.SetColumn(avatar, 0); row.Children.Add(avatar);
+            Grid.SetRow(info, 0); Grid.SetColumn(info, 1); row.Children.Add(info);
+            Grid.SetRow(meta, 0); Grid.SetColumn(meta, 2); row.Children.Add(meta);
             var tap = new TapGestureRecognizer();
             tap.Tapped += (_, _) => SelectSpace(space);
-            card.GestureRecognizers.Add(tap);
-
-            Grid.SetRow(card, index / 2);
-            Grid.SetColumn(card, index % 2);
-            grid.Children.Add(card);
-            index++;
+            row.GestureRecognizers.Add(tap);
+            SpaceGroups.Children.Add(row);
         }
-        SpaceGroups.Children.Add(grid);
     }
 
     private void SelectSpace(SpaceDto space)

@@ -18,7 +18,7 @@
         </Style>
     </ContentPage.Resources>
 
-    <Grid ColumnDefinitions="380,1,*" RowDefinitions="*">
+    <Grid ColumnDefinitions="420,1,*" RowDefinitions="*">
         <!-- Левая панель: поиск, фильтры, сторис, стрипы и карточки -->
         <Grid Grid.Column="0" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="8" Padding="12">
 
@@ -34,7 +34,9 @@
                        Placeholder="{DynamicResource s_spaces_search}"
                        TextChanged="OnSearchTextChanged" />
 
-            <HorizontalStackLayout Grid.Row="2" Spacing="6">
+            <ScrollView Grid.Row="2" Orientation="Horizontal" HeightRequest="34"
+                        HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout Spacing="6" Padding="0,2">
                 <Button x:Name="AllFilterButton" Text="{DynamicResource s_spaces_all}"
                         ClassId="all" Style="{StaticResource DSFilterPillActive}" Clicked="OnFilterClicked" />
                 <Button x:Name="GroupsFilterButton" Text="{DynamicResource s_spaces_groups}"
@@ -45,7 +47,8 @@
                         ClassId="forum" Style="{StaticResource DSFilterPill}" Clicked="OnFilterClicked" />
                 <Button x:Name="CommunitiesFilterButton" Text="{DynamicResource s_spaces_communities}"
                         ClassId="community" Style="{StaticResource DSFilterPill}" Clicked="OnFilterClicked" />
-            </HorizontalStackLayout>
+                </HorizontalStackLayout>
+            </ScrollView>
 
             <!-- Сторисы пространств -->
             <Grid Grid.Row="3" ColumnDefinitions="Auto,*" ColumnSpacing="8">
