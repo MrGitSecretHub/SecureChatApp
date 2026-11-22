@@ -27,6 +27,7 @@ public sealed class StoryRepository
                 OwnerId        TEXT NOT NULL,
                 OwnerUsername  TEXT NOT NULL,
                 Visibility     TEXT NOT NULL,
+                SpaceId        TEXT DEFAULT NULL,
                 CreatedAt      INTEGER NOT NULL,
                 ExpiresAt      INTEGER NOT NULL
             );
@@ -45,6 +46,17 @@ public sealed class StoryRepository
             );
             """;
         await command.ExecuteNonQueryAsync(ct);
+        await using var check = connection.CreateCommand();
+        check.CommandText = "PRAGMA table_info(Stories);";
+        var cols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using var reader = await check.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct)) cols.Add(reader.GetString(1));
+        if (!cols.Contains("SpaceId"))
+        {
+            await using var alter = connection.CreateCommand();
+            alter.CommandText = "ALTER TABLE Stories ADD COLUMN SpaceId TEXT DEFAULT NULL;";
+            await alter.ExecuteNonQueryAsync(ct);
+        }
     }
 
     public async Task PublishAsync(string ownerId, string ownerUsername,
@@ -53,7 +65,8 @@ public sealed class StoryRepository
         var created = request.CreatedAtUnixMs > 0 ? request.CreatedAtUnixMs : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var hours = Math.Clamp(request.LifetimeHours, 1, 24);
         var expires = created + hours * 60L * 60 * 1000;
-        var visibility = request.Visibility == "all" ? "all" : "contacts";
+        var visibility = request.Visibility == "all" ? "all" :
+            (request.Visibility.StartsWith("space:", StringComparison.Ordinal) ? "space" : "contacts");
 
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
@@ -70,6 +83,7 @@ public sealed class StoryRepository
             cmd.Parameters.AddWithValue("$owner", ownerId);
             cmd.Parameters.AddWithValue("$name", ownerUsername);
             cmd.Parameters.AddWithValue("$vis", visibility);
+            cmd.Parameters.AddWithValue("$space", (object?)request.SpaceId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("$created", created);
             cmd.Parameters.AddWithValue("$expires", expires);
             await cmd.ExecuteNonQueryAsync(ct);
@@ -111,7 +125,7 @@ public sealed class StoryRepository
         await connection.OpenAsync(ct);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT s.Id, s.OwnerId, s.OwnerUsername, e.EnvelopeJson, s.CreatedAt, s.ExpiresAt,
+            SELECT s.Id, s.OwnerId, s.OwnerUsername, e.EnvelopeJson, s.CreatedAt, s.ExpiresAt, s.SpaceId,
                    (SELECT COUNT(*) FROM StoryViews v WHERE v.StoryId = s.Id),
                    EXISTS(SELECT 1 FROM StoryViews v WHERE v.StoryId = s.Id AND v.ViewerId = $me)
             FROM Stories s

@@ -11,6 +11,7 @@ public sealed class StoryEnvelopeDto
 public sealed class StoryPublishRequest
 {
     public string Visibility { get; set; } = "contacts";
+    public string? SpaceId { get; set; }
     public long CreatedAtUnixMs { get; set; }
 
     /// <summary>Срок жизни истории в часах (1..24).</summary>
@@ -25,6 +26,7 @@ public sealed class StoryDto
     public string Id { get; set; } = string.Empty;
     public string OwnerId { get; set; } = string.Empty;
     public string OwnerUsername { get; set; } = string.Empty;
+    public string? SpaceId { get; set; }
     public string EnvelopeJson { get; set; } = string.Empty;
     public long CreatedAtUnixMs { get; set; }
     public long ExpiresAtUnixMs { get; set; }

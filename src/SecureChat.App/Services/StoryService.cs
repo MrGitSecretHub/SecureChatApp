@@ -21,6 +21,7 @@ public sealed class StoryItem
     public string BackgroundHex { get; set; } = "#3B6FE8";
     public string? TextHex { get; set; }
     public int FontSize { get; set; } = 18;
+    public string? SpaceId { get; set; }
 }
 
 internal sealed class StoryContent
@@ -77,7 +78,8 @@ public sealed class StoryService
         int lifetimeHours = 24,
         string backgroundHex = "#3B6FE8",
         string? textHex = null,
-        int fontSize = 18)
+        int fontSize = 18,
+        string? spaceId = null)
     {
         var user = _session.User ?? throw new InvalidOperationException("Нет активного аккаунта.");
         var identity = _session.Identity ?? throw new InvalidOperationException("Нет ключей устройства.");
@@ -86,7 +88,15 @@ public sealed class StoryService
         var users = await _api.ListUsersAsync(_session.ServerUrl, _session.Token!);
         // Including self lets the author see their own story on any device.
         var recipients = users.ToList();
-        if (contactsOnly)
+        if (!string.IsNullOrWhiteSpace(spaceId))
+        {
+            var members = await AppServices.Get<SpaceService>().GetMembersAsync(spaceId);
+            var ids = members.Select(m => m.UserId).ToHashSet(StringComparer.Ordinal);
+            ids.Add(user.Id);
+            recipients = recipients.Where(u => ids.Contains(u.Id)).ToList();
+            contactsOnly = false;
+        }
+        else if (contactsOnly)
         {
             var names = (await _api.GetContactsAsync(_session.ServerUrl, _session.Token!))
                 .Select(u => u.Username).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -107,7 +117,8 @@ public sealed class StoryService
         };
         var request = new StoryPublishRequest
         {
-            Visibility = contactsOnly ? "contacts" : "all",
+            Visibility = !string.IsNullOrWhiteSpace(spaceId) ? "space:" + spaceId : (contactsOnly ? "contacts" : "all"),
+            SpaceId = spaceId,
             CreatedAtUnixMs = created,
             LifetimeHours = Math.Clamp(lifetimeHours, 1, 24)
         };
@@ -180,7 +191,8 @@ public sealed class StoryService
                     ViewedByMe = dto.ViewedByMe,
                     BackgroundHex = content.BackgroundHex,
                     TextHex = content.TextHex,
-                    FontSize = content.FontSize
+                    FontSize = content.FontSize,
+                    SpaceId = dto.SpaceId
                 });
             }
             return result.OrderByDescending(s => s.CreatedAtUnixMs).ToList();

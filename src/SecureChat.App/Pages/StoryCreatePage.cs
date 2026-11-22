@@ -1,4 +1,5 @@
 using SecureChat.App.Services;
+using SecureChat.Core.Contracts;
 
 namespace SecureChat.App.Pages;
 
@@ -13,6 +14,9 @@ public sealed class StoryCreatePage : ContentPage
     private readonly StoryService _stories = AppServices.Get<StoryService>();
     private readonly Entry _text = new() { Placeholder = Loc.T("stories_question", "Подпись истории") };
     private readonly CheckBox _contactsOnly = new() { IsChecked = true };
+    private readonly Picker _audience = new() { Title = Loc.T("story_audience", "Audience") };
+    private readonly Picker _spacePicker = new() { Title = Loc.T("story_space", "Space"), IsVisible = false };
+    private readonly List<SpaceDto> _spaces = new();
     private readonly Image _preview = new() { Aspect = Aspect.AspectFit, HeightRequest = 180, IsVisible = false };
     private readonly HorizontalStackLayout _palette = new() { Spacing = 8 };
     private readonly Label _fontValue = new() { Text = "18", WidthRequest = 34, HorizontalTextAlignment = TextAlignment.Center, VerticalOptions = LayoutOptions.Center };
@@ -83,6 +87,17 @@ public sealed class StoryCreatePage : ContentPage
         var publish = new Button { Text = Loc.T("stories_publish", "Опубликовать") };
         publish.Clicked += OnPublishClicked;
 
+        _audience.Items.Add(Loc.T("story_everyone", "Everyone"));
+        _audience.Items.Add(Loc.T("story_contacts", "Contacts only"));
+        _audience.Items.Add(Loc.T("story_space", "Space"));
+        _audience.SelectedIndex = 1;
+        _audience.SelectedIndexChanged += (_, _) =>
+        {
+            _spacePicker.IsVisible = _audience.SelectedIndex == 2;
+            _contactsOnly.IsVisible = _audience.SelectedIndex != 2;
+        };
+        _ = LoadSpacesAsync();
+
         Content = new ScrollView
         {
             Content = new VerticalStackLayout
@@ -102,9 +117,13 @@ public sealed class StoryCreatePage : ContentPage
                     new Label { Text = Loc.T("stories_font", "Размер текста"), FontSize = 12, TextColor = Colors.Gray },
                     new HorizontalStackLayout { Spacing = 8, Children = { minus, _fontValue, plus } },
                     _lifetime,
+                    new Label { Text = Loc.T("story_audience", "Audience"), FontSize = 12, TextColor = Colors.Gray },
+                    _audience,
+                    _spacePicker,
                     new HorizontalStackLayout
                     {
                         Spacing = 8,
+                        IsVisible = false,
                         Children =
                         {
                             _contactsOnly,
@@ -180,7 +199,7 @@ public sealed class StoryCreatePage : ContentPage
         {
             await _stories.PublishAsync(
                 text, _image, _contactsOnly.IsChecked, hours,
-                _background, null, _fontSize);
+                _background, null, _fontSize, SelectedSpaceId());
             await Navigation.PopAsync();
         }
         catch (Exception ex)
@@ -189,4 +208,24 @@ public sealed class StoryCreatePage : ContentPage
                 Loc.T("stories_publish_error", "Не удалось опубликовать историю") + ": " + ex.Message, "OK");
         }
     }
+    private string? SelectedSpaceId()
+    {
+        if (_audience.SelectedIndex != 2 || _spacePicker.SelectedIndex < 0) return null;
+        if (_spacePicker.SelectedIndex >= _spaces.Count) return null;
+        return _spaces[_spacePicker.SelectedIndex].Id;
+    }
+
+    private async Task LoadSpacesAsync()
+    {
+        try
+        {
+            var spaces = await AppServices.Get<SpaceService>().ListAsync();
+            _spaces.Clear();
+            _spaces.AddRange(spaces.Where(s => !string.IsNullOrEmpty(s.MyRole)));
+            foreach (var space in _spaces)
+                _spacePicker.Items.Add(space.Name);
+        }
+        catch { }
+    }
+
 }

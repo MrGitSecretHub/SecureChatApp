@@ -925,7 +925,11 @@
   "stories_no_viewers": "No one yet",
   "stories_delete": "Delete story",
   "stories_empty": "No stories yet",
-  "stories_create_hint": "The story will be available for 24 hours",
+
+  "story_audience": "Público",
+  "story_everyone": "Todos",
+  "story_contacts": "Apenas contatos",
+  "story_space": "Espaço",  "stories_create_hint": "The story will be available for 24 hours",
   "stories_choose_photo": "Choose photo",
   "stories_publish": "Publish",
   "stories_only_contacts": "Contacts only",
