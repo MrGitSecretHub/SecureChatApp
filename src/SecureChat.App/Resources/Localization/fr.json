@@ -657,7 +657,12 @@
   "rs_004": "{0} \u00b7 changed",
   "rs_005": "{0}  (applied)",
   "rs_006": "{0} is typing\u2026",
-  "rs_007": "\"{0}\" is too large. Maximum is {1} MB.",
+
+  "act_upload_photo": "{0} envoie une photo…",
+  "act_upload_video": "{0} envoie une vidéo…",
+  "act_record_voice": "{0} enregistre un message vocal…",
+  "act_record_video": "{0} enregistre une vidéo…",
+  "act_seen": "Vu par {0}",  "rs_007": "\"{0}\" is too large. Maximum is {1} MB.",
   "rs_008": "\"{0}\" is too large. Maximum is {1} MB.",
   "rs_009": "\u00b7 {0} topics",
   "rs_010": "\u00b7 last seen {0}",

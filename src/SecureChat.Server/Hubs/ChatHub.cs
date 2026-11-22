@@ -163,7 +163,7 @@ public sealed class ChatHub : Hub
         }
     }
 
-    public async Task Typing(string recipientId)
+    public async Task Typing(string recipientId, string activity = "typing")
     {
         var userId = Context.UserIdentifier;
         if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(recipientId))
@@ -177,7 +177,10 @@ public sealed class ChatHub : Hub
             return;
         }
 
-        await Clients.User(recipientId).SendAsync("Typing", sender.Username);
+        // Ограничиваем допустимые типы активности, чтобы клиент не мог прислать произвольный текст.
+        var allowed = new[] { "typing", "uploading_photo", "uploading_video", "recording_voice", "recording_video", "seen" };
+        if (!allowed.Contains(activity, StringComparer.OrdinalIgnoreCase)) activity = "typing";
+        await Clients.User(recipientId).SendAsync("Typing", sender.Username, activity);
     }
 
     public Task SetPresenceHidden(bool hidden)

@@ -657,7 +657,12 @@
   "rs_004": "{0} \u00b7 changed",
   "rs_005": "{0}  (applied)",
   "rs_006": "{0} is typing\u2026",
-  "rs_007": "\"{0}\" is too large. Maximum is {1} MB.",
+
+  "act_upload_photo": "{0} फ़ोटो भेज रहा है…",
+  "act_upload_video": "{0} वीडियो भेज रहा है…",
+  "act_record_voice": "{0} वॉइस मैसेज रिकॉर्ड कर रहा है…",
+  "act_record_video": "{0} वीडियो रिकॉर्ड कर रहा है…",
+  "act_seen": "{0} ने देखा",  "rs_007": "\"{0}\" is too large. Maximum is {1} MB.",
   "rs_008": "\"{0}\" is too large. Maximum is {1} MB.",
   "rs_009": "\u00b7 {0} topics",
   "rs_010": "\u00b7 last seen {0}",

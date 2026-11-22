@@ -29,8 +29,8 @@ public sealed class ChatService : IDisposable
             MessagesDelivered?.Invoke(ids);
         _tcp.MessagesRead += ids =>
             MessagesRead?.Invoke(ids);
-        _tcp.TypingReceived += username =>
-            TypingReceived?.Invoke(username);
+        _tcp.TypingReceived += (username, activity) =>
+            TypingReceived?.Invoke(username, activity);
         _tcp.ConnectionStateChanged += state =>
             ConnectionStateChanged?.Invoke(state);
         _tcp.Error += message =>
@@ -41,7 +41,7 @@ public sealed class ChatService : IDisposable
     public event Action<string>? EnvelopeAccepted;
     public event Action<string[]>? MessagesDelivered;
     public event Action<string[]>? MessagesRead;
-    public event Action<string>? TypingReceived;
+    public event Action<string, string>? TypingReceived;
     public event Action<bool>? ConnectionStateChanged;
     public event Action<string>? ConnectionError;
 
@@ -217,9 +217,9 @@ public sealed class ChatService : IDisposable
         _connection.On<string[]>(
             "MessagesRead",
             ids => MessagesRead?.Invoke(ids));
-        _connection.On<string>(
+        _connection.On<string, string>(
             "Typing",
-            username => TypingReceived?.Invoke(username));
+            (username, activity) => TypingReceived?.Invoke(username, activity ?? "typing"));
         _connection.On<string>(
             "PrivateMessageDeleted",
             messageId => PrivateMessageDeleted?.Invoke(messageId));
@@ -340,7 +340,7 @@ public sealed class ChatService : IDisposable
             cancellationToken);
     }
 
-    public async Task SendTypingAsync(string recipientId)
+    public async Task SendTypingAsync(string recipientId, string activity = "typing")
     {
         if (!IsConnected)
         {
@@ -349,11 +349,12 @@ public sealed class ChatService : IDisposable
 
         if (_usingTcp)
         {
-            // TCP не поддерживает индикатор набора текста — пропускаем.
+            // TCP поддерживает активность отдельным кадром.
+            await _tcp.SendTypingAsync(recipientId, activity);
             return;
         }
 
-        await _connection!.SendAsync("Typing", recipientId);
+        await _connection!.SendAsync("Typing", recipientId, activity);
     }
 
     public async Task SetPresenceHiddenAsync(bool hidden)

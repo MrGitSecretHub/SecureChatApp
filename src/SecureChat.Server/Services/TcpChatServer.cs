@@ -208,6 +208,29 @@ public sealed class TcpChatServer : BackgroundService
                 return;
             }
 
+            case "typing":
+            {
+                var activity = frame.Activities ?? "typing";
+                var allowed = new[] { "typing", "uploading_photo", "uploading_video", "recording_voice", "recording_video", "seen" };
+                if (!allowed.Contains(activity, StringComparer.OrdinalIgnoreCase)) activity = "typing";
+                var targetUsername = frame.Message ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(targetUsername))
+                {
+                    var target = await _repository.GetUserByUsernameAsync(targetUsername, cancellationToken);
+                    if (target is not null)
+                    {
+                        await SendToUserAsync(target.Id, new TcpFrame
+                        {
+                            Type = "typing",
+                            Message = principal.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
+                            Activities = activity
+                        }, cancellationToken);
+                    }
+                }
+                await SendToCallerAsync(principal, new TcpFrame { Type = "typing.ack", Id = frame.Id }, cancellationToken);
+                return;
+            }
+
             case "spaces.messages":
             {
                 var request = frame.Payload?.Deserialize<TcpSpaceMessagesRequest>(SpaceJsonOptions);
@@ -576,6 +599,7 @@ public sealed class TcpFrame
     public string? Id { get; set; }
     public bool Accepted { get; set; }
     public string? Message { get; set; }
+    public string? Activities { get; set; }
     public EncryptedEnvelope? Envelope { get; set; }
 
     /// <summary>Произвольные данные пространств (список, сообщения, темы).</summary>

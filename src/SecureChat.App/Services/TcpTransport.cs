@@ -30,7 +30,7 @@ public sealed class TcpTransport : IDisposable
     public event Action<string>? EnvelopeAccepted;
     public event Action<string[]>? MessagesDelivered;
     public event Action<string[]>? MessagesRead;
-    public event Action<string>? TypingReceived;
+    public event Action<string, string>? TypingReceived;
     public event Action<bool>? ConnectionStateChanged;
     public event Action<string>? Error;
 
@@ -104,6 +104,18 @@ public sealed class TcpTransport : IDisposable
     /// <summary>
     /// Отправляет запрос пространств по TCP и ждёт ответ с тем же id.
     /// </summary>
+    /// <summary>Отправляет индикатор активности (печатает, загрузка, запись...).</summary>
+    public async Task SendTypingAsync(string recipientUsername, string activity = "typing",
+        CancellationToken cancellationToken = default)
+    {
+        await WriteFrameAsync(new TcpFrame
+        {
+            Type = "typing",
+            Message = recipientUsername,
+            Activities = activity
+        }, cancellationToken);
+    }
+
     public async Task<System.Text.Json.JsonElement?> RequestAsync(
         string type,
         object payload,
@@ -181,7 +193,7 @@ public sealed class TcpTransport : IDisposable
                         break;
 
                     case "typing":
-                        TypingReceived?.Invoke(frame.Message ?? string.Empty);
+                        TypingReceived?.Invoke(frame.Message ?? string.Empty, frame.Activities ?? "typing");
                         break;
 
                     case "ack" when !string.IsNullOrEmpty(frame.Id):
@@ -354,6 +366,7 @@ public sealed class TcpFrame
     public string? Id { get; set; }
     public bool Accepted { get; set; }
     public string? Message { get; set; }
+    public string? Activities { get; set; }
     public EncryptedEnvelope? Envelope { get; set; }
 
     /// <summary>Данные пространств (списки, сообщения, темы).</summary>

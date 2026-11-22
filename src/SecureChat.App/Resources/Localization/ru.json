@@ -657,7 +657,12 @@
   "rs_004": "{role.Description} \u00b7 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u043e",
   "rs_005": "{theme.Name}  (\u043f\u0440\u0438\u043c\u0435\u043d\u0435\u043d\u0430)",
   "rs_006": "{username} \u043f\u0435\u0447\u0430\u0442\u0430\u0435\u0442\u2026",
-  "rs_007": "\u00ab{file.FileName}\u00bb \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0431\u043e\u043b\u044c\u0448\u043e\u0439. \u041c\u0430\u043a\u0441\u0438\u043c\u0443\u043c \u2014 {MediaLimits.MaxBytes / (1024 * 1024)} \u041c\u0411.",
+
+  "act_upload_photo": "{0} отправляет фото…",
+  "act_upload_video": "{0} отправляет видео…",
+  "act_record_voice": "{0} записывает голосовое сообщение…",
+  "act_record_video": "{0} записывает видеокружок…",
+  "act_seen": "{0} видел(а)",  "rs_007": "\u00ab{file.FileName}\u00bb \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0431\u043e\u043b\u044c\u0448\u043e\u0439. \u041c\u0430\u043a\u0441\u0438\u043c\u0443\u043c \u2014 {MediaLimits.MaxBytes / (1024 * 1024)} \u041c\u0411.",
   "rs_008": "\u00ab{name}\u00bb \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0431\u043e\u043b\u044c\u0448\u043e\u0439. \u041c\u0430\u043a\u0441\u0438\u043c\u0443\u043c \u2014 {MediaLimits.MaxBytes / (1024 * 1024)} \u041c\u0411.",
   "rs_009": "\u00b7 {dto.TopicCount} \u0442\u0435\u043c",
   "rs_010": "\u00b7 \u0431\u044b\u043b \u0432 \u0441\u0435\u0442\u0438 {FormatLastSeen(profile.LastSeenUnixMs)}",

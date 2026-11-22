@@ -48,8 +48,8 @@ public sealed class ChatManager
             _ = UpdateStatusAsync(ids, "Доставлено");
         _chatService.MessagesRead += ids =>
             _ = UpdateStatusAsync(ids, "Прочитано");
-        _chatService.TypingReceived += username =>
-            TypingReceived?.Invoke(username);
+        _chatService.TypingReceived += (username, activity) =>
+            TypingReceived?.Invoke(username, activity);
         _chatService.ConnectionStateChanged += state =>
         {
             IsOffline = !state;
@@ -96,7 +96,7 @@ public sealed class ChatManager
 
     /// <summary>Прогресс загрузки вложения: идентификатор, чат, скачано байт, всего байт.</summary>
     public event Action<string, string, long, long>? MessageMediaProgress;
-    public event Action<string>? TypingReceived;
+    public event Action<string, string>? TypingReceived;
     public event Action<string>? Error;
     public event Action<bool>? ConnectionStateChanged;
     public event Action<string>? ConversationDeleted;
@@ -1733,7 +1733,7 @@ public sealed class ChatManager
             _ => $"📎 {fileName}"
         };
 
-    public async Task NotifyTypingAsync(string recipientId)
+    public async Task NotifyActivityAsync(string recipientId, string activity)
     {
         if (!_session.ShowTypingStatus)
         {
@@ -1742,7 +1742,7 @@ public sealed class ChatManager
 
         try
         {
-            await _chatService.SendTypingAsync(recipientId);
+            await _chatService.SendTypingAsync(recipientId, activity);
         }
         catch
         {

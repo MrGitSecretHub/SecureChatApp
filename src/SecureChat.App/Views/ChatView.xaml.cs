@@ -1041,13 +1041,20 @@ public partial class ChatView : ContentView
         }
     }
 
-    private void OnTypingReceived(string username) =>
+    private void OnTypingReceived(string username, string activity) =>
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (IsCurrent(username))
+            if (!IsCurrent(username)) return;
+            var key = activity switch
             {
-                ShowHint(string.Format(Loc.T("rs_006"), username), isError: false);
-            }
+                "uploading_photo" => "act_upload_photo",
+                "uploading_video" => "act_upload_video",
+                "recording_voice" => "act_record_voice",
+                "recording_video" => "act_record_video",
+                "seen" => "act_seen",
+                _ => "rs_006"
+            };
+            ShowHint(string.Format(Loc.T(key), username), isError: false);
         });
 
     private void OnError(string message) =>
@@ -1146,7 +1153,7 @@ public partial class ChatView : ContentView
         }
 
         _lastTypingSentUtc = DateTime.UtcNow;
-        _ = _chatManager.NotifyTypingAsync(_conversation.UserId);
+        _ = _chatManager.NotifyActivityAsync(_conversation.UserId, "typing");
     }
 
     private void ScheduleDraftSave(string user, string text)
@@ -1357,6 +1364,7 @@ public partial class ChatView : ContentView
         switch (action)
         {
             case "photo":
+                _ = _chatManager.NotifyActivityAsync(user, "uploading_photo");
                 // Вид сообщения определяется по расширению в ResolveContentType:
                 // картинки сжимаются и уходят как фото, всё остальное — как файл.
                 var mediaFiles = await FilePicker.Default.PickMultipleAsync(
@@ -1377,6 +1385,7 @@ public partial class ChatView : ContentView
                 break;
 
             case "voice":
+                _ = _chatManager.NotifyActivityAsync(user, "recording_voice");
                 var recorded = await RecordVoiceMessageAsync(page);
                 if (recorded is null)
                 {
@@ -1388,6 +1397,7 @@ public partial class ChatView : ContentView
                 break;
 
             case "circle":
+                _ = _chatManager.NotifyActivityAsync(user, "recording_video");
                 var circle = await RecordVideoCircleAsync(page);
                 if (circle is null)
                 {
