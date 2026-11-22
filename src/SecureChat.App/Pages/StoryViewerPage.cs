@@ -93,18 +93,20 @@ public sealed class StoryViewerPage : ContentPage
             },
             Padding = new Thickness(12, 0, 8, 0)
         };
-        header.Add(new HorizontalStackLayout
+        var headerLeft = new HorizontalStackLayout
         {
             Spacing = 8,
             VerticalOptions = LayoutOptions.Center,
             Children = { _avatar, _name, _time }
-        }, 0, 0);
-        header.Add(new HorizontalStackLayout
+        };
+        var headerRight = new HorizontalStackLayout
         {
             Spacing = 4,
             VerticalOptions = LayoutOptions.Center,
             Children = { _views, _delete, close }
-        }, 0, 1);
+        };
+        Grid.SetRow(headerLeft, 0); Grid.SetColumn(headerLeft, 0); header.Children.Add(headerLeft);
+        Grid.SetRow(headerRight, 0); Grid.SetColumn(headerRight, 1); header.Children.Add(headerRight);
 
         var prev = new BoxView { Color = Colors.Transparent };
         var next = new BoxView { Color = Colors.Transparent };
@@ -119,8 +121,10 @@ public sealed class StoryViewerPage : ContentPage
                 new ColumnDefinition(GridLength.Star)
             }
         };
-        taps.Add(prev, 0, 0);
-        taps.Add(next, 0, 1);
+        Grid.SetRow(prev, 0); Grid.SetColumn(prev, 0);
+        taps.Children.Add(prev);
+        Grid.SetRow(next, 0); Grid.SetColumn(next, 1);
+        taps.Children.Add(next);
 
         _views.Clicked += OnViewsClicked;
         _delete.Clicked += OnDeleteClicked;
@@ -169,12 +173,14 @@ public sealed class StoryViewerPage : ContentPage
         };
         _backdrop.RowDefinitions.Add(new RowDefinition(GridLength.Star));
         _backdrop.RowDefinitions.Add(new RowDefinition(GridLength.Star));
-        _backdrop.Add(_backdropTop, 0, 0);
-        _backdrop.Add(_backdropBottom, 1, 0);
-        root.Add(_backdrop, 0, 0);
-        root.Add(_image, 0, 0);
-        root.Add(taps, 0, 0);
-        root.Add(overlay, 0, 0);
+        Grid.SetRow(_backdropTop, 0); Grid.SetColumn(_backdropTop, 0);
+        _backdrop.Children.Add(_backdropTop);
+        Grid.SetRow(_backdropBottom, 1); Grid.SetColumn(_backdropBottom, 0);
+        _backdrop.Children.Add(_backdropBottom);
+        Grid.SetRow(_backdrop, 0); Grid.SetColumn(_backdrop, 0); root.Children.Add(_backdrop);
+        Grid.SetRow(_image, 0); Grid.SetColumn(_image, 0); root.Children.Add(_image);
+        Grid.SetRow(taps, 0); Grid.SetColumn(taps, 0); root.Children.Add(taps);
+        Grid.SetRow(overlay, 0); Grid.SetColumn(overlay, 0); root.Children.Add(overlay);
         Content = root;
         BuildSegments();
         ShowCurrent();
@@ -204,7 +210,9 @@ public sealed class StoryViewerPage : ContentPage
             };
             track.Add(fill);
             _segments.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-            _segments.Add(track, 0, i);
+            Grid.SetRow(track, 0);
+            Grid.SetColumn(track, i);
+            _segments.Children.Add(track);
         }
     }
 
