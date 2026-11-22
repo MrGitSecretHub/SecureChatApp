@@ -32,7 +32,7 @@
                LineBreakMode="WordWrap" />
 
         <!-- Поиск по сообщениям -->
-        <SearchBar Grid.Row="2"
+        <SearchBar Grid.Row="3"
                    x:Name="MessageSearchEntry"
                    HeightRequest="36"
                    FontSize="13"
@@ -90,8 +90,8 @@
             </HorizontalStackLayout>
         </ScrollView>
 
-        <!-- Истории: компактная лента над папками -->
-        <Grid Grid.Row="3" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+        <!-- Истории: первая строка в левом баре, над поиском и папками -->
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="8">
             <Button x:Name="StoriesAddButton"
                     Text="＋"
                     WidthRequest="40"
