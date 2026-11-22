@@ -22,7 +22,7 @@
         </Style>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
 
         <!-- Шапка -->
         <VerticalStackLayout Grid.Row="0"
@@ -85,8 +85,24 @@
             </HorizontalStackLayout>
         </ScrollView>
 
+        <!-- Истории пространств: лента над списком -->
+        <Grid Grid.Row="3" ColumnDefinitions="Auto,*" ColumnSpacing="8"
+              Padding="16,0,16,4">
+            <Button x:Name="SpaceStoriesAddButton"
+                    Text="＋"
+                    WidthRequest="38" HeightRequest="38"
+                    CornerRadius="19" FontSize="16" Padding="0"
+                    BackgroundColor="{DynamicResource SurfaceAlt}"
+                    TextColor="{DynamicResource Accent}"
+                    VerticalOptions="Center"
+                    Clicked="OnSpaceStoriesAddClicked" />
+            <ScrollView Grid.Column="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout x:Name="SpaceStoriesStrip" Spacing="6" VerticalOptions="Center" />
+            </ScrollView>
+        </Grid>
+
         <Label x:Name="OfflineLabel"
-               Grid.Row="3"
+               Grid.Row="4"
                Margin="16,0,16,6"
                FontSize="12"
                TextColor="{DynamicResource Warning}"
@@ -99,7 +115,7 @@
         </Label>
 
         <!-- Компактный список (строки строятся в коде) -->
-        <ScrollView Grid.Row="4"
+        <ScrollView Grid.Row="5"
                     x:Name="SpacesScroll"
                     VerticalScrollBarVisibility="Never">
             <VerticalStackLayout x:Name="SpacesList"
@@ -108,7 +124,7 @@
         </ScrollView>
 
         <!-- Плавающая кнопка создания -->
-        <Button Grid.Row="4"
+        <Button Grid.Row="5"
                 x:Name="CreateFab"
                 Text="＋"
                 FontSize="26"

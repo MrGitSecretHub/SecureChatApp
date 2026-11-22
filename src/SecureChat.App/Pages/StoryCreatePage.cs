@@ -24,10 +24,12 @@ public sealed class StoryCreatePage : ContentPage
     private readonly Button _removePhoto = new() { Text = Loc.T("stories_remove_photo", "Убрать фото"), IsVisible = false };
     private string _image = string.Empty;
     private string _background = Backgrounds[0];
+    private readonly string? _spaceId;
     private int _fontSize = 18;
 
-    public StoryCreatePage()
+    public StoryCreatePage(string? spaceId = null)
     {
+        _spaceId = spaceId;
         Title = Loc.T("stories_new", "Новая история");
         Shell.SetNavBarIsVisible(this, false);
         NavigationPage.SetHasNavigationBar(this, false);
@@ -90,7 +92,7 @@ public sealed class StoryCreatePage : ContentPage
         _audience.Items.Add(Loc.T("story_everyone", "Everyone"));
         _audience.Items.Add(Loc.T("story_contacts", "Contacts only"));
         _audience.Items.Add(Loc.T("story_space", "Space"));
-        _audience.SelectedIndex = 1;
+        _audience.SelectedIndex = string.IsNullOrWhiteSpace(_spaceId) ? 1 : 2;
         _audience.SelectedIndexChanged += (_, _) =>
         {
             _spacePicker.IsVisible = _audience.SelectedIndex == 2;
@@ -224,6 +226,11 @@ public sealed class StoryCreatePage : ContentPage
             _spaces.AddRange(spaces.Where(s => !string.IsNullOrEmpty(s.MyRole)));
             foreach (var space in _spaces)
                 _spacePicker.Items.Add(space.Name);
+            if (!string.IsNullOrWhiteSpace(_spaceId))
+            {
+                var index = _spaces.FindIndex(x => x.Id == _spaceId);
+                if (index >= 0) _spacePicker.SelectedIndex = index;
+            }
         }
         catch { }
     }

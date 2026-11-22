@@ -67,6 +67,7 @@ public partial class SpacesPage : ContentPage
                 space.MyRole is SpaceRoles.Owner or SpaceRoles.Admin);
             ApplyFilter();
             _ = ApplyMessageSearchAsync();
+            _ = RefreshSpaceStoriesAsync();
         }
         catch (Exception ex)
         {
@@ -76,6 +77,75 @@ public partial class SpacesPage : ContentPage
     }
 
     /// <summary>Тап по строке ошибки — повторная попытка (подняла WebSocket после обрыва).</summary>
+
+    private async Task RefreshSpaceStoriesAsync()
+    {
+        if (SpaceStoriesStrip is null) return;
+        SpaceStoriesStrip.Clear();
+        try
+        {
+            var items = await AppServices.Get<StoryService>().GetAsync();
+            var spaceStories = items.Where(s => !string.IsNullOrWhiteSpace(s.SpaceId)).ToList();
+            if (!spaceStories.Any())
+            {
+                SpaceStoriesStrip.Add(new Label
+                {
+                    Text = Loc.T("stories_empty", "No stories yet"),
+                    FontSize = 12,
+                    TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray,
+                    VerticalOptions = LayoutOptions.Center
+                });
+                return;
+            }
+            var groups = spaceStories.GroupBy(s => s.SpaceId!, StringComparer.OrdinalIgnoreCase);
+            foreach (var group in groups)
+            {
+                var list = group.OrderByDescending(s => s.CreatedAtUnixMs).ToList();
+                var space = _all.FirstOrDefault(x => x.Id == group.Key);
+                var first = list[0];
+                var unseen = list.Any(s => !s.ViewedByMe);
+                var btn = new Button
+                {
+                    WidthRequest = 38,
+                    HeightRequest = 38,
+                    CornerRadius = 19,
+                    Padding = 2,
+                    Text = space?.Name?[..1].ToUpperInvariant() ?? "◉",
+                    TextColor = Colors.White,
+                    FontSize = 12,
+                    BackgroundColor = unseen
+                        ? (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue
+                        : (Color?)Application.Current?.Resources["SurfaceAlt"] ?? Colors.Gray
+                };
+                if (!string.IsNullOrEmpty(first.AvatarBase64))
+                {
+                    try
+                    {
+                        btn.ImageSource = ImageSource.FromStream(() => new MemoryStream(Convert.FromBase64String(first.AvatarBase64!)));
+                        btn.Text = string.Empty;
+                    }
+                    catch (FormatException) { }
+                }
+                btn.Clicked += async (_, _) => await Navigation.PushAsync(new StoryViewerPage(list, 0));
+                SpaceStoriesStrip.Add(btn);
+            }
+        }
+        catch { }
+    }
+
+    private async void OnSpaceStoriesAddClicked(object sender, EventArgs e)
+    {
+        var action = await DisplayActionSheet(
+            Loc.T("story_audience", "Audience"),
+            Loc.T("common_cancel", "Cancel"), null,
+            _all.Where(s => !string.IsNullOrEmpty(s.MyRole))
+                .Select(s => s.Name).ToArray());
+        if (string.IsNullOrWhiteSpace(action)) return;
+        var space = _all.FirstOrDefault(s => s.Name == action);
+        if (space is null) return;
+        await Navigation.PushAsync(new StoryCreatePage(space.Id));
+    }
+
     private void OnRetryTapped(object? sender, EventArgs e) => _ = LoadAsync();
 
     private void ApplyFilter()
