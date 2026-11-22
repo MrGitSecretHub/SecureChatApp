@@ -63,7 +63,14 @@
   "backup_title": "密钥备份",
 
   "send_long_press_hint": "长按 — 定时发送",  "backup_hint": "用密码加密私钥并在其他设备上恢复。",
-  "backup_password": "备份密码",
+
+  "sched_title": "定时消息",
+  "sched_none": "没有定时消息。",
+  "sched_removed": "已取消定时消息。",
+  "sched_1h": "1小时后",
+  "sched_today": "今晚",
+  "sched_tomorrow": "明早",
+  "sched_saved": "已计划于 {0} 发送",  "backup_password": "备份密码",
   "backup_export": "导出密钥",
   "backup_import": "导入密钥",
   "backup_need_password": "请输入密码。",

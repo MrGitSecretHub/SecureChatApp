@@ -139,6 +139,7 @@ public sealed class LocalState
 
     /// <summary>Отложенные посты пространств (уже зашифрованные, ждут своего времени).</summary>
     public List<ScheduledSpacePost> ScheduledSpacePosts { get; set; } = new();
+    public List<ScheduledPrivateMessage> ScheduledPrivateMessages { get; set; } = new();
 
     /// <summary>Кэш расшифрованных сообщений пространств.</summary>
     public List<StoredSpaceMessage> SpaceMessages { get; set; } = new();
@@ -383,6 +384,49 @@ public sealed class LocalStore
     }
 
     // ============================== ОТЛОЖЕННЫЕ ПОСТЫ ==============================
+
+
+    public async Task AddScheduledPrivateMessageAsync(ScheduledPrivateMessage message)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            _state!.ScheduledPrivateMessages.RemoveAll(x => x.Id == message.Id);
+            _state.ScheduledPrivateMessages.Add(message);
+            await SaveAsync();
+        }
+        finally { _lock.Release(); }
+    }
+
+    public async Task<IReadOnlyList<ScheduledPrivateMessage>> GetScheduledPrivateMessagesAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            return _state!.ScheduledPrivateMessages
+                .OrderBy(x => x.SendAtUnixMs)
+                .Select(x => new ScheduledPrivateMessage
+                {
+                    Id = x.Id, Username = x.Username, Text = x.Text, SendAtUnixMs = x.SendAtUnixMs
+                })
+                .ToList();
+        }
+        finally { _lock.Release(); }
+    }
+
+    public async Task RemoveScheduledPrivateMessageAsync(string id)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            if (_state!.ScheduledPrivateMessages.RemoveAll(x => x.Id == id) > 0)
+                await SaveAsync();
+        }
+        finally { _lock.Release(); }
+    }
 
     /// <summary>Добавляет отложенный пост в локальную очередь.</summary>
     public async Task AddScheduledSpacePostAsync(ScheduledSpacePost post)

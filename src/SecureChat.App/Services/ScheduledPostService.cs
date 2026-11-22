@@ -13,6 +13,7 @@ public sealed class ScheduledPostService
 {
     private readonly LocalStore _localStore = AppServices.Get<LocalStore>();
     private readonly SpaceService _spaces = AppServices.Get<SpaceService>();
+    private readonly ChatManager _chat = AppServices.Get<ChatManager>();
     private readonly AppSession _session = AppServices.Get<AppSession>();
     private readonly SemaphoreSlim _flushLock = new(1, 1);
     private System.Timers.Timer? _timer;
@@ -69,7 +70,20 @@ public sealed class ScheduledPostService
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var posts = await _localStore.GetScheduledSpacePostsAsync();
             var due = posts.Where(post => post.SendAtUnixMs <= now).ToList();
+            var duePrivate = (await _localStore.GetScheduledPrivateMessagesAsync())
+                .Where(post => post.SendAtUnixMs <= now).ToList();
             var sent = 0;
+
+            foreach (var msg in duePrivate)
+            {
+                try
+                {
+                    await _chat.SendMessageAsync(msg.Username, msg.Text);
+                    await _localStore.RemoveScheduledPrivateMessageAsync(msg.Id);
+                    sent++;
+                }
+                catch { }
+            }
 
             foreach (var post in due)
             {

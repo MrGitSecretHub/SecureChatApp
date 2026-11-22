@@ -63,7 +63,14 @@
   "backup_title": "Anahtar yedeği",
 
   "send_long_press_hint": "Uzun basma — gönderimi zamanla",  "backup_hint": "Özel anahtarlarınızı bir parola ile şifreleyin ve başka bir cihazda geri yükleyin.",
-  "backup_password": "Yedek parolası",
+
+  "sched_title": "Zamanlanmış mesajlar",
+  "sched_none": "Zamanlanmış mesaj yok.",
+  "sched_removed": "Zamanlanmış mesaj iptal edildi.",
+  "sched_1h": "1 saat sonra",
+  "sched_today": "Bu akşam",
+  "sched_tomorrow": "Yarın sabah",
+  "sched_saved": "Gönderim {0} için planlandı",  "backup_password": "Yedek parolası",
   "backup_export": "Anahtarları dışa aktar",
   "backup_import": "Anahtarları içe aktar",
   "backup_need_password": "Bir parola girin.",

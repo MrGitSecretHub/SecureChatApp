@@ -63,7 +63,14 @@
   "backup_title": "कुंजी बैकअप",
 
   "send_long_press_hint": "लंबे दबाने पर — भेजने का समय तय करें",  "backup_hint": "अपनी निजी कुंजियों को पासवर्ड से एन्क्रिप्ट करें और दूसरे डिवाइस पर बहाल करें।",
-  "backup_password": "बैकअप पासवर्ड",
+
+  "sched_title": "निर्धारित संदेश",
+  "sched_none": "कोई निर्धारित संदेश नहीं।",
+  "sched_removed": "निर्धारित संदेश रद्द।",
+  "sched_1h": "1 घंटे बाद",
+  "sched_today": "आज शाम",
+  "sched_tomorrow": "कल सुबह",
+  "sched_saved": "{0} पर भेजने की योजना",  "backup_password": "बैकअप पासवर्ड",
   "backup_export": "कुंजियाँ निर्यात करें",
   "backup_import": "कुंजियाँ आयात करें",
   "backup_need_password": "पासवर्ड दर्ज करें।",

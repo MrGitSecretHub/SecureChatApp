@@ -63,7 +63,14 @@
   "backup_title": "Key backup",
 
   "send_long_press_hint": "Long press — schedule send",  "backup_hint": "Encrypt your private keys with a password and restore them on another device.",
-  "backup_password": "Backup password",
+
+  "sched_title": "Scheduled messages",
+  "sched_none": "No scheduled messages.",
+  "sched_removed": "Scheduled message cancelled.",
+  "sched_1h": "In 1 hour",
+  "sched_today": "This evening",
+  "sched_tomorrow": "Tomorrow morning",
+  "sched_saved": "Send scheduled for {0}",  "backup_password": "Backup password",
   "backup_export": "Export keys",
   "backup_import": "Import keys",
   "backup_need_password": "Enter a password.",

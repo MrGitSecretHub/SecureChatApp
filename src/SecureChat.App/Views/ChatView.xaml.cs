@@ -57,6 +57,8 @@ public partial class ChatView : ContentView
     private int _pinnedIndex;
     private string _messageQuery = string.Empty;
     private DateTime _lastTypingSentUtc = DateTime.MinValue;
+    private CancellationTokenSource? _sendLongPressCts;
+    private bool _sendLongPressTriggered;
     private CancellationTokenSource? _hintCts;
     private CancellationTokenSource? _draftCts;
     private MessageVm? _replyingTo;
@@ -136,6 +138,7 @@ public partial class ChatView : ContentView
     public ChatView()
     {
         InitializeComponent();
+        SetupSendLongPress();
         MessagesView.ItemsSource = _messages;
         MediaItemsView.ItemsSource = _mediaItems;
         PinnedItemsView.ItemsSource = _pinnedItems;
@@ -1148,6 +1151,100 @@ public partial class ChatView : ContentView
             conversation.UserId, activity, conversation.Username);
     }
 
+    private void SetupSendLongPress()
+    {
+        var pointer = new PointerGestureRecognizer();
+        pointer.PointerPressed += (_, _) => StartSendLongPress();
+        pointer.PointerReleased += (_, _) => CancelSendLongPress();
+        pointer.PointerExited += (_, _) => CancelSendLongPress();
+        SendButton.GestureRecognizers.Add(pointer);
+        ToolTipProperties.SetText(SendButton,
+            Loc.T("send_long_press_hint", "Долгое нажатие — отложить отправку"));
+    }
+
+    private void StartSendLongPress()
+    {
+        _sendLongPressTriggered = false;
+        _sendLongPressCts?.Cancel();
+        _sendLongPressCts = new CancellationTokenSource();
+        var token = _sendLongPressCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try { await Task.Delay(600, token); }
+            catch (TaskCanceledException) { return; }
+            if (token.IsCancellationRequested) return;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _sendLongPressTriggered = true;
+                _ = ShowScheduleDialogAsync();
+            });
+        });
+    }
+
+    private void CancelSendLongPress()
+    {
+        _sendLongPressCts?.Cancel();
+        _sendLongPressCts = null;
+    }
+
+    private async Task ShowScheduleDialogAsync()
+    {
+        var page = HostPage;
+        if (page is null) return;
+        var user = _username;
+        var text = (MessageEntry.Text ?? string.Empty).Trim();
+        if (user is null) return;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            var pending = (await AppServices.Get<LocalStore>().GetScheduledPrivateMessagesAsync())
+                .Where(x => x.Username == user).ToList();
+            if (pending.Count == 0)
+            {
+                ShowHint(Loc.T("sched_none", "Нет отложенных сообщений."), isError: false);
+                return;
+            }
+            var choice = await page.DisplayActionSheet(
+                Loc.T("sched_title", "Отложенные сообщения"),
+                Loc.T("common_cancel", "Отмена"), null,
+                pending.Select(x => $"{DateTimeOffset.FromUnixTimeMilliseconds(x.SendAtUnixMs).ToLocalTime():dd.MM HH:mm} — {x.Text}").ToArray());
+            if (string.IsNullOrWhiteSpace(choice)) return;
+            var idx = pending.FindIndex(x => choice.StartsWith(DateTimeOffset.FromUnixTimeMilliseconds(x.SendAtUnixMs).ToLocalTime().ToString("dd.MM HH:mm")));
+            if (idx >= 0)
+            {
+                await AppServices.Get<LocalStore>().RemoveScheduledPrivateMessageAsync(pending[idx].Id);
+                ShowHint(Loc.T("sched_removed", "Отложенное сообщение отменено."), isError: false);
+            }
+            return;
+        }
+
+        var when = await page.DisplayActionSheet(
+            Loc.T("sched_title", "Отложенные сообщения"),
+            Loc.T("common_cancel", "Отмена"), null,
+            Loc.T("sched_1h", "Через 1 час"),
+            Loc.T("sched_today", "Сегодня вечером"),
+            Loc.T("sched_tomorrow", "Завтра утром"));
+        if (string.IsNullOrWhiteSpace(when) || when == Loc.T("common_cancel", "Отмена")) return;
+
+        var local = DateTimeOffset.Now;
+        DateTimeOffset sendAt = when switch
+        {
+            _ when when == Loc.T("sched_1h", "Через 1 час") => local.AddHours(1),
+            _ when when == Loc.T("sched_today", "Сегодня вечером") => new DateTimeOffset(local.Year, local.Month, local.Day, 20, 0, 0, local.Offset),
+            _ => new DateTimeOffset(local.Year, local.Month, local.Day, 9, 0, 0, local.Offset).AddDays(1)
+        };
+        if (sendAt <= local) sendAt = local.AddHours(1);
+
+        await AppServices.Get<LocalStore>().AddScheduledPrivateMessageAsync(new ScheduledPrivateMessage
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Username = user,
+            Text = text,
+            SendAtUnixMs = sendAt.ToUnixTimeMilliseconds()
+        });
+        MessageEntry.Text = string.Empty;
+        ShowHint(string.Format(Loc.T("sched_saved", "Отправка запланирована на {0:dd.MM HH:mm}"), sendAt.LocalDateTime), isError: false);
+    }
+
     private void SendTypingIfNeeded()
     {
         if (_conversation is null || !_session.ShowTypingStatus || string.IsNullOrEmpty(MessageEntry.Text))
@@ -1193,6 +1290,12 @@ public partial class ChatView : ContentView
 
     private async void OnSendClicked(object? sender, EventArgs e)
     {
+        if (_sendLongPressTriggered)
+        {
+            _sendLongPressTriggered = false;
+            return;
+        }
+
         AttachMenuPanel.IsVisible = false;
 
         var user = _username;

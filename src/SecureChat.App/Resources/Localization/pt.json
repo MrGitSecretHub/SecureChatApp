@@ -63,7 +63,14 @@
   "backup_title": "Backup de chaves",
 
   "send_long_press_hint": "Pressione e segure — agendar envio",  "backup_hint": "Criptografe suas chaves privadas com uma senha e restaure-as em outro dispositivo.",
-  "backup_password": "Senha do backup",
+
+  "sched_title": "Mensagens agendadas",
+  "sched_none": "Nenhuma mensagem agendada.",
+  "sched_removed": "Mensagem agendada cancelada.",
+  "sched_1h": "Em 1 hora",
+  "sched_today": "Hoje à noite",
+  "sched_tomorrow": "Amanhã de manhã",
+  "sched_saved": "Envio agendado para {0}",  "backup_password": "Senha do backup",
   "backup_export": "Exportar chaves",
   "backup_import": "Importar chaves",
   "backup_need_password": "Digite uma senha.",

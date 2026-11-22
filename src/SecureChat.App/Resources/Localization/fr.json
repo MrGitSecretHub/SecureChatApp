@@ -63,7 +63,14 @@
   "backup_title": "Sauvegarde des clés",
 
   "send_long_press_hint": "Appui long — programmer l'envoi",  "backup_hint": "Chiffrez vos clés privées avec un mot de passe et restaurez-les sur un autre appareil.",
-  "backup_password": "Mot de passe de sauvegarde",
+
+  "sched_title": "Messages programmés",
+  "sched_none": "Aucun message programmé.",
+  "sched_removed": "Message programmé annulé.",
+  "sched_1h": "Dans 1 heure",
+  "sched_today": "Ce soir",
+  "sched_tomorrow": "Demain matin",
+  "sched_saved": "Envoi programmé pour {0}",  "backup_password": "Mot de passe de sauvegarde",
   "backup_export": "Exporter les clés",
   "backup_import": "Importer les clés",
   "backup_need_password": "Saisissez un mot de passe.",

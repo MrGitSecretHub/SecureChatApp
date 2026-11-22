@@ -63,7 +63,14 @@
   "backup_title": "Schlüsselsicherung",
 
   "send_long_press_hint": "Lange drücken — Senden planen",  "backup_hint": "Verschlüsseln Sie Ihre privaten Schlüssel mit einem Passwort und stellen Sie sie auf einem anderen Gerät wieder her.",
-  "backup_password": "Sicherungs-Passwort",
+
+  "sched_title": "Geplante Nachrichten",
+  "sched_none": "Keine geplanten Nachrichten.",
+  "sched_removed": "Geplante Nachricht abgebrochen.",
+  "sched_1h": "In 1 Stunde",
+  "sched_today": "Heute Abend",
+  "sched_tomorrow": "Morgen früh",
+  "sched_saved": "Senden geplant für {0}",  "backup_password": "Sicherungs-Passwort",
   "backup_export": "Schlüssel exportieren",
   "backup_import": "Schlüssel importieren",
   "backup_need_password": "Passwort eingeben.",

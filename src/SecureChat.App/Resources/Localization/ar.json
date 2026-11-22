@@ -63,7 +63,14 @@
   "backup_title": "نسخة احتياطية للمفاتيح",
 
   "send_long_press_hint": "ضغط مطوّل — جدولة الإرسال",  "backup_hint": "شفّر مفاتيحك الخاصة بكلمة مرور واستعدها على جهاز آخر.",
-  "backup_password": "كلمة مرور النسخة",
+
+  "sched_title": "رسائل مجدولة",
+  "sched_none": "لا توجد رسائل مجدولة.",
+  "sched_removed": "تم إلغاء الرسالة المجدولة.",
+  "sched_1h": "بعد ساعة",
+  "sched_today": "اليوم مساءً",
+  "sched_tomorrow": "غداً صباحاً",
+  "sched_saved": "تم جدولة الإرسال لـ {0}",  "backup_password": "كلمة مرور النسخة",
   "backup_export": "تصدير المفاتيح",
   "backup_import": "استيراد المفاتيح",
   "backup_need_password": "أدخل كلمة مرور.",
