@@ -22,6 +22,7 @@ public sealed class StoryItem
     public string? TextHex { get; set; }
     public int FontSize { get; set; } = 18;
     public string? SpaceId { get; set; }
+    public string SpaceName { get; set; } = string.Empty;
 }
 
 internal sealed class StoryContent
@@ -177,6 +178,16 @@ public sealed class StoryService
                 if (content is null) continue;
 
                 var mine = string.Equals(dto.OwnerId, _session.User?.Id, StringComparison.Ordinal);
+                string spaceName = string.Empty;
+                if (!string.IsNullOrWhiteSpace(dto.SpaceId))
+                {
+                    try
+                    {
+                        var spaces = await AppServices.Get<SpaceService>().ListAsync();
+                        spaceName = spaces.FirstOrDefault(x => x.Id == dto.SpaceId)?.Name ?? string.Empty;
+                    }
+                    catch { }
+                }
                 result.Add(new StoryItem
                 {
                     Id = dto.Id,
@@ -192,7 +203,8 @@ public sealed class StoryService
                     BackgroundHex = content.BackgroundHex,
                     TextHex = content.TextHex,
                     FontSize = content.FontSize,
-                    SpaceId = dto.SpaceId
+                    SpaceId = dto.SpaceId,
+                    SpaceName = spaceName
                 });
             }
             return result.OrderByDescending(s => s.CreatedAtUnixMs).ToList();

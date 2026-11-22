@@ -169,6 +169,7 @@ public sealed class StoryViewerPage : ContentPage
         root.Add(taps, 0, 0);
         root.Add(overlay, 0, 0);
         Content = root;
+        BuildSegments();
         ShowCurrent();
     }
 
@@ -197,6 +198,18 @@ public sealed class StoryViewerPage : ContentPage
             track.Add(fill);
             _segments.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
             _segments.Add(track, 0, i);
+        }
+    }
+
+    private void UpdateSegmentColors()
+    {
+        for (var i = 0; i < _segments.Children.Count; i++)
+        {
+            if (_segments.Children[i] is not Grid track) continue;
+            if (track.Children.FirstOrDefault() is BoxView bg)
+                bg.Color = i < _index ? Colors.White : Color.FromArgb("#66FFFFFF");
+            if (track.Children.LastOrDefault() is BoxView fill)
+                fill.ScaleX = i < _index ? 1 : (i == _index ? fill.ScaleX : 0);
         }
     }
 
@@ -230,7 +243,11 @@ public sealed class StoryViewerPage : ContentPage
     {
         if (_items.Count == 0) return;
         var story = _items[_index];
-        _name.Text = story.IsMine ? Loc.T("stories_my", "Мои истории") : story.OwnerUsername;
+        _name.Text = !string.IsNullOrWhiteSpace(story.SpaceName)
+            ? story.SpaceName
+            : (story.IsMine && string.IsNullOrWhiteSpace(story.SpaceId)
+                ? Loc.T("stories_my", "Мои истории")
+                : story.OwnerUsername);
         _time.Text = DateTimeOffset.FromUnixTimeMilliseconds(story.CreatedAtUnixMs)
             .ToLocalTime().ToString("dd.MM HH:mm");
 
@@ -259,7 +276,7 @@ public sealed class StoryViewerPage : ContentPage
         _reply.IsVisible = !story.IsMine;
         _replyEntry.IsVisible = false;
         _replyEntry.Text = string.Empty;
-        BuildSegments();
+        UpdateSegmentColors();
 
         if (!story.ViewedByMe)
         {
