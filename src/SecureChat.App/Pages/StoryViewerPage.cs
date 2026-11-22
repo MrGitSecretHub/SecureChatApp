@@ -7,10 +7,13 @@ public sealed class StoryViewerPage : ContentPage
 {
     private readonly StoryService _stories = AppServices.Get<StoryService>();
     private readonly List<StoryItem> _items;
-    private readonly BoxView _backdrop = new() { Color = Colors.Black };
+    private readonly Grid _backdrop = new();
+    private readonly BoxView _backdropTop = new() { Color = Color.FromArgb("#121826") };
+    private readonly BoxView _backdropBottom = new() { Color = Color.FromArgb("#0B1220") };
+    private readonly Image _avatar = new() { Aspect = Aspect.AspectFill, WidthRequest = 34, HeightRequest = 34, IsVisible = false };
     private readonly Image _image = new() { Aspect = Aspect.AspectFill, IsVisible = false };
-    private readonly Grid _segments = new() { ColumnSpacing = 3, HeightRequest = 3, Margin = new Thickness(10, 6, 10, 0) };
-    private readonly Label _name = new() { TextColor = Colors.White, FontAttributes = FontAttributes.Bold, FontSize = 13 };
+    private readonly Grid _segments = new() { ColumnSpacing = 4, HeightRequest = 4, Margin = new Thickness(12, 10, 12, 0) };
+    private readonly Label _name = new() { TextColor = Colors.White, FontAttributes = FontAttributes.Bold, FontSize = 15 };
     private readonly Label _time = new() { TextColor = Color.FromArgb("#CCFFFFFF"), FontSize = 11 };
     private readonly Label _caption = new()
     {
@@ -20,8 +23,8 @@ public sealed class StoryViewerPage : ContentPage
         VerticalOptions = LayoutOptions.Center,
         HorizontalOptions = LayoutOptions.Fill,
         LineBreakMode = LineBreakMode.WordWrap,
-        Margin = new Thickness(20, 8),
-        Padding = new Thickness(12, 10)
+        Margin = new Thickness(28, 12),
+        Padding = new Thickness(18, 14)
     };
     private readonly Button _views = MakeGhost("👁 0");
     private readonly Button _delete = MakeGhost("🗑 " + Loc.T("stories_delete", "Удалить историю"));
@@ -94,7 +97,7 @@ public sealed class StoryViewerPage : ContentPage
         {
             Spacing = 8,
             VerticalOptions = LayoutOptions.Center,
-            Children = { _name, _time }
+            Children = { _avatar, _name, _time }
         }, 0, 0);
         header.Add(new HorizontalStackLayout
         {
@@ -164,6 +167,10 @@ public sealed class StoryViewerPage : ContentPage
             RowDefinitions = new RowDefinitionCollection { new RowDefinition(GridLength.Star) },
             ColumnDefinitions = new ColumnDefinitionCollection { new ColumnDefinition(GridLength.Star) }
         };
+        _backdrop.RowDefinitions.Add(new RowDefinition(GridLength.Star));
+        _backdrop.RowDefinitions.Add(new RowDefinition(GridLength.Star));
+        _backdrop.Add(_backdropTop, 0, 0);
+        _backdrop.Add(_backdropBottom, 1, 0);
         root.Add(_backdrop, 0, 0);
         root.Add(_image, 0, 0);
         root.Add(taps, 0, 0);
@@ -243,6 +250,14 @@ public sealed class StoryViewerPage : ContentPage
     {
         if (_items.Count == 0) return;
         var story = _items[_index];
+        var avatarSource = string.IsNullOrWhiteSpace(story.AvatarBase64) ? null : story.AvatarBase64;
+        _avatar.IsVisible = avatarSource is not null;
+        if (avatarSource is not null)
+        {
+            try { _avatar.Source = ImageSource.FromStream(() => new MemoryStream(Convert.FromBase64String(avatarSource))); }
+            catch (FormatException) { _avatar.IsVisible = false; }
+        }
+
         _name.Text = !string.IsNullOrWhiteSpace(story.SpaceName)
             ? story.SpaceName
             : (story.IsMine && string.IsNullOrWhiteSpace(story.SpaceId)
@@ -255,16 +270,14 @@ public sealed class StoryViewerPage : ContentPage
         _caption.IsVisible = !string.IsNullOrWhiteSpace(story.Text);
         _caption.FontSize = story.FontSize > 0 ? story.FontSize : 18;
         _caption.TextColor = string.IsNullOrEmpty(story.TextHex) ? Colors.White : Color.FromArgb(story.TextHex);
-        _caption.BackgroundColor = string.IsNullOrEmpty(story.ImageBase64)
-            ? Colors.Transparent
-            : Color.FromArgb("#99000000");
+        _caption.BackgroundColor = Color.FromArgb("#AA0B1220");
 
         var hasImage = !string.IsNullOrEmpty(story.ImageBase64);
         _image.IsVisible = hasImage;
         _image.Source = null;
-        _backdrop.Color = hasImage
-            ? Colors.Black
-            : Color.FromArgb(string.IsNullOrEmpty(story.BackgroundHex) ? "#3B6FE8" : story.BackgroundHex);
+        var bg = Color.FromArgb(string.IsNullOrEmpty(story.BackgroundHex) ? "#3B6FE8" : story.BackgroundHex);
+        _backdropTop.Color = bg;
+        _backdropBottom.Color = Color.FromArgb("#0B1220");
         if (hasImage)
         {
             try { _image.Source = ImageSource.FromStream(() => new MemoryStream(Convert.FromBase64String(story.ImageBase64))); }
