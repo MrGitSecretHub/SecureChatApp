@@ -169,6 +169,9 @@ public sealed class StoryService
             var dtos = await _api.GetStoriesAsync(_session.ServerUrl, _session.Token);
             foreach (var dto in dtos)
             {
+                // Одна битая история не должна обрывать всю ленту.
+                try
+                {
                 var envelope = JsonSerializer.Deserialize<EncryptedEnvelope>(dto.EnvelopeJson);
                 if (envelope is null) continue;
                 var profile = await _api.GetUserAsync(_session.ServerUrl, _session.Token, dto.OwnerUsername);
@@ -206,6 +209,8 @@ public sealed class StoryService
                     SpaceId = dto.SpaceId,
                     SpaceName = spaceName
                 });
+                }
+                catch { }
             }
             return result.OrderByDescending(s => s.CreatedAtUnixMs).ToList();
         }
