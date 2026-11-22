@@ -359,6 +359,25 @@
                         </Grid>
                     </VerticalStackLayout>
 
+                    <!-- Резервная копия ключей -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="{DynamicResource s_backup_title}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_backup_hint}" Style="{DynamicResource Caption}" />
+                        <Entry x:Name="BackupPasswordEntry"
+                               Placeholder="{DynamicResource s_backup_password}"
+                               IsPassword="True" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Button x:Name="ExportKeysButton"
+                                    Text="{DynamicResource s_backup_export}"
+                                    Style="{DynamicResource SecondaryButton}"
+                                    Clicked="OnExportKeysClicked" />
+                            <Button x:Name="ImportKeysButton"
+                                    Text="{DynamicResource s_backup_import}"
+                                    Style="{DynamicResource SecondaryButton}"
+                                    Clicked="OnImportKeysClicked" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
                     <!-- Экспорт / импорт истории -->
                     <VerticalStackLayout Spacing="6">
                         <Label Text="{DynamicResource s_set_071}" Style="{DynamicResource SectionTitle}" Margin="0" />

@@ -10,6 +10,7 @@ public partial class SettingsPage : ContentPage
     private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
     private readonly ApiClient _apiClient = AppServices.Get<ApiClient>();
     private readonly LocalStore _localStore = AppServices.Get<LocalStore>();
+    private readonly KeyBackupService _keyBackup = AppServices.Get<KeyBackupService>();
     private readonly WallpaperService _wallpapers = AppServices.Get<WallpaperService>();
     private readonly LocalizationService _localization = AppServices.Get<LocalizationService>();
 
@@ -1214,6 +1215,63 @@ public partial class SettingsPage : ContentPage
 
         await PrivacyStore.SetPasscodeAsync(secrets, newCode);
         await DisplayAlert(Loc.T("set_060", "Код-пароль"), Loc.T("set_063", "Код-пароль сохранён. Он будет запрашиваться при запуске."), "OK");
+    }
+
+
+    private async void OnExportKeysClicked(object sender, EventArgs e)
+    {
+        var password = BackupPasswordEntry.Text;
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            await DisplayAlert(Loc.T("backup_title", "Key backup"), Loc.T("backup_need_password", "Enter a password."), "OK");
+            return;
+        }
+        try
+        {
+            var payload = await _keyBackup.ExportAsync(password);
+            await Clipboard.Default.SetTextAsync(payload);
+            await DisplayAlert(Loc.T("backup_title", "Key backup"),
+                Loc.T("backup_exported", "Encrypted backup copied to clipboard. Save it in a safe place."), "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(Loc.T("common_error", "Error"), ex.Message, "OK");
+        }
+    }
+
+    private async void OnImportKeysClicked(object sender, EventArgs e)
+    {
+        var password = BackupPasswordEntry.Text;
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            await DisplayAlert(Loc.T("backup_title", "Key backup"), Loc.T("backup_need_password", "Enter a password."), "OK");
+            return;
+        }
+        try
+        {
+            var payload = await Clipboard.Default.GetTextAsync();
+            if (string.IsNullOrWhiteSpace(payload))
+            {
+                await DisplayAlert(Loc.T("backup_title", "Key backup"), Loc.T("backup_clipboard_empty", "Clipboard is empty."), "OK");
+                return;
+            }
+
+            var confirmed = await DisplayAlert(
+                Loc.T("backup_title", "Key backup"),
+                Loc.T("backup_import_warning", "Importing keys replaces the keys on this device. Continue?"),
+                Loc.T("common_yes", "Yes"), Loc.T("common_no", "No"));
+            if (!confirmed) return;
+
+            var identity = await _keyBackup.ImportAsync(payload, password, _session.Username);
+            _session.SetIdentity(identity);
+            BackupPasswordEntry.Text = string.Empty;
+            await DisplayAlert(Loc.T("backup_title", "Key backup"),
+                Loc.T("backup_imported", "Keys restored. Restart the app to apply them everywhere."), "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(Loc.T("common_error", "Error"), ex.Message, "OK");
+        }
     }
 
     private async void OnExportHistoryClicked(object sender, EventArgs e)

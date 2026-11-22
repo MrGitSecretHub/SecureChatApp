@@ -13,6 +13,8 @@ public sealed class AppSession
     public bool IsAuthenticated =>
         User is not null && Identity is not null && !string.IsNullOrEmpty(Token);
 
+    public void SetIdentity(IdentityKeys identity) => Identity = identity;
+
     public string Username => User?.Username ?? string.Empty;
     public string Fingerprint => User?.Fingerprint ?? string.Empty;
 
