@@ -441,6 +441,18 @@ public partial class ChatsPage : ContentPage
             var items = await AppServices.Get<StoryService>().GetAsync();
             var groups = items.GroupBy(s => s.OwnerUsername, StringComparer.OrdinalIgnoreCase)
                 .OrderByDescending(g => g.Max(s => s.CreatedAtUnixMs));
+
+            if (!groups.Any())
+            {
+                ChatsStoriesStrip.Add(new Label
+                {
+                    Text = "🔑 " + Loc.T("stories_empty", "No stories yet"),
+                    FontSize = 12,
+                    TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray,
+                    VerticalOptions = LayoutOptions.Center
+                });
+                return;
+            }
             foreach (var group in groups)
             {
                 var list = group.OrderByDescending(s => s.CreatedAtUnixMs).ToList();
