@@ -712,7 +712,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     {
         try
         {
-            await Navigation.PushAsync(new SpacesPage());
+            await Navigation.PushAsync(new DesktopSpacesPage());
         }
         catch (Exception ex)
         {

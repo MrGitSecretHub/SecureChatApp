@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SecureChat.App.Pages.DesktopSpacesPage"
+             Title="{DynamicResource s_ui_024}">
+    <ContentPage.Resources>
+        <Style x:Key="DSFilterPill" TargetType="Button">
+            <Setter Property="HeightRequest" Value="30" />
+            <Setter Property="Padding" Value="12,4" />
+            <Setter Property="CornerRadius" Value="15" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="BackgroundColor" Value="{DynamicResource SurfaceAlt}" />
+            <Setter Property="TextColor" Value="{DynamicResource TextMuted}" />
+        </Style>
+        <Style x:Key="DSFilterPillActive" TargetType="Button" BasedOn="{StaticResource DSFilterPill}">
+            <Setter Property="BackgroundColor" Value="{DynamicResource Accent}" />
+            <Setter Property="TextColor" Value="{DynamicResource AccentText}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid ColumnDefinitions="380,1,*" RowDefinitions="*">
+        <!-- Левая панель: поиск, фильтры, сторис, стрипы и карточки -->
+        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="8" Padding="12">
+
+            <VerticalStackLayout Grid.Row="0" Spacing="2">
+                <Label Text="{DynamicResource s_spaces_title}" Style="{DynamicResource H1}" />
+                <Label Text="{DynamicResource s_spaces_subtitle}" Style="{DynamicResource Caption}" />
+            </VerticalStackLayout>
+
+            <SearchBar Grid.Row="1"
+                       x:Name="SearchEntry"
+                       HeightRequest="36"
+                       FontSize="13"
+                       Placeholder="{DynamicResource s_spaces_search}"
+                       TextChanged="OnSearchTextChanged" />
+
+            <HorizontalStackLayout Grid.Row="2" Spacing="6">
+                <Button x:Name="AllFilterButton" Text="{DynamicResource s_spaces_all}"
+                        ClassId="all" Style="{StaticResource DSFilterPillActive}" Clicked="OnFilterClicked" />
+                <Button x:Name="GroupsFilterButton" Text="{DynamicResource s_spaces_groups}"
+                        ClassId="group" Style="{StaticResource DSFilterPill}" Clicked="OnFilterClicked" />
+                <Button x:Name="ChannelsFilterButton" Text="{DynamicResource s_spaces_channels}"
+                        ClassId="channel" Style="{StaticResource DSFilterPill}" Clicked="OnFilterClicked" />
+                <Button x:Name="ForumsFilterButton" Text="{DynamicResource s_spaces_forums}"
+                        ClassId="forum" Style="{StaticResource DSFilterPill}" Clicked="OnFilterClicked" />
+                <Button x:Name="CommunitiesFilterButton" Text="{DynamicResource s_spaces_communities}"
+                        ClassId="community" Style="{StaticResource DSFilterPill}" Clicked="OnFilterClicked" />
+            </HorizontalStackLayout>
+
+            <!-- Сторисы пространств -->
+            <Grid Grid.Row="3" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <Button x:Name="StoriesAddButton" Text="＋" WidthRequest="36" HeightRequest="36"
+                        CornerRadius="18" FontSize="16" Padding="0"
+                        BackgroundColor="{DynamicResource SurfaceAlt}"
+                        TextColor="{DynamicResource Accent}" Clicked="OnStoriesAddClicked" />
+                <ScrollView Grid.Column="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                    <HorizontalStackLayout x:Name="StoriesStrip" Spacing="6" VerticalOptions="Center" />
+                </ScrollView>
+            </Grid>
+
+            <ScrollView Grid.Row="4" VerticalScrollBarVisibility="Never">
+                <VerticalStackLayout x:Name="SpaceGroups" Spacing="14" Padding="0,0,0,16" />
+            </ScrollView>
+        </Grid>
+
+        <BoxView Grid.Column="1" Color="{DynamicResource BorderColor}" WidthRequest="1" />
+
+        <!-- Правая панель: детали выбранного пространства -->
+        <Grid Grid.Column="2" x:Name="DetailPane" Padding="24" RowDefinitions="Auto,Auto,*,Auto">
+            <Label x:Name="DetailTitle" Text="{DynamicResource s_ui_024}" Style="{DynamicResource H1}" />
+            <Label x:Name="DetailSubtitle" Grid.Row="1" Text="Выберите пространство слева" Style="{DynamicResource Caption}" />
+            <VerticalStackLayout Grid.Row="2" x:Name="DetailBody" Spacing="12" VerticalOptions="Start" IsVisible="False">
+                <Border Style="{DynamicResource Card}" Padding="16">
+                    <VerticalStackLayout Spacing="8">
+                        <Label x:Name="DetailName" FontSize="20" FontAttributes="Bold" TextColor="{DynamicResource TextPrimary}" />
+                        <Label x:Name="DetailType" FontSize="13" TextColor="{DynamicResource Accent}" />
+                        <Label x:Name="DetailMembers" FontSize="12" TextColor="{DynamicResource TextMuted}" />
+                        <Label x:Name="DetailDescription" FontSize="13" TextColor="{DynamicResource TextSecondary}" LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Border>
+                <Button x:Name="OpenSpaceButton" Text="Открыть пространство" Style="{DynamicResource PrimaryButton}" Clicked="OnOpenSpaceClicked" />
+                <Button x:Name="DetailStoriesButton" Text="Истории пространства" Style="{DynamicResource SecondaryButton}" Clicked="OnDetailStoriesClicked" />
+            </VerticalStackLayout>
+            <Button Grid.Row="3" x:Name="CreateSpaceButton" Text="＋ Создать пространство"
+                    Style="{DynamicResource PrimaryButton}" MaximumWidthRequest="320" HorizontalOptions="Start"
+                    Clicked="OnCreateSpaceClicked" />
+        </Grid>
+    </Grid>
+</ContentPage>
