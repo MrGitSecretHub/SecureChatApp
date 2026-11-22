@@ -1115,11 +1115,8 @@ KeyWaitBanner.IsVisible = false;
 
     private void SetupSendLongPress()
     {
-        var pointer = new PointerGestureRecognizer();
-        pointer.PointerPressed += (_, _) => StartSendLongPress();
-        pointer.PointerReleased += (_, _) => CancelSendLongPress();
-        pointer.PointerExited += (_, _) => CancelSendLongPress();
-        SendButton.GestureRecognizers.Add(pointer);
+        SendButton.Pressed += (_, _) => StartSendLongPress();
+        SendButton.Released += (_, _) => CancelSendLongPress();
         ToolTipProperties.SetText(SendButton,
             Loc.T("send_long_press_hint", "Долгое нажатие — отложить отправку"));
     }
@@ -1127,6 +1124,7 @@ KeyWaitBanner.IsVisible = false;
     private void StartSendLongPress()
     {
         _sendLongPressTriggered = false;
+        _ = SendButton.ScaleTo(0.88, 100, Easing.CubicOut);
         _sendLongPressCts?.Cancel();
         _sendLongPressCts = new CancellationTokenSource();
         var token = _sendLongPressCts.Token;
@@ -1153,6 +1151,7 @@ KeyWaitBanner.IsVisible = false;
     {
         _sendLongPressCts?.Cancel();
         _sendLongPressCts = null;
+        _ = SendButton.ScaleTo(1, 120, Easing.CubicOut);
     }
 
     /// <summary>Отложить пост канала: выбрать время публикации.</summary>
