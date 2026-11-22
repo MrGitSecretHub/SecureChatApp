@@ -1151,6 +1151,41 @@ public partial class ChatView : ContentView
             conversation.UserId, activity, conversation.Username);
     }
 
+    private async Task RefreshVerifyBadgeAsync()
+    {
+        if (_username is null || VerifyBadge is null) return;
+        var changed = (await AppServices.Get<LocalStore>().GetConversationAsync(_username))?.KeysChanged ?? false;
+        var verified = await _chatManager.IsKeyVerifiedAsync(_username);
+        VerifyBadge.IsVisible = true;
+        VerifyBadge.Text = changed ? "⚠️" : (verified ? "🔒" : "🔓");
+        VerifyBadge.TextColor = changed
+            ? (Color?)Application.Current?.Resources["Danger"] ?? Colors.Red
+            : (verified ? Colors.LightGreen : Colors.Gray);
+    }
+
+    private async void OnVerifyBadgeClicked(object sender, EventArgs e)
+    {
+        if (_username is null) return;
+        var profile = await AppServices.Get<ApiClient>().GetUserAsync(_session.ServerUrl, _session.Token!, _username);
+        if (profile is null) return;
+        var page = HostPage;
+        if (page is null) return;
+        var choice = await page.DisplayActionSheet(
+            Loc.T("s_verify_title", "Верификация ключа"),
+            Loc.T("common_cancel", "Отмена"), null,
+            Loc.T("s_verify_show", "Показать QR-код"),
+            Loc.T("s_verify_mark", "Я сверил(а) ключ"));
+        if (choice == Loc.T("s_verify_show", "Показать QR-код"))
+        {
+            await Navigation.PushAsync(new FingerprintQrPage(profile.Fingerprint));
+        }
+        else if (choice == Loc.T("s_verify_mark", "Я сверил(а) ключ"))
+        {
+            await _chatManager.AcceptNewKeysAsync(_username);
+            await RefreshVerifyBadgeAsync();
+        }
+    }
+
     private void SetupSendLongPress()
     {
         SendButton.Pressed += (_, _) => StartSendLongPress();

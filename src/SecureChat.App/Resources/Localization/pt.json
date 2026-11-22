@@ -65,7 +65,11 @@
   "send_long_press_hint": "Pressione e segure — agendar envio",  "backup_hint": "Criptografe suas chaves privadas com uma senha e restaure-as em outro dispositivo.",
 
   "sched_title": "Mensagens agendadas",
-  "sched_none": "Nenhuma mensagem agendada.",
+
+  "s_verify_title": "Verificação de chave",
+  "s_verify_hint": "Toque para ver a impressão e verificar",
+  "s_verify_show": "Mostrar QR code",
+  "s_verify_mark": "Chave verificada",  "sched_none": "Nenhuma mensagem agendada.",
   "sched_removed": "Mensagem agendada cancelada.",
   "sched_1h": "Em 1 hora",
   "sched_today": "Hoje à noite",

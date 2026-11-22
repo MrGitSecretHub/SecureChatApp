@@ -121,6 +121,13 @@
                 </VerticalStackLayout>
 
                 <Button Grid.Column="2"
+                        x:Name="VerifyBadge"
+                        Text="🔓"
+                        Style="{DynamicResource IconButton}"
+                        Clicked="OnVerifyBadgeClicked"
+                        ToolTipProperties.Text="{DynamicResource s_verify_hint}"
+                        IsVisible="False" />
+                <Button Grid.Column="3"
                         Text="📖"
                         Style="{DynamicResource IconButton}"
                         Clicked="OnStoriesClicked"

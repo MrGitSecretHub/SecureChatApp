@@ -65,7 +65,11 @@
   "send_long_press_hint": "长按 — 定时发送",  "backup_hint": "用密码加密私钥并在其他设备上恢复。",
 
   "sched_title": "定时消息",
-  "sched_none": "没有定时消息。",
+
+  "s_verify_title": "密钥验证",
+  "s_verify_hint": "点击查看指纹并验证密钥",
+  "s_verify_show": "显示二维码",
+  "s_verify_mark": "我已核对密钥",  "sched_none": "没有定时消息。",
   "sched_removed": "已取消定时消息。",
   "sched_1h": "1小时后",
   "sched_today": "今晚",

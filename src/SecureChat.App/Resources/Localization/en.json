@@ -65,7 +65,11 @@
   "send_long_press_hint": "Long press — schedule send",  "backup_hint": "Encrypt your private keys with a password and restore them on another device.",
 
   "sched_title": "Scheduled messages",
-  "sched_none": "No scheduled messages.",
+
+  "s_verify_title": "Key verification",
+  "s_verify_hint": "Tap to view fingerprint and verify the key",
+  "s_verify_show": "Show QR code",
+  "s_verify_mark": "I verified the key",  "sched_none": "No scheduled messages.",
   "sched_removed": "Scheduled message cancelled.",
   "sched_1h": "In 1 hour",
   "sched_today": "This evening",

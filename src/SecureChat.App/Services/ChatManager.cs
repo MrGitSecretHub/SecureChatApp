@@ -116,8 +116,15 @@ public sealed class ChatManager
             username);
         await _localStore.AddOrUpdateContactAsync(profile);
         await _localStore.ClearKeysChangedAsync(username);
+        await _localStore.SetKeyVerifiedAsync(username, true);
     }
 
+
+    public Task SetKeyVerifiedAsync(string username, bool verified) =>
+        _localStore.SetKeyVerifiedAsync(username, verified);
+
+    public async Task<bool> IsKeyVerifiedAsync(string username) =>
+        await _localStore.IsKeyVerifiedAsync(username);
 
     public async Task StartAsync()
     {

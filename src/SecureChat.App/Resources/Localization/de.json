@@ -65,7 +65,11 @@
   "send_long_press_hint": "Lange drücken — Senden planen",  "backup_hint": "Verschlüsseln Sie Ihre privaten Schlüssel mit einem Passwort und stellen Sie sie auf einem anderen Gerät wieder her.",
 
   "sched_title": "Geplante Nachrichten",
-  "sched_none": "Keine geplanten Nachrichten.",
+
+  "s_verify_title": "Schlüsselverifizierung",
+  "s_verify_hint": "Tippen Sie, um den Fingerabdruck zu sehen",
+  "s_verify_show": "QR-Code anzeigen",
+  "s_verify_mark": "Schlüssel geprüft",  "sched_none": "Keine geplanten Nachrichten.",
   "sched_removed": "Geplante Nachricht abgebrochen.",
   "sched_1h": "In 1 Stunde",
   "sched_today": "Heute Abend",

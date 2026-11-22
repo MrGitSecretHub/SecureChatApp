@@ -65,7 +65,11 @@
   "send_long_press_hint": "Mantén pulsado para programar",  "backup_hint": "Cifra tus claves privadas con una contraseña y restáuralas en otro dispositivo.",
 
   "sched_title": "Mensajes programados",
-  "sched_none": "No hay mensajes programados.",
+
+  "s_verify_title": "Verificación de clave",
+  "s_verify_hint": "Toca para ver la huella y verificar la clave",
+  "s_verify_show": "Mostrar código QR",
+  "s_verify_mark": "Verifiqué la clave",  "sched_none": "No hay mensajes programados.",
   "sched_removed": "Mensaje programado cancelado.",
   "sched_1h": "En 1 hora",
   "sched_today": "Esta tarde",

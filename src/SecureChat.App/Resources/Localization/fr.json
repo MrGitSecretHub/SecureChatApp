@@ -65,7 +65,11 @@
   "send_long_press_hint": "Appui long — programmer l'envoi",  "backup_hint": "Chiffrez vos clés privées avec un mot de passe et restaurez-les sur un autre appareil.",
 
   "sched_title": "Messages programmés",
-  "sched_none": "Aucun message programmé.",
+
+  "s_verify_title": "Vérification de clé",
+  "s_verify_hint": "Touchez pour voir l'empreinte et vérifier la clé",
+  "s_verify_show": "Afficher le QR code",
+  "s_verify_mark": "J'ai vérifié la clé",  "sched_none": "Aucun message programmé.",
   "sched_removed": "Message programmé annulé.",
   "sched_1h": "Dans 1 heure",
   "sched_today": "Ce soir",

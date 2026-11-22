@@ -65,7 +65,11 @@
   "send_long_press_hint": "Uzun basma — gönderimi zamanla",  "backup_hint": "Özel anahtarlarınızı bir parola ile şifreleyin ve başka bir cihazda geri yükleyin.",
 
   "sched_title": "Zamanlanmış mesajlar",
-  "sched_none": "Zamanlanmış mesaj yok.",
+
+  "s_verify_title": "Anahtar doğrulama",
+  "s_verify_hint": "Parmak izini görmek için dokunun",
+  "s_verify_show": "QR kodunu göster",
+  "s_verify_mark": "Anahtarı doğruladım",  "sched_none": "Zamanlanmış mesaj yok.",
   "sched_removed": "Zamanlanmış mesaj iptal edildi.",
   "sched_1h": "1 saat sonra",
   "sched_today": "Bu akşam",

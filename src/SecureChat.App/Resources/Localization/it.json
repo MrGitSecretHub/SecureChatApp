@@ -65,7 +65,11 @@
   "send_long_press_hint": "Tieni premuto — programma l'invio",  "backup_hint": "Cifra le tue chiavi private con una password e ripristinale su un altro dispositivo.",
 
   "sched_title": "Messaggi programmati",
-  "sched_none": "Nessun messaggio programmato.",
+
+  "s_verify_title": "Verifica chiave",
+  "s_verify_hint": "Tocca per vedere l'impronta e verificare",
+  "s_verify_show": "Mostra codice QR",
+  "s_verify_mark": "Ho verificato la chiave",  "sched_none": "Nessun messaggio programmato.",
   "sched_removed": "Messaggio programmato annullato.",
   "sched_1h": "Tra 1 ora",
   "sched_today": "Stasera",

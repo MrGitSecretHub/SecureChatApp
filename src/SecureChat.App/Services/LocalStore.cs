@@ -70,6 +70,7 @@ public sealed class StoredConversation
     public long LastMessageAtUnixMs { get; set; }
     public int UnreadCount { get; set; }
     public bool KeysChanged { get; set; }
+    public bool KeyVerified { get; set; }
     public bool IsArchived { get; set; }
     /// <summary>Уведомления и звук для этого чата отключены.</summary>
     public bool IsMuted { get; set; }
@@ -1399,6 +1400,27 @@ public sealed class LocalStore
         }
     }
 
+    public async Task<bool> IsKeyVerifiedAsync(string username)
+    {
+        await _lock.WaitAsync();
+        try { EnsureInitialized(); return Find(username)?.KeyVerified ?? false; }
+        finally { _lock.Release(); }
+    }
+
+    public async Task SetKeyVerifiedAsync(string username, bool verified)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var conversation = Find(username);
+            if (conversation is null || conversation.KeyVerified == verified) return;
+            conversation.KeyVerified = verified;
+            await SaveAsync();
+        }
+        finally { _lock.Release(); }
+    }
+
     /// <summary>Отметить смену ключей, НЕ принимая новые ключи до подтверждения.</summary>
     public async Task MarkKeysChangedAsync(string username)
     {
@@ -1413,6 +1435,7 @@ public sealed class LocalStore
             }
 
             conversation.KeysChanged = true;
+            conversation.KeyVerified = false;
             await SaveAsync();
         }
         finally
@@ -2288,6 +2311,7 @@ public sealed class LocalStore
         LastMessageAtUnixMs = source.LastMessageAtUnixMs,
         UnreadCount = source.UnreadCount,
         KeysChanged = source.KeysChanged,
+        KeyVerified = source.KeyVerified,
         IsArchived = source.IsArchived,
         IsMuted = source.IsMuted,
         Messages = source.Messages.Select(CloneMessage).ToList()
