@@ -61,7 +61,8 @@
   "settings_language_hint": "\u8bed\u8a00\u5373\u65f6\u751f\u6548\uff0c\u65e0\u9700\u91cd\u542f",
 
   "backup_title": "密钥备份",
-  "backup_hint": "用密码加密私钥并在其他设备上恢复。",
+
+  "send_long_press_hint": "长按 — 定时发送",  "backup_hint": "用密码加密私钥并在其他设备上恢复。",
   "backup_password": "备份密码",
   "backup_export": "导出密钥",
   "backup_import": "导入密钥",

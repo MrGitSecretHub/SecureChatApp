@@ -65,6 +65,9 @@ public partial class SpaceChatPage : ContentPage
     public IEnumerable<PendingMediaItem> PendingMedia => _pendingMedia;
     private bool _processingMediaQueue;
 
+    private CancellationTokenSource? _sendLongPressCts;
+    private bool _sendLongPressTriggered;
+
     /// <summary>Один элемент очереди отправки с прогрессом и возможностью отмены.</summary>
     public sealed class PendingMediaItem : INotifyPropertyChanged
     {
@@ -113,6 +116,7 @@ public partial class SpaceChatPage : ContentPage
     public SpaceChatPage(string spaceId, string name, string type, bool canPost = true)
     {
         InitializeComponent();
+        SetupSendLongPress();
         LoadingPlaceholder.Content = new ActivityIndicator
         {
             IsRunning = true,
@@ -194,6 +198,7 @@ public partial class SpaceChatPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        CancelSendLongPress();
         StopVoicePlayback();
         _spaces.SpaceMessageReceived -= OnSpaceMessageReceived;
         _spaces.SpaceMessageUpdated -= OnSpaceMessageUpdated;
@@ -503,7 +508,7 @@ KeyWaitBanner.IsVisible = false;
             SilentButton.IsVisible = _spaceType == SpaceTypes.Channel && _canPost;
             // Отложенные посты доступны во всех типах пространств, где можно писать:
             // группы, каналы, темы форума и сообщества.
-            ScheduleButton.IsVisible = _canPost;
+            ScheduleButton.IsVisible = false;
 // Закрытая тема форума: писать в неё нельзя.
             TopicClosedBanner.IsVisible = _currentTopicClosed && _canPost;
             TopicClosedLabel.Text = _topicTitle is null
@@ -766,6 +771,12 @@ KeyWaitBanner.IsVisible = false;
 
     private async void OnSendClicked(object sender, EventArgs e)
     {
+        if (_sendLongPressTriggered)
+        {
+            _sendLongPressTriggered = false;
+            return;
+        }
+
         if (!_canPost)
         {
             await DisplayAlert(Loc.T("uc_066", "Только чтение"), Loc.T("uc_004", "В этом канале сообщения могут публиковать только администраторы."), "OK");
@@ -1100,6 +1111,48 @@ KeyWaitBanner.IsVisible = false;
         {
             await this.ShowErrorAsync(ex);
         }
+    }
+
+    private void SetupSendLongPress()
+    {
+        var pointer = new PointerGestureRecognizer();
+        pointer.PointerPressed += (_, _) => StartSendLongPress();
+        pointer.PointerReleased += (_, _) => CancelSendLongPress();
+        pointer.PointerExited += (_, _) => CancelSendLongPress();
+        SendButton.GestureRecognizers.Add(pointer);
+        ToolTipProperties.SetText(SendButton,
+            Loc.T("send_long_press_hint", "Долгое нажатие — отложить отправку"));
+    }
+
+    private void StartSendLongPress()
+    {
+        _sendLongPressTriggered = false;
+        _sendLongPressCts?.Cancel();
+        _sendLongPressCts = new CancellationTokenSource();
+        var token = _sendLongPressCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(600, token);
+            }
+            catch (TaskCanceledException)
+            {
+                return;
+            }
+            if (token.IsCancellationRequested) return;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _sendLongPressTriggered = true;
+                OnScheduleClicked(this, EventArgs.Empty);
+            });
+        });
+    }
+
+    private void CancelSendLongPress()
+    {
+        _sendLongPressCts?.Cancel();
+        _sendLongPressCts = null;
     }
 
     /// <summary>Отложить пост канала: выбрать время публикации.</summary>

@@ -61,7 +61,8 @@
   "settings_language_hint": "O idioma muda imediatamente, sem reiniciar",
 
   "backup_title": "Backup de chaves",
-  "backup_hint": "Criptografe suas chaves privadas com uma senha e restaure-as em outro dispositivo.",
+
+  "send_long_press_hint": "Pressione e segure — agendar envio",  "backup_hint": "Criptografe suas chaves privadas com uma senha e restaure-as em outro dispositivo.",
   "backup_password": "Senha do backup",
   "backup_export": "Exportar chaves",
   "backup_import": "Importar chaves",

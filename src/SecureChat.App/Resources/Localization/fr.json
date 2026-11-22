@@ -61,7 +61,8 @@
   "settings_language_hint": "La langue change imm\u00e9diatement, sans red\u00e9marrage",
 
   "backup_title": "Sauvegarde des clés",
-  "backup_hint": "Chiffrez vos clés privées avec un mot de passe et restaurez-les sur un autre appareil.",
+
+  "send_long_press_hint": "Appui long — programmer l'envoi",  "backup_hint": "Chiffrez vos clés privées avec un mot de passe et restaurez-les sur un autre appareil.",
   "backup_password": "Mot de passe de sauvegarde",
   "backup_export": "Exporter les clés",
   "backup_import": "Importer les clés",

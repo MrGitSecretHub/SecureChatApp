@@ -61,7 +61,8 @@
   "settings_language_hint": "Die Sprache wechselt sofort, ohne Neustart",
 
   "backup_title": "Schlüsselsicherung",
-  "backup_hint": "Verschlüsseln Sie Ihre privaten Schlüssel mit einem Passwort und stellen Sie sie auf einem anderen Gerät wieder her.",
+
+  "send_long_press_hint": "Lange drücken — Senden planen",  "backup_hint": "Verschlüsseln Sie Ihre privaten Schlüssel mit einem Passwort und stellen Sie sie auf einem anderen Gerät wieder her.",
   "backup_password": "Sicherungs-Passwort",
   "backup_export": "Schlüssel exportieren",
   "backup_import": "Schlüssel importieren",

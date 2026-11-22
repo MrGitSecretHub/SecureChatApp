@@ -61,7 +61,8 @@
   "settings_language_hint": "Dil an\u0131nda de\u011fi\u015fir, yeniden ba\u015flatma gerekmez",
 
   "backup_title": "Anahtar yedeği",
-  "backup_hint": "Özel anahtarlarınızı bir parola ile şifreleyin ve başka bir cihazda geri yükleyin.",
+
+  "send_long_press_hint": "Uzun basma — gönderimi zamanla",  "backup_hint": "Özel anahtarlarınızı bir parola ile şifreleyin ve başka bir cihazda geri yükleyin.",
   "backup_password": "Yedek parolası",
   "backup_export": "Anahtarları dışa aktar",
   "backup_import": "Anahtarları içe aktar",

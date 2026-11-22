@@ -61,7 +61,8 @@
   "settings_language_hint": "El idioma cambia al instante, sin reiniciar",
 
   "backup_title": "Copia de claves",
-  "backup_hint": "Cifra tus claves privadas con una contraseña y restáuralas en otro dispositivo.",
+
+  "send_long_press_hint": "Mantén pulsado para programar",  "backup_hint": "Cifra tus claves privadas con una contraseña y restáuralas en otro dispositivo.",
   "backup_password": "Contraseña de copia",
   "backup_export": "Exportar claves",
   "backup_import": "Importar claves",

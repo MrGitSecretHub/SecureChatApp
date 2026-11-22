@@ -61,7 +61,8 @@
   "settings_language_hint": "The interface language changes immediately, no restart needed",
 
   "backup_title": "Key backup",
-  "backup_hint": "Encrypt your private keys with a password and restore them on another device.",
+
+  "send_long_press_hint": "Long press — schedule send",  "backup_hint": "Encrypt your private keys with a password and restore them on another device.",
   "backup_password": "Backup password",
   "backup_export": "Export keys",
   "backup_import": "Import keys",
