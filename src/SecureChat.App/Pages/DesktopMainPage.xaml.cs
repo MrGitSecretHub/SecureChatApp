@@ -89,6 +89,7 @@ public partial class DesktopMainPage : ContentPage, IDisposable
         UpdateHeader();
         EnsureWindowHooks();
         await RefreshAsync();
+        _ = RefreshStoriesStripAsync();
         UpdateConnectionState(!_chatManager.IsOffline);
 
         if (_selectedUsername is not null && _session.IsAuthenticated)
@@ -97,6 +98,64 @@ public partial class DesktopMainPage : ContentPage, IDisposable
             await RefreshAsync();
         }
     }
+
+
+    private async Task RefreshStoriesStripAsync()
+    {
+        if (DesktopStoriesStrip is null) return;
+        DesktopStoriesStrip.Clear();
+        try
+        {
+            var items = await AppServices.Get<StoryService>().GetAsync();
+            var groups = items.GroupBy(x => x.OwnerUsername, StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(g => g.Max(x => x.CreatedAtUnixMs));
+            if (!groups.Any())
+            {
+                DesktopStoriesStrip.Add(new Label
+                {
+                    Text = Loc.T("stories_empty", "No stories yet"),
+                    FontSize = 12,
+                    TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray,
+                    VerticalOptions = LayoutOptions.Center
+                });
+                return;
+            }
+            foreach (var group in groups)
+            {
+                var list = group.OrderByDescending(x => x.CreatedAtUnixMs).ToList();
+                var first = list[0];
+                var unseen = list.Any(x => !x.ViewedByMe);
+                var btn = new Button
+                {
+                    WidthRequest = 38,
+                    HeightRequest = 38,
+                    CornerRadius = 19,
+                    Padding = 2,
+                    Text = string.IsNullOrEmpty(first.Text) ? "◉" : first.Text[..1].ToUpperInvariant(),
+                    TextColor = Colors.White,
+                    FontSize = 12,
+                    BackgroundColor = unseen
+                        ? (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue
+                        : (Color?)Application.Current?.Resources["SurfaceAlt"] ?? Colors.Gray
+                };
+                if (!string.IsNullOrEmpty(first.AvatarBase64))
+                {
+                    try
+                    {
+                        btn.ImageSource = ImageSource.FromStream(() => new MemoryStream(Convert.FromBase64String(first.AvatarBase64!)));
+                        btn.Text = string.Empty;
+                    }
+                    catch (FormatException) { }
+                }
+                btn.Clicked += async (_, _) => await Navigation.PushAsync(new StoryViewerPage(list, 0));
+                DesktopStoriesStrip.Add(btn);
+            }
+        }
+        catch { }
+    }
+
+    private async void OnStoriesAddClicked(object sender, EventArgs e) =>
+        await Navigation.PushAsync(new StoryCreatePage());
 
     protected override void OnDisappearing()
     {

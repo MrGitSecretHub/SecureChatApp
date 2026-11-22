@@ -10,7 +10,7 @@
         <!-- САЙДБАР -->
         <Grid Grid.Column="0"
               BackgroundColor="{DynamicResource Surface}"
-              RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+              RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
 
             <!-- Шапка приложения -->
             <Grid Grid.Row="0"
@@ -131,8 +131,26 @@
                 </Grid>
             </Border>
 
+            <!-- Истории: первая строка сайдбара, над поиском и папками -->
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="8"
+                  Margin="12,0,12,4">
+                <Button x:Name="StoriesAddButton"
+                        Text="＋"
+                        WidthRequest="38"
+                        HeightRequest="38"
+                        CornerRadius="19"
+                        FontSize="16"
+                        BackgroundColor="{DynamicResource SurfaceAlt}"
+                        TextColor="{DynamicResource Accent}"
+                        VerticalOptions="Center"
+                        Clicked="OnStoriesAddClicked" />
+                <ScrollView Grid.Column="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                    <HorizontalStackLayout x:Name="DesktopStoriesStrip" Spacing="6" VerticalOptions="Center" />
+                </ScrollView>
+            </Grid>
+
             <!-- Статус, поиск и вкладки чатов -->
-            <Grid Grid.Row="2"
+            <Grid Grid.Row="3"
                   Margin="12,0,12,8"
                   RowDefinitions="Auto,Auto,Auto"
                   RowSpacing="8">
@@ -201,13 +219,13 @@
             </Grid>
 
             <!-- Список чатов -->
-            <Label Grid.Row="3"
+            <Label Grid.Row="4"
                    Text="{DynamicResource s_ui_041}"
                    Style="{StaticResource SectionHeader}"
                    x:Name="PinnedSectionLabel"
                    IsVisible="False" />
 
-            <CollectionView Grid.Row="4"
+            <CollectionView Grid.Row="5"
                             x:Name="ConversationsView"
                             ItemsSource="{Binding Conversations, Mode=OneWay}"
                             SelectionMode="Single"
