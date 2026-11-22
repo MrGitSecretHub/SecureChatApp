@@ -401,6 +401,21 @@
                                                FontSize="12"
                                                TextColor="{DynamicResource TextMuted}" />
                                     </Grid>
+                                    <!-- Прогресс загрузки/отправки поверх превью (как в Telegram) -->
+                                    <Grid Grid.Row="0"
+                                          IsVisible="{Binding IsTransferring}"
+                                          InputTransparent="True"
+                                          HorizontalOptions="Fill"
+                                          VerticalOptions="Fill">
+                                        <BoxView Color="#99000000" HorizontalOptions="Fill" VerticalOptions="Fill" />
+                                        <Label Text="{Binding TransferProgressText}"
+                                               TextColor="White"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Grid>
+
                                     <Button Grid.Row="1"
                                             Text="{DynamicResource s_ui_129}"
                                             IsVisible="{Binding IsImageReady}"

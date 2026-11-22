@@ -73,6 +73,7 @@ public partial class SpaceChatPage : ContentPage
         public string ContentType { get; set; } = string.Empty;
         public byte[] Data { get; set; } = Array.Empty<byte>();
         public string? MessageKind { get; set; }
+        public SpaceMessageVm? MessageVm { get; set; }
         public CancellationTokenSource Cts { get; } = new();
 
         private int _progress;
@@ -659,11 +660,54 @@ KeyWaitBanner.IsVisible = false;
             _messages.Add(vm);
             RefreshDateLabels();
             RefreshMentionJump();
+
+            // Привязываем входящее сообщение к элементу очереди отправителя,
+            // чтобы прогресс отправки рисовался прямо в пузыре (как в Telegram).
+            var pending = _pendingMedia.FirstOrDefault(x =>
+                string.Equals(x.FileName, vm.FileName, StringComparison.OrdinalIgnoreCase));
+            if (pending is not null)
+            {
+                pending.MessageVm = vm;
+                vm.TransferProgress = pending.Progress;
+            }
+
             if (AppServices.Get<AppSession>().LinkPreviewEnabled && vm.HasUrls)
             {
                 _ = EnsurePreviewAsync(vm);
             }
+
+            // Картинки подгружаем сразу и показываем прогресс в пузыре.
+            if (vm.IsImage && vm.Media is not null && !vm.MediaDownloaded)
+            {
+                _ = AutoDownloadImageAsync(vm);
+            }
         });
+    }
+
+
+    private async Task AutoDownloadImageAsync(SpaceMessageVm message)
+    {
+        try
+        {
+            if (message.Media is null || message.MediaDownloaded) return;
+            var path = Path.Combine(FileSystem.CacheDirectory, message.Id + Path.GetExtension(message.FileName));
+            if (!File.Exists(path))
+            {
+                message.TransferProgress = 0;
+                var progress = new Progress<int>(p =>
+                    MainThread.BeginInvokeOnMainThread(() => message.TransferProgress = p));
+                var bytes = await _spaces.DownloadMediaAsync(message.Media, progress: progress);
+                await File.WriteAllBytesAsync(path, bytes);
+                if (message.IsImage) message.SetImageContent(bytes);
+                message.TransferProgress = 100;
+            }
+            message.MediaDownloaded = true;
+        }
+        catch
+        {
+            // auto-download не критичен — картинку можно открыть вручную
+            message.TransferProgress = 100;
+        }
     }
 
     private async void OnSendClicked(object sender, EventArgs e)
@@ -1507,13 +1551,17 @@ KeyWaitBanner.IsVisible = false;
             }
             else
             {
-                bytes = await _spaces.DownloadMediaAsync(message.Media);
+                message.TransferProgress = 0;
+                var dlProgress = new Progress<int>(p =>
+                    MainThread.BeginInvokeOnMainThread(() => message.TransferProgress = p));
+                bytes = await _spaces.DownloadMediaAsync(message.Media, progress: dlProgress);
                 await File.WriteAllBytesAsync(path, bytes);
 
                 if (message.IsImage)
                 {
                     message.SetImageContent(bytes);
                 }
+                message.TransferProgress = 100;
             }
 
             message.MediaDownloaded = true;
@@ -2097,11 +2145,15 @@ KeyWaitBanner.IsVisible = false;
                 }
 
                 var progress = new Progress<int>(p =>
-                    MainThread.BeginInvokeOnMainThread(() => item.Progress = p));
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        item.Progress = p;
+                        if (item.MessageVm is not null) item.MessageVm.TransferProgress = p;
+                    }));
 
                 try
                 {
-                    await _spaces.SendMediaAsync(
+                    var sent = await _spaces.SendMediaAsync(
                         _spaceId,
                         _topicId,
                         item.FileName,
@@ -2114,6 +2166,11 @@ KeyWaitBanner.IsVisible = false;
 
                     item.Progress = 100;
                     item.Status = Loc.T("set_036", "Готово");
+                    if (sent is not null)
+                    {
+                        var sentVm = _messages.FirstOrDefault(m => m.Id == sent.Id);
+                        if (sentVm is not null) sentVm.TransferProgress = 100;
+                    }
                     await Task.Delay(350);
                     _pendingMedia.Remove(item);
                 }

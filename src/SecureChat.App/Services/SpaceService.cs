@@ -1125,13 +1125,21 @@ public sealed class SpaceService
     /// <summary>Скачивает и расшифровывает вложение пространства (доступно участникам).</summary>
     public async Task<byte[]> DownloadMediaAsync(
         SpaceMediaAttachment media,
+        IProgress<int>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        IProgress<long>? bytesProgress = null;
+        if (progress is not null && media.Size > 0)
+        {
+            bytesProgress = new Progress<long>(bytes =>
+                progress.Report((int)Math.Clamp(bytes * 100L / media.Size, 0, 100)));
+        }
+
         var ciphertext = await AppServices.Get<ApiClient>().DownloadMediaAsync(
             _session.ServerUrl,
             _session.Token!,
             media.Id,
-            null,
+            bytesProgress,
             cancellationToken);
 
         return await Task.Run(

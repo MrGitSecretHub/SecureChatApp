@@ -22,6 +22,19 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     private double _playbackPositionSeconds;
     private double _playbackDurationSeconds;
     private bool _mediaDownloaded;
+    private int _transferProgress;
+    /// <summary>Прогресс передачи вложения 0..100 (отправка или скачивание).</summary>
+    public int TransferProgress
+    {
+        get => _transferProgress;
+        set { if (Set(ref _transferProgress, value)) OnPropertyChanged(nameof(TransferProgressText)); }
+    }
+
+    public string TransferProgressText => TransferProgress + "%";
+
+    /// <summary>Вложение в процессе передачи — показываем круговой прогресс.</summary>
+    public bool IsTransferring => TransferProgress >= 0 && TransferProgress < 100;
+
     private ImageSource? _imageSource;
     private FormattedString? _textFormatted;
     private byte[]? _gifBytes;
@@ -613,6 +626,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     public void SetImageContent(byte[] bytes)
     {
         SetImageBytes(bytes);
+        TransferProgress = 100;
         if (IsAnimatedGif)
         {
             _gifBytes = bytes;
