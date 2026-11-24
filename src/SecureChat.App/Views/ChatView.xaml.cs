@@ -517,6 +517,7 @@ public partial class ChatView : ContentView
         ContactLabel.Text = _conversation.Username;
         ContactAvatar.Source = AvatarSource(_conversation.AvatarBase64);
         KeyWarningLabel.IsVisible = _conversation.KeysChanged;
+        _ = RefreshVerifyBadgeAsync();
         ApplyConnectionState(_chatManager.IsOnline, offline: _chatManager.IsOffline);
         FillProfile();
         LoadMessages();
