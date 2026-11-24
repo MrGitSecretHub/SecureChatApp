@@ -85,11 +85,11 @@ public partial class DesktopSpacesPage : ContentPage
             var avatar = new Border
             {
                 WidthRequest = 38, HeightRequest = 38,
-                BackgroundColor = (Color?)Application.Current?.Resources["AccentSoft"] ?? Colors.CornflowerBlue,
+                BackgroundColor = SecureChat.App.Views.SpaceAvatar.ColorFor(string.IsNullOrEmpty(space.Id) ? space.Name : space.Id),
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
                 Content = new Label
                 {
-                    Text = string.IsNullOrEmpty(space.Name) ? "?" : space.Name[..1].ToUpperInvariant(),
+                    Text = SecureChat.App.Views.SpaceAvatar.GlyphFor(space.Type),
                     FontSize = 14, FontAttributes = FontAttributes.Bold,
                     TextColor = Colors.White,
                     HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center
@@ -139,6 +139,7 @@ public partial class DesktopSpacesPage : ContentPage
         DetailSubtitle.Text = string.Empty;
         DetailBody.IsVisible = true;
         DetailName.Text = space.Name;
+        DetailType.TextColor = SecureChat.App.Views.SpaceAvatar.ColorFor(string.IsNullOrEmpty(space.Id) ? space.Name : space.Id);
         DetailType.Text = space.Type;
         DetailMembers.Text = $"{space.MemberCount} участников" + (space.TopicCount > 0 ? $", {space.TopicCount} тем" : string.Empty);
         DetailDescription.Text = space.Description;
@@ -181,12 +182,11 @@ public partial class DesktopSpacesPage : ContentPage
                 var space = _all.FirstOrDefault(s => s.Id == group.Key);
                 var btn = new Button
                 {
-                    Text = string.IsNullOrEmpty(space?.Name) ? "◉" : space.Name[..1].ToUpperInvariant(),
+                    Text = SecureChat.App.Views.SpaceAvatar.GlyphFor(space?.Type ?? "group"),
                     WidthRequest = 36, HeightRequest = 36, CornerRadius = 18, Padding = 0, FontSize = 12,
                     TextColor = Colors.White,
-                    BackgroundColor = list.Any(s => !s.ViewedByMe)
-                        ? (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue
-                        : (Color?)Application.Current?.Resources["SurfaceAlt"] ?? Colors.Gray
+                    BackgroundColor = SecureChat.App.Views.SpaceAvatar.ColorFor(
+                        string.IsNullOrEmpty(space?.Id) ? (space?.Name ?? group.Key) : space!.Id)
                 };
                 btn.Clicked += async (_, _) => await Navigation.PushAsync(new StoryViewerPage(list, 0));
                 StoriesStrip.Children.Add(btn);

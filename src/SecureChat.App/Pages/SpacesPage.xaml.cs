@@ -110,7 +110,7 @@ public partial class SpacesPage : ContentPage
                     HeightRequest = 38,
                     CornerRadius = 19,
                     Padding = 2,
-                    Text = space?.Name?[..1].ToUpperInvariant() ?? "◉",
+                    Text = SpaceAvatar.GlyphFor(space?.Type ?? "group"),
                     TextColor = Colors.White,
                     FontSize = 12,
                     BackgroundColor = unseen
@@ -203,12 +203,12 @@ public partial class SpacesPage : ContentPage
         {
             WidthRequest = 44,
             HeightRequest = 44,
-            BackgroundColor = (Color?)Application.Current?.Resources["AccentSoft"] ?? Colors.CornflowerBlue,
+            BackgroundColor = SpaceAvatar.ColorFor(string.IsNullOrEmpty(space.Id) ? space.Name : space.Id),
             VerticalOptions = LayoutOptions.Center,
             StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
             Content = new Label
             {
-                Text = space.Icon,
+                Text = SpaceAvatar.GlyphFor(space.Type),
                 FontSize = 18,
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center
