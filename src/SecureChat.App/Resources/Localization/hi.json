@@ -77,7 +77,12 @@
   "s_verify_enter_group": "समूह #{0}:",
   "s_verify_wrong": "कोड मेल नहीं खाता। कुंजी सत्यापित नहीं।",
   "s_verify_ok": "कुंजी सत्यापित।",  "sched_removed": "निर्धारित संदेश रद्द।",
-  "sched_1h": "1 घंटे बाद",
+
+  "s_fp_copy": "कॉपी",
+  "s_fp_share": "शेयर",
+  "s_fp_copied": "फिंगरप्रिंट कॉपी हुआ। दूसरे चैनल से भेजें।",
+  "s_fp_share_text": "{0} का SecureChat कुंजी फिंगरप्रिंट: {1}",
+  "s_fp_share_title": "कुंजी फिंगरप्रिंट",  "sched_1h": "1 घंटे बाद",
   "sched_today": "आज शाम",
   "sched_tomorrow": "कल सुबह",
   "sched_saved": "{0} पर भेजने की योजना",  "backup_password": "बैकअप पासवर्ड",

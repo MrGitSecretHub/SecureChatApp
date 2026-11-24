@@ -77,7 +77,12 @@
   "s_verify_enter_group": "Group #{0}:",
   "s_verify_wrong": "Code did not match. Key not verified.",
   "s_verify_ok": "Key verified.",  "sched_removed": "Scheduled message cancelled.",
-  "sched_1h": "In 1 hour",
+
+  "s_fp_copy": "Copy",
+  "s_fp_share": "Share",
+  "s_fp_copied": "Fingerprint copied. Send it through another channel.",
+  "s_fp_share_text": "SecureChat key fingerprint for {0}: {1}",
+  "s_fp_share_title": "Key fingerprint",  "sched_1h": "In 1 hour",
   "sched_today": "This evening",
   "sched_tomorrow": "Tomorrow morning",
   "sched_saved": "Send scheduled for {0}",  "backup_password": "Backup password",

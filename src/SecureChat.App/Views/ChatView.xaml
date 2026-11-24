@@ -1512,6 +1512,16 @@
                                    FontFamily="{DynamicResource FontFamilyMono}"
                                    TextColor="{DynamicResource TextSecondary}"
                                    LineBreakMode="CharacterWrap" />
+                            <HorizontalStackLayout Spacing="8">
+                                <Button Text="{DynamicResource s_fp_copy}"
+                                        FontSize="12" HeightRequest="32"
+                                        Style="{DynamicResource SecondaryButton}"
+                                        Clicked="OnCopyFingerprintClicked" />
+                                <Button Text="{DynamicResource s_fp_share}"
+                                        FontSize="12" HeightRequest="32"
+                                        Style="{DynamicResource SecondaryButton}"
+                                        Clicked="OnShareFingerprintClicked" />
+                            </HorizontalStackLayout>
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="4">

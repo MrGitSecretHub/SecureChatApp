@@ -77,7 +77,12 @@
   "s_verify_enter_group": "المجموعة {0}:",
   "s_verify_wrong": "الرمز غير مطابق. لم يتم التحقق.",
   "s_verify_ok": "تم التحقق من المفتاح.",  "sched_removed": "تم إلغاء الرسالة المجدولة.",
-  "sched_1h": "بعد ساعة",
+
+  "s_fp_copy": "نسخ",
+  "s_fp_share": "مشاركة",
+  "s_fp_copied": "تم نسخ البصمة. أرسلها عبر قناة أخرى.",
+  "s_fp_share_text": "بصمة مفتاح SecureChat لـ {0}: {1}",
+  "s_fp_share_title": "بصمة المفتاح",  "sched_1h": "بعد ساعة",
   "sched_today": "اليوم مساءً",
   "sched_tomorrow": "غداً صباحاً",
   "sched_saved": "تم جدولة الإرسال لـ {0}",  "backup_password": "كلمة مرور النسخة",

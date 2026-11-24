@@ -77,7 +77,12 @@
   "s_verify_enter_group": "Gruppo n.{0}:",
   "s_verify_wrong": "Codice non corrisponde. Chiave non verificata.",
   "s_verify_ok": "Chiave verificata.",  "sched_removed": "Messaggio programmato annullato.",
-  "sched_1h": "Tra 1 ora",
+
+  "s_fp_copy": "Copia",
+  "s_fp_share": "Condividi",
+  "s_fp_copied": "Impronta copiata. Invia tramite un altro canale.",
+  "s_fp_share_text": "Impronta chiave SecureChat di {0}: {1}",
+  "s_fp_share_title": "Impronta della chiave",  "sched_1h": "Tra 1 ora",
   "sched_today": "Stasera",
   "sched_tomorrow": "Domani mattina",
   "sched_saved": "Invio programmato per {0}",  "backup_password": "Password backup",

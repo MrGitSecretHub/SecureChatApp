@@ -77,7 +77,12 @@
   "s_verify_enter_group": "Groupe n°{0} :",
   "s_verify_wrong": "Code incorrect. Clé non vérifiée.",
   "s_verify_ok": "Clé vérifiée.",  "sched_removed": "Message programmé annulé.",
-  "sched_1h": "Dans 1 heure",
+
+  "s_fp_copy": "Copier",
+  "s_fp_share": "Partager",
+  "s_fp_copied": "Empreinte copiée. Envoyez-la via un autre canal.",
+  "s_fp_share_text": "Empreinte de clé SecureChat de {0} : {1}",
+  "s_fp_share_title": "Empreinte de clé",  "sched_1h": "Dans 1 heure",
   "sched_today": "Ce soir",
   "sched_tomorrow": "Demain matin",
   "sched_saved": "Envoi programmé pour {0}",  "backup_password": "Mot de passe de sauvegarde",

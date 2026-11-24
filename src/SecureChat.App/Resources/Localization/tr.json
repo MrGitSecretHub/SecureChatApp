@@ -77,7 +77,12 @@
   "s_verify_enter_group": "Grup #{0}:",
   "s_verify_wrong": "Kod eşleşmedi. Anahtar doğrulanmadı.",
   "s_verify_ok": "Anahtar doğrulandı.",  "sched_removed": "Zamanlanmış mesaj iptal edildi.",
-  "sched_1h": "1 saat sonra",
+
+  "s_fp_copy": "Kopyala",
+  "s_fp_share": "Paylaş",
+  "s_fp_copied": "Parmak izi kopyalandı. Başka bir kanaldan gönderin.",
+  "s_fp_share_text": "{0} için SecureChat anahtar parmak izi: {1}",
+  "s_fp_share_title": "Anahtar parmak izi",  "sched_1h": "1 saat sonra",
   "sched_today": "Bu akşam",
   "sched_tomorrow": "Yarın sabah",
   "sched_saved": "Gönderim {0} için planlandı",  "backup_password": "Yedek parolası",

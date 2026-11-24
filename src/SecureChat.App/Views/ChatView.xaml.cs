@@ -1218,6 +1218,26 @@ public partial class ChatView : ContentView
             Loc.T("s_verify_ok", "Ключ подтверждён."), "OK");
     }
 
+    private async void OnCopyFingerprintClicked(object sender, EventArgs e)
+    {
+        var fp = ProfileFingerprint.Text;
+        if (string.IsNullOrWhiteSpace(fp)) return;
+        await Clipboard.Default.SetTextAsync(fp);
+        ShowHint(Loc.T("s_fp_copied", "Отпечаток скопирован. Отправьте его через другой канал."), isError: false);
+    }
+
+    private async void OnShareFingerprintClicked(object sender, EventArgs e)
+    {
+        var fp = ProfileFingerprint.Text;
+        if (string.IsNullOrWhiteSpace(fp)) return;
+        var text = string.Format(Loc.T("s_fp_share_text", "Отпечаток ключа SecureChat {0}: {1}"), _username, fp);
+        await Share.Default.RequestAsync(new ShareTextRequest
+        {
+            Text = text,
+            Title = Loc.T("s_fp_share_title", "Отпечаток ключа")
+        });
+    }
+
     private void SetupSendLongPress()
     {
         SendButton.Pressed += (_, _) => StartSendLongPress();

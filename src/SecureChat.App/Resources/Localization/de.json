@@ -77,7 +77,12 @@
   "s_verify_enter_group": "Gruppe #{0}:",
   "s_verify_wrong": "Code stimmt nicht. Schlüssel nicht verifiziert.",
   "s_verify_ok": "Schlüssel verifiziert.",  "sched_removed": "Geplante Nachricht abgebrochen.",
-  "sched_1h": "In 1 Stunde",
+
+  "s_fp_copy": "Kopieren",
+  "s_fp_share": "Teilen",
+  "s_fp_copied": "Fingerabdruck kopiert. Über einen anderen Kanal senden.",
+  "s_fp_share_text": "SecureChat-Schlüssel-Fingerabdruck von {0}: {1}",
+  "s_fp_share_title": "Schlüssel-Fingerabdruck",  "sched_1h": "In 1 Stunde",
   "sched_today": "Heute Abend",
   "sched_tomorrow": "Morgen früh",
   "sched_saved": "Senden geplant für {0}",  "backup_password": "Sicherungs-Passwort",

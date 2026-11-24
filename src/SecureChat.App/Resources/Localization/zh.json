@@ -77,7 +77,12 @@
   "s_verify_enter_group": "第 {0} 组：",
   "s_verify_wrong": "代码不匹配，密钥未验证。",
   "s_verify_ok": "密钥已验证。",  "sched_removed": "已取消定时消息。",
-  "sched_1h": "1小时后",
+
+  "s_fp_copy": "复制",
+  "s_fp_share": "分享",
+  "s_fp_copied": "指纹已复制，请通过其他渠道发送。",
+  "s_fp_share_text": "{0} 的 SecureChat 密钥指纹：{1}",
+  "s_fp_share_title": "密钥指纹",  "sched_1h": "1小时后",
   "sched_today": "今晚",
   "sched_tomorrow": "明早",
   "sched_saved": "已计划于 {0} 发送",  "backup_password": "备份密码",
