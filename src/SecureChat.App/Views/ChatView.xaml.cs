@@ -1167,24 +1167,55 @@ public partial class ChatView : ContentView
     private async void OnVerifyBadgeClicked(object sender, EventArgs e)
     {
         if (_username is null) return;
-        var profile = await AppServices.Get<ApiClient>().GetUserAsync(_session.ServerUrl, _session.Token!, _username);
-        if (profile is null) return;
         var page = HostPage;
         if (page is null) return;
+        var conversation = await AppServices.Get<LocalStore>().GetConversationAsync(_username);
+        if (conversation is null) return;
+
         var choice = await page.DisplayActionSheet(
             Loc.T("s_verify_title", "Верификация ключа"),
             Loc.T("common_cancel", "Отмена"), null,
             Loc.T("s_verify_show", "Показать QR-код"),
-            Loc.T("s_verify_mark", "Я сверил(а) ключ"));
+            Loc.T("s_verify_challenge", "Сверить код ключа"));
         if (choice == Loc.T("s_verify_show", "Показать QR-код"))
         {
-            await Navigation.PushAsync(new FingerprintQrPage(profile.Fingerprint));
+            await Navigation.PushAsync(new FingerprintQrPage(conversation.Fingerprint));
+            return;
         }
-        else if (choice == Loc.T("s_verify_mark", "Я сверил(а) ключ"))
+        if (choice != Loc.T("s_verify_challenge", "Сверить код ключа")) return;
+
+        // Задача: приложение скрывает случайную группу отпечатка и требует
+        // ввести её вручную — с QR/устройства собеседника, а не с этого экрана.
+        var groups = conversation.Fingerprint.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (groups.Length < 4)
         {
-            await _chatManager.AcceptNewKeysAsync(_username);
-            await RefreshVerifyBadgeAsync();
+            await page.DisplayAlert(Loc.T("s_verify_title", "Верификация ключа"),
+                Loc.T("s_verify_no_fp", "Отпечаток недоступен."), "OK");
+            return;
         }
+        var index = Random.Shared.Next(1, groups.Length - 1);
+        var shown = string.Join(" ", groups.Select((g, i) => i == index ? "••••" : g));
+        await page.DisplayAlert(
+            Loc.T("s_verify_title", "Верификация ключа"),
+            string.Format(Loc.T("s_verify_fp_hint", "Отпечаток: {0}\n\nВведите группу №{1} (4 символа) с устройства собеседника."), shown, index + 1),
+            "OK");
+        var answer = await page.DisplayPromptAsync(
+            Loc.T("s_verify_title", "Верификация ключа"),
+            string.Format(Loc.T("s_verify_enter_group", "Группа №{0}:"), index + 1),
+            Loc.T("common_ok", "OK"), Loc.T("common_cancel", "Отмена"),
+            maxLength: 8, keyboard: Keyboard.Text);
+        if (answer is null) return;
+        if (!string.Equals(answer.Trim(), groups[index], StringComparison.OrdinalIgnoreCase))
+        {
+            await page.DisplayAlert(Loc.T("s_verify_title", "Верификация ключа"),
+                Loc.T("s_verify_wrong", "Код не совпал. Ключ не подтверждён."), "OK");
+            return;
+        }
+
+        await _chatManager.AcceptNewKeysAsync(_username);
+        await RefreshVerifyBadgeAsync();
+        await page.DisplayAlert(Loc.T("s_verify_title", "Верификация ключа"),
+            Loc.T("s_verify_ok", "Ключ подтверждён."), "OK");
     }
 
     private void SetupSendLongPress()
