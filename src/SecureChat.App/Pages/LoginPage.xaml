@@ -78,7 +78,22 @@
                                     Clicked="OnRegisterClicked" />
                         </Grid>
 
-                        <ActivityIndicator x:Name="BusyIndicator"
+                                    <VerticalStackLayout Spacing="6" Margin="0,10,0,0">
+                <Label Text="{DynamicResource s_login_restore_keys}" Style="{DynamicResource FieldLabel}" />
+                <Entry x:Name="BackupKeyEntry"
+                       Placeholder="{DynamicResource s_login_backup_placeholder}"
+                       FontSize="11"
+                       IsSpellCheckEnabled="False" />
+                <Entry x:Name="BackupKeyPasswordEntry"
+                       Placeholder="{DynamicResource s_backup_password}"
+                       IsPassword="True" />
+                <Button x:Name="ImportKeyButton"
+                        Text="{DynamicResource s_login_import_keys}"
+                        Style="{DynamicResource SecondaryButton}"
+                        Clicked="OnImportKeysClicked" />
+            </VerticalStackLayout>
+
+<ActivityIndicator x:Name="BusyIndicator"
                                            IsRunning="False"
                                            IsVisible="False"
                                            Color="{DynamicResource Accent}" />

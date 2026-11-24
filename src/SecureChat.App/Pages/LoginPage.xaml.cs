@@ -8,6 +8,7 @@ public partial class LoginPage : ContentPage
     private readonly SessionStore _sessionStore = AppServices.Get<SessionStore>();
     private readonly AppSession _session = AppServices.Get<AppSession>();
     private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
+    private readonly KeyBackupService _keyBackup = AppServices.Get<KeyBackupService>();
     private bool _startupChecked;
 
     public LoginPage()
@@ -64,6 +65,30 @@ public partial class LoginPage : ContentPage
         finally
         {
             SetBusy(false);
+        }
+    }
+
+    private async void OnImportKeysClicked(object sender, EventArgs e)
+    {
+        var payload = BackupKeyEntry.Text?.Trim();
+        var password = BackupKeyPasswordEntry.Text ?? string.Empty;
+        var username = UsernameEntry.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(payload) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(username))
+        {
+            ShowStatus(Loc.T("s_login_restore_fields", "Введите логин, бэкап и пароль к бэкапу."));
+            return;
+        }
+        try
+        {
+            await _keyBackup.ImportAsync(payload, password, username);
+            BackupKeyEntry.Text = string.Empty;
+            BackupKeyPasswordEntry.Text = string.Empty;
+            ShowStatus(Loc.T("s_login_restore_ok", "Ключи восстановлены. Теперь можно войти."));
+            StatusLabel.TextColor = Colors.LightGreen;
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(string.Format(Loc.T("s_login_restore_error", "Не удалось восстановить ключи: {0}"), ex.Message));
         }
     }
 
