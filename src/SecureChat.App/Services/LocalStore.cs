@@ -1208,6 +1208,7 @@ public sealed class LocalStore
                         StringComparison.Ordinal))
                 {
                     conversation.KeysChanged = true;
+                    conversation.KeyVerified = false;
                 }
 
                 conversation.UserId = profile.Id;
