@@ -468,9 +468,7 @@ public partial class ChatsPage : ContentPage
                     Text = string.IsNullOrEmpty(first.Text) ? "◉" : first.Text[..1].ToUpperInvariant(),
                     TextColor = Colors.White,
                     FontSize = 12,
-                    BackgroundColor = unseen
-                        ? (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue
-                        : (Color?)Application.Current?.Resources["SurfaceAlt"] ?? Colors.Gray
+                    BackgroundColor = ContactAvatar.ColorFor(first.OwnerUsername)
                 };
                 if (!string.IsNullOrEmpty(first.AvatarBase64))
                 {

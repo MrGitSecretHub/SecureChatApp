@@ -32,7 +32,7 @@
                         SelectionMode="Single"
                         SelectionChanged="OnContactSelected">
             <CollectionView.EmptyView>
-                <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
+                <VerticalStackLayout Style="{DynamicResource EmptyStateCard}">
                     <Label Text="👥"
                            Style="{DynamicResource EmptyStateIcon}" />
                     <Label Text="{DynamicResource s_ui_158}"
@@ -51,7 +51,7 @@
                             <Border WidthRequest="42"
                                     HeightRequest="42"
                                     StrokeThickness="0"
-                                    BackgroundColor="{DynamicResource AccentSoft}">
+                                    BackgroundColor="{Binding AvatarColor}">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="21" />
                                 </Border.StrokeShape>

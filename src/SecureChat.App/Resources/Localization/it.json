@@ -344,7 +344,8 @@
   "ui_032": "Add contact",
   "ui_033": "Add member by username",
   "ui_034": "Add a contact by username to start chatting.",
-  "ui_035": "Add a contact by username.",
+
+  "empty_no_chats": "Ancora nessuna chat",  "ui_035": "Add a contact by username.",
   "ui_036": "Home",
   "ui_037": "Loading video\u2026",
   "ui_038": "Loading image\u2026",

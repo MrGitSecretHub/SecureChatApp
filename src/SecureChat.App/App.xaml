@@ -345,6 +345,15 @@
                 <Setter Property="FontFamily" Value="{DynamicResource FontFamilyRegular}" />
             </Style>
 
+            <Style x:Key="EmptyStateCard" TargetType="VerticalStackLayout">
+                <Setter Property="Spacing" Value="10" />
+                <Setter Property="Padding" Value="24,28" />
+                <Setter Property="HorizontalOptions" Value="Center" />
+                <Setter Property="VerticalOptions" Value="Center" />
+                <Setter Property="MaximumWidthRequest" Value="420" />
+                <Setter Property="BackgroundColor" Value="{DynamicResource SurfaceAlt}" />
+            </Style>
+
             <Style x:Key="EmptyState" TargetType="Label">
                 <Setter Property="FontSize" Value="{DynamicResource FontSizeTitle}" />
                 <Setter Property="TextColor" Value="{DynamicResource TextMuted}" />

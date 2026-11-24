@@ -119,6 +119,8 @@ public sealed class ContactVm
     public required string Username { get; init; }
     public required string Fingerprint { get; init; }
     public bool KeysChanged { get; init; }
+    public Color AvatarColor => SecureChat.App.Views.ContactAvatar.ColorFor(Username);
+
     public string Initial => string.IsNullOrWhiteSpace(Username)
         ? "?"
         : Username[..1].ToUpperInvariant();

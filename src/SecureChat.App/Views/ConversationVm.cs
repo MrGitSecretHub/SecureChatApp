@@ -15,6 +15,7 @@ public sealed class ConversationVm
     public bool HasUnread { get; init; }
     public bool KeysChanged { get; init; }
     public string Initial { get; init; } = "?";
+    public Color AvatarColor { get; init; } = Colors.CornflowerBlue;
     public ImageSource? AvatarSource { get; init; }
     public string? AvatarBase64 { get; init; }
     public string OnlineStatus { get; init; } = "Онлайн";
@@ -38,6 +39,7 @@ public sealed class ConversationVm
         KeysChanged = source.KeysChanged,
         IsArchived = source.IsArchived,
         IsMuted = source.IsMuted,
+        AvatarColor = ContactAvatar.ColorFor(source.Username),
         Initial = string.IsNullOrWhiteSpace(source.Username)
             ? "?"
             : source.Username[..1].ToUpperInvariant(),

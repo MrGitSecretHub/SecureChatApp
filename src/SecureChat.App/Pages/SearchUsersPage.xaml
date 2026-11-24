@@ -33,7 +33,7 @@
                         Grid.Row="2"
                         SelectionMode="None">
             <CollectionView.EmptyView>
-                <VerticalStackLayout Padding="24,32" Spacing="10" VerticalOptions="Center">
+                <VerticalStackLayout Style="{DynamicResource EmptyStateCard}">
                     <Label Text="🔍"
                            Style="{DynamicResource EmptyStateIcon}" />
                     <Label x:Name="EmptyTitleLabel"

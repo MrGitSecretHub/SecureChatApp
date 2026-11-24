@@ -2658,6 +2658,18 @@ public partial class ChatView : ContentView
         }
     }
 
+    private async void OnQuickReactionClicked(object sender, EventArgs e)
+    {
+        if (sender is not Button button) return;
+        if (button.BindingContext is not MessageVm message) return;
+        var emoji = button.CommandParameter as string ?? "👍";
+        try
+        {
+            await _chatManager.ToggleReactionAsync(message.Id, emoji);
+        }
+        catch { }
+    }
+
     private async void OnActionCopyClicked(object sender, EventArgs e)
     {
         if (GetMessage(sender) is { } message)

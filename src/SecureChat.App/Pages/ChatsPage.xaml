@@ -116,10 +116,10 @@
                         ItemsLayout="VerticalList"
                         VerticalScrollBarVisibility="Never">
             <CollectionView.EmptyView>
-                <VerticalStackLayout Padding="16,20" Spacing="6" VerticalOptions="Center">
+                <VerticalStackLayout Style="{DynamicResource EmptyStateCard}">
                     <Label Text="💬"
                            Style="{DynamicResource EmptyStateIcon}" />
-                    <Label Text="Пока нет чатов"
+                    <Label Text="{DynamicResource s_empty_no_chats}"
                            Style="{DynamicResource EmptyStateTitle}" />
                     <Label Text="{DynamicResource s_ui_034}"
                            Style="{DynamicResource EmptyStateCaption}" />
@@ -135,7 +135,7 @@
                             <Grid WidthRequest="40"
                                   HeightRequest="40">
                                 <Border StrokeThickness="0"
-                                        BackgroundColor="{DynamicResource AccentSoft}">
+                                        BackgroundColor="{Binding AvatarColor}">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="20" />
                                     </Border.StrokeShape>

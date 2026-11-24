@@ -83,6 +83,14 @@
                 </Border>
                 <Button x:Name="OpenSpaceButton" Text="Открыть пространство" Style="{DynamicResource PrimaryButton}" Clicked="OnOpenSpaceClicked" />
                 <Button x:Name="DetailStoriesButton" Text="Истории пространства" Style="{DynamicResource SecondaryButton}" Clicked="OnDetailStoriesClicked" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <Button x:Name="DetailMediaButton" Grid.Column="0"
+                            Text="📷 Медиа" Style="{DynamicResource SecondaryButton}"
+                            Clicked="OnDetailMediaClicked" />
+                    <Button x:Name="DetailSettingsButton" Grid.Column="1"
+                            Text="⚙ Настройки" Style="{DynamicResource SecondaryButton}"
+                            Clicked="OnDetailSettingsClicked" />
+                </Grid>
             </VerticalStackLayout>
             <Button Grid.Row="3" x:Name="CreateSpaceButton" Text="＋ Создать пространство"
                     Style="{DynamicResource PrimaryButton}" MaximumWidthRequest="320" HorizontalOptions="Start"

@@ -151,6 +151,18 @@ public partial class DesktopSpacesPage : ContentPage
         await Navigation.PushAsync(new SpaceChatPage(_selected.Id, _selected.Name, _selected.Type, _selected.CanPost));
     }
 
+    private async void OnDetailMediaClicked(object sender, EventArgs e)
+    {
+        if (_selected is null) return;
+        await Navigation.PushAsync(new SpaceMediaPage(_selected.Id, null));
+    }
+
+    private async void OnDetailSettingsClicked(object sender, EventArgs e)
+    {
+        if (_selected is null) return;
+        await Navigation.PushAsync(new SpaceSettingsPage(_selected.Id, _selected.Name, _selected.Type));
+    }
+
     private async void OnDetailStoriesClicked(object sender, EventArgs e)
     {
         if (_selected is null) return;

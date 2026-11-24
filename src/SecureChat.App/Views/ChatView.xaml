@@ -294,7 +294,7 @@
                             ItemsLayout="VerticalList"
                             BackgroundColor="Transparent">
                 <CollectionView.EmptyView>
-                    <VerticalStackLayout Padding="24,32" Spacing="8" VerticalOptions="Center">
+                    <VerticalStackLayout Style="{DynamicResource EmptyStateCard}">
                         <Label Text="✉️"
                                Style="{DynamicResource EmptyStateIcon}" />
                         <Label Text="{DynamicResource s_ui_085}"
@@ -975,10 +975,29 @@
                                         </CollectionView>
 
                                         <!-- Панель действий: видна у выделенного сообщения -->
-                                        <HorizontalStackLayout IsVisible="{Binding IsSelected}"
-                                                               Spacing="2"
-                                                               Margin="0,4,0,0"
-                                                               HorizontalOptions="End">
+                                        <Border IsVisible="{Binding IsSelected}"
+                                                BackgroundColor="{DynamicResource SurfaceAlt}"
+                                                Stroke="{DynamicResource BorderColor}"
+                                                StrokeThickness="1"
+                                                Padding="4,3"
+                                                Margin="0,4,0,0"
+                                                HorizontalOptions="End">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="14" />
+                                            </Border.StrokeShape>
+                                            <HorizontalStackLayout Spacing="2">
+                                                <Button Style="{StaticResource BubbleActionButton}"
+                                                        Text="👍" FontSize="13"
+                                                        CommandParameter="👍"
+                                                        Clicked="OnQuickReactionClicked" />
+                                                <Button Style="{StaticResource BubbleActionButton}"
+                                                        Text="❤️" FontSize="13"
+                                                        CommandParameter="❤️"
+                                                        Clicked="OnQuickReactionClicked" />
+                                                <Button Style="{StaticResource BubbleActionButton}"
+                                                        Text="😂" FontSize="13"
+                                                        CommandParameter="😂"
+                                                        Clicked="OnQuickReactionClicked" />
                                             <Button Style="{StaticResource BubbleActionButton}"
                                                     Text="📋"
                                                     CommandParameter="{Binding .}"
@@ -1010,14 +1029,15 @@
                                                     CommandParameter="{Binding .}"
                                                     Clicked="OnActionEditClicked"
                                                     ToolTipProperties.Text="{DynamicResource s_ui_141}" />
-                                            <Button Style="{StaticResource BubbleActionButton}"
-                                                    Text="🗑️"
-                                                    TextColor="{DynamicResource Danger}"
-                                                    IsVisible="{Binding IsMine}"
-                                                    CommandParameter="{Binding .}"
-                                                    Clicked="OnActionDeleteClicked"
-                                                    ToolTipProperties.Text="Удалить" />
-                                        </HorizontalStackLayout>
+                                                <Button Style="{StaticResource BubbleActionButton}"
+                                                        Text="🗑️"
+                                                        TextColor="{DynamicResource Danger}"
+                                                        IsVisible="{Binding IsMine}"
+                                                        CommandParameter="{Binding .}"
+                                                        Clicked="OnActionDeleteClicked"
+                                                        ToolTipProperties.Text="Удалить" />
+                                            </HorizontalStackLayout>
+                                        </Border>
 
                                         <!-- Мета: закреплено, черновик, изменено, время, статус доставки -->
                                         <HorizontalStackLayout Spacing="5"
