@@ -375,6 +375,10 @@
                                     Text="{DynamicResource s_backup_import}"
                                     Style="{DynamicResource SecondaryButton}"
                                     Clicked="OnImportKeysClicked" />
+                            <Button x:Name="CheckBackupButton"
+                                    Text="{DynamicResource s_backup_check}"
+                                    Style="{DynamicResource SecondaryButton}"
+                                    Clicked="OnCheckBackupClicked" />
                         </HorizontalStackLayout>
                     </VerticalStackLayout>
 

@@ -1218,6 +1218,29 @@ public partial class SettingsPage : ContentPage
     }
 
 
+    private async void OnCheckBackupClicked(object sender, EventArgs e)
+    {
+        var password = BackupPasswordEntry.Text;
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            await DisplayAlert(Loc.T("backup_title", "Key backup"), Loc.T("backup_need_password", "Enter a password."), "OK");
+            return;
+        }
+        try
+        {
+            var payload = await _keyBackup.ExportAsync(password);
+            var restored = await _keyBackup.ImportAsync(payload, password, _session.Username);
+            var ok = string.Equals(restored.SigningPublicKey, _session.Identity!.SigningPublicKey, StringComparison.Ordinal);
+            await DisplayAlert(Loc.T("backup_title", "Key backup"),
+                ok ? Loc.T("backup_check_ok", "Backup verified: encryption and password are correct.")
+                   : Loc.T("backup_check_fail", "Backup check failed: keys do not match."), "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(Loc.T("common_error", "Error"), ex.Message, "OK");
+        }
+    }
+
     private async void OnExportKeysClicked(object sender, EventArgs e)
     {
         var password = BackupPasswordEntry.Text;
