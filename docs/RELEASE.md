@@ -36,15 +36,41 @@ dotnet build src/SecureChat.App/SecureChat.App.csproj -f net9.0-android -c Relea
 из `src\SecureChat.Server` и проверить `https://localhost:5443/api/health`
 → `{"status":"ok"}`.
 
+## Проверка артефакта из GitHub Release
+
+Скачайте APK из Release и сверьте его с локальной сборкой:
+
+```powershell
+$apk = "C:\Users\Administrator\Desktop\SecureChat-APK\SecureChat-1.1.apk"
+Get-FileHash $apk -Algorithm SHA256
+```
+
+Ожидаемый хеш локальной сборки:
+`6CB00B1D2DAA72CA399581C8DE1BFB4F1B310098CF62392A8A72A1105D4B4B31`.
+
+Подпись должна совпадать с сертификатом из `keys/securechat-release.keystore`:
+
+```powershell
+& "C:\Program Files (x86)\Android\android-sdk\build-tools\35.0.0\apksigner.bat" `
+  verify --verbose --print-certs $apk
+```
+
+Ожидаемый `Signer #1 certificate SHA-256 digest`:
+`dee444519e73b76bf940cb63d4bbf13783198308447d2eac1ed28030002c4664`.
+Версия пакета: `versionCode=2`, `versionName=1.1`, подпись v2 и v3.
+Если сертификат отличается, APK собран отладочным ключом — он не встанет
+поверх уже установленного приложения.
+
+Хеш Windows `publish\win\SecureChat.App.exe`:
+`904CA121A60FB653C9B1A08D4AC2388B78E678AFAD37A684DD02E024D74BDD92`.
+
 ## Что осталось заблокированным
 
-1. **GitHub Release** — в репозитории нет `remote`. Нужно сообщить URL,
-   выполнить `git remote add origin <URL>` и запушить коммиты и тег `v1.1`.
-2. **Секреты CI для подписи APK** — `ANDROID_KEYSTORE_BASE64`,
-   `ANDROID_KEYSTORE_PASS`, `ANDROID_KEY_ALIAS`. Без них GitHub Actions
-   подпишет APK отладочным ключом — такое обновление не встанет поверх
-   уже установленного приложения.
-3. **Push-уведомления в фоне** — нужны Firebase-проект (FCM) или публичный
+1. **Push-уведомления в фоне** — нужны Firebase-проект (FCM) или публичный
    ntfy-сервер и адрес, доступный с телефона.
-4. **Скриншоты для README** — нужны изображения от пользователя
+2. **Скриншоты для README** — нужны изображения от пользователя
    (список чатов, переписка, пространства, истории, настройки).
+3. **Секреты CI для подписи APK** — `ANDROID_KEYSTORE_BASE64`,
+   `ANDROID_KEYSTORE_PASS`, `ANDROID_KEY_ALIAS`. Если Release уже собран
+   без них, проверьте подпись по инструкции выше; при несовпадении добавьте
+   секреты и перезапустите workflow.
