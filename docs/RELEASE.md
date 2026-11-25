@@ -4,6 +4,13 @@
 Документ на русском; текст для GitHub Release лежит в
 [RELEASE_NOTES_1.1.md](RELEASE_NOTES_1.1.md).
 
+## Опубликованный релиз
+
+https://github.com/MrGitSecretHub/SecureChatApp/releases/tag/v1.1
+
+Ассеты: `SecureChat-v1.1.apk`, `SecureChat.App.exe`, `SecureChat-1.1-win.zip`
+(полная папка `publish\win` — exe один не запустится без DLL).
+
 ## Версия
 
 - `ApplicationDisplayVersion` — `1.1` (`src/SecureChat.App/SecureChat.App.csproj`).
