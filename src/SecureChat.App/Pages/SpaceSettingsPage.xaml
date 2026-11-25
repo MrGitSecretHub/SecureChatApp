@@ -101,6 +101,11 @@
                     <Button Text="Сохранить"
                             Style="{DynamicResource PrimaryButton}"
                             Clicked="OnSaveClicked" />
+                    <Button x:Name="RotateKeyButton"
+                            Text="{DynamicResource s_key_rotate}"
+                            Style="{DynamicResource SecondaryButton}"
+                            IsVisible="False"
+                            Clicked="OnRotateKeyClicked" />
                     <Button x:Name="DistributeKeyButton"
                             Text="🔑 Раздать ключ всем"
                             Style="{DynamicResource SecondaryButton}"

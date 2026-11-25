@@ -135,6 +135,7 @@ public sealed class SpaceService
 
     /// <summary>Ключ пространства доставлен — можно загружать историю.</summary>
     public event Action<string>? SpaceKeyReady;
+    public event Action<string>? SpaceKeyRotated;
     public event Action<string, string, string>? SpaceActivityReceived;
 
     private HubConnection? _subscribedConnection;
@@ -193,6 +194,10 @@ public sealed class SpaceService
 
         // Кто-то вступил в публичное пространство: ключ до него должен доставить
         // любой онлайн-участник — пробуем мы, если ключ у нас есть.
+        connection.On<string>(
+            "SpaceKeyRotated",
+            spaceId => SpaceKeyRotated?.Invoke(spaceId));
+
         connection.On<string, string, string>(
             "SpaceActivity",
             (spaceId, username, activity) => SpaceActivityReceived?.Invoke(spaceId, username, activity));
@@ -266,6 +271,26 @@ public sealed class SpaceService
         finally
         {
             Interlocked.Exchange(ref _distributingForAll, 0);
+        }
+    }
+
+    public async Task<bool> RotateKeyAsync(string spaceId)
+    {
+        try
+        {
+            var tcp = await TryTcpAsync("spaces.rotateKey", new TcpSpaceIdRequest { SpaceId = spaceId }, CancellationToken.None);
+            if (!tcp.HasValue)
+            {
+                var connection = await GetConnectionAsync();
+                return await connection.InvokeAsync<bool>("RotateSpaceKey", spaceId);
+            }
+            InvalidateSpaceKey(spaceId);
+            SpaceKeyRotated?.Invoke(spaceId);
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -1313,6 +1338,13 @@ public sealed class SpaceService
                            payload.Value.TryGetProperty("username", out var un) ? un.GetString() : null;
             if (!string.IsNullOrWhiteSpace(spaceId) && !string.IsNullOrWhiteSpace(userId))
                 _ = ProvideSpaceKeyAsync(spaceId, userId, username ?? string.Empty);
+        }
+        else if (type == "spaceKeyRotated")
+        {
+            var spaceId = payload.HasValue && payload.Value.ValueKind == System.Text.Json.JsonValueKind.String
+                ? payload.Value.GetString()
+                : null;
+            if (!string.IsNullOrWhiteSpace(spaceId)) SpaceKeyRotated?.Invoke(spaceId);
         }
         else if (type == "spaceAdded" || type == "joinRequest" || type == "topicCreated")
         {

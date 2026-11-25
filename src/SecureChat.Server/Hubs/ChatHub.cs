@@ -746,6 +746,29 @@ public sealed class ChatHub : Hub
     }
 
     /// <summary>Активность участника в пространстве (печатает, загрузка, запись).</summary>
+    /// <summary>Сменяет общий ключ пространства и выдаёт его всем участникам.</summary>
+    public async Task<bool> RotateSpaceKey(string spaceId)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId)) return false;
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin)) return false;
+
+        var newKey = SpaceCrypto.CreateSpaceKey();
+        var members = await _spaces.GetMembersAsync(spaceId);
+        foreach (var member in members)
+        {
+            var profile = await _repository.GetUserByIdAsync(member.UserId);
+            if (profile is null || string.IsNullOrWhiteSpace(profile.EncryptionPublicKey)) continue;
+            var envelope = SpaceCrypto.EncryptSpaceKey(
+                newKey, spaceId, member.UserId, profile.EncryptionPublicKey);
+            await _spaces.SaveSpaceKeyAsync(spaceId, member.UserId, ChatJson.Serialize(envelope));
+        }
+
+        await Clients.Group($"space:{spaceId}").SendAsync("SpaceKeyRotated", spaceId);
+        return true;
+    }
+
     public async Task SpaceActivity(string spaceId, string activity)
     {
         var userId = Context.UserIdentifier;

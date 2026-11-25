@@ -147,6 +147,7 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageDeleted += OnSpaceMessageDeleted;
         _spaces.TopicUpdated += OnTopicUpdated;
         _spaces.SpaceActivityReceived += OnSpaceActivityReceived;
+        _spaces.SpaceKeyRotated += OnSpaceKeyRotated;
 
         // TCP-транспорт: события пространств приходят не через SignalR.
         _chatService.Tcp.SpaceEventReceived += OnTcpSpaceEvent;
@@ -205,6 +206,7 @@ public partial class SpaceChatPage : ContentPage
         _spaces.SpaceMessageDeleted -= OnSpaceMessageDeleted;
         _spaces.TopicUpdated -= OnTopicUpdated;
         _spaces.SpaceActivityReceived -= OnSpaceActivityReceived;
+        _spaces.SpaceKeyRotated -= OnSpaceKeyRotated;
         _scheduledPosts.PostSent -= OnScheduledPostSent;
         _chatService.Tcp.SpaceEventReceived -= OnTcpSpaceEvent;
         AppServices.Get<AppSession>().AppearanceChanged -= OnAppearanceChanged;
@@ -304,6 +306,30 @@ public partial class SpaceChatPage : ContentPage
         });
     }
 
+
+    private void OnSpaceKeyRotated(string spaceId)
+    {
+        if (!string.Equals(spaceId, _spaceId, StringComparison.Ordinal)) return;
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            _spaces.InvalidateSpaceKey(_spaceId);
+            await ShowHintAsync(Loc.T("key_rotated", "Ключ пространства сменён."), isError: false);
+            await LoadAsync();
+        });
+    }
+
+    private async Task ShowHintAsync(string text, bool isError)
+    {
+        ActivityLabel.Text = text;
+        ActivityLabel.TextColor = isError
+            ? (Color?)Application.Current?.Resources["Danger"] ?? Colors.Red
+            : (Color?)Application.Current?.Resources["Accent"] ?? Colors.CornflowerBlue;
+        ActivityLabel.IsVisible = true;
+        ActivityLabel.Opacity = 1;
+        try { await ActivityLabel.FadeTo(0, 2600); } catch { }
+        ActivityLabel.IsVisible = false;
+        ActivityLabel.Opacity = 1;
+    }
 
     private void OnSpaceActivityReceived(string spaceId, string username, string activity)
     {

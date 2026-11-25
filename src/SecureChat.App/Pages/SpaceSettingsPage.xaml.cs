@@ -79,6 +79,7 @@ public partial class SpaceSettingsPage : ContentPage
                 PublicRow.IsVisible = isAdmin;
                 PublicSwitch.IsToggled = _space.IsPublic;
                 HiddenRow.IsVisible = isAdmin;
+                RotateKeyButton.IsVisible = isAdmin;
                 HiddenSwitch.IsToggled = _space.IsHidden;
                 SignRow.IsVisible = isAdmin && _spaceType == SpaceTypes.Channel;
                 SignSwitch.IsToggled = _space.SignMessages;
@@ -119,6 +120,20 @@ public partial class SpaceSettingsPage : ContentPage
         _currentWallpaperDim = await session.GetSpaceWallpaperDimAsync(_spaceId);
         UpdateWallpaperPreview();
         SpaceWallpaperDimSwitch.IsToggled = _currentWallpaperDim;
+    }
+
+    private async void OnRotateKeyClicked(object sender, EventArgs e)
+    {
+        var confirmed = await DisplayAlert(
+            Loc.T("s_key_rotate", "Сменить ключ пространства"),
+            Loc.T("s_key_rotate_warn", "Новый ключ получат все участники. Старые сообщения останутся доступными только локально. Продолжить?"),
+            Loc.T("common_yes", "Да"), Loc.T("common_no", "Нет"));
+        if (!confirmed) return;
+        var ok = await AppServices.Get<SpaceService>().RotateKeyAsync(_spaceId);
+        await DisplayAlert(
+            Loc.T("s_key_rotate", "Сменить ключ пространства"),
+            ok ? Loc.T("s_key_rotated", "Ключ сменён.") : Loc.T("s_key_rotate_fail", "Не удалось сменить ключ."),
+            "OK");
     }
 
     private async void OnDistributeKeyClicked(object sender, EventArgs e)

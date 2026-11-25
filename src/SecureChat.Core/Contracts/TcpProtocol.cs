@@ -52,6 +52,7 @@ public static class TcpMethods
     public const string SpaceKey = "spaces.key";
     public const string SpaceKeyRequest = "spaces.keyRequest";
     public const string SpaceKeySave = "spaces.keySave";
+    public const string SpaceRotateKey = "spaces.rotateKey";
     public const string SpaceKeysMissing = "spaces.keysMissing";
     public const string SpaceKeysSaveAll = "spaces.keysSaveAll";
     public const string SpaceInvite = "spaces.invite";
