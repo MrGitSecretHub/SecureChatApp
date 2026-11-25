@@ -670,7 +670,11 @@ public sealed class TcpChatServer : BackgroundService
                 }
                 var ids = await _spaces.GetMemberIdsAsync(req.SpaceId, cancellationToken);
                 foreach (var id in ids)
-                    await SendToUserAsync(id, new TcpFrame { Type = "spaceKeyRotated", Id = req.SpaceId }, cancellationToken);
+                    await SendToUserAsync(id, new TcpFrame
+                    {
+                        Type = "spaceKeyRotated",
+                        Payload = JsonSerializer.SerializeToElement(req.SpaceId, SpaceJsonOptions)
+                    }, cancellationToken);
                 await SendToCallerAsync(principal, new TcpFrame { Type = "spaces.rotateKey.result", Id = frame.Id, Accepted = true }, cancellationToken);
                 return;
             }

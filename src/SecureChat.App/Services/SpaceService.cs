@@ -192,11 +192,15 @@ public sealed class SpaceService
                 await JoinGroupsForCurrentConnectionAsync();
             });
 
-        // Кто-то вступил в публичное пространство: ключ до него должен доставить
-        // любой онлайн-участник — пробуем мы, если ключ у нас есть.
+        // Админ сменил ключ пространства: сбрасываем кэш, иначе новые сообщения
+        // не расшифруются старым ключом.
         connection.On<string>(
             "SpaceKeyRotated",
-            spaceId => SpaceKeyRotated?.Invoke(spaceId));
+            spaceId =>
+            {
+                InvalidateSpaceKey(spaceId);
+                SpaceKeyRotated?.Invoke(spaceId);
+            });
 
         connection.On<string, string, string>(
             "SpaceActivity",
@@ -1344,7 +1348,11 @@ public sealed class SpaceService
             var spaceId = payload.HasValue && payload.Value.ValueKind == System.Text.Json.JsonValueKind.String
                 ? payload.Value.GetString()
                 : null;
-            if (!string.IsNullOrWhiteSpace(spaceId)) SpaceKeyRotated?.Invoke(spaceId);
+            if (!string.IsNullOrWhiteSpace(spaceId))
+            {
+                InvalidateSpaceKey(spaceId);
+                SpaceKeyRotated?.Invoke(spaceId);
+            }
         }
         else if (type == "spaceAdded" || type == "joinRequest" || type == "topicCreated")
         {
