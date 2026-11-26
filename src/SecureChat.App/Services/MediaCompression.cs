@@ -54,4 +54,40 @@ public static class MediaCompression
             return (data, contentType);
         }
     }
+
+    /// <summary>
+    /// Небольшая копия для предпросмотра в ленте: full-size картинка после
+    /// закрытия просмотрщика заставляла CollectionView заново декодировать
+    /// многомегабайтный файл, и окно могло зависнуть.
+    /// </summary>
+    public static byte[] MakeThumbnail(byte[] data, string contentType, int maxSide = 640)
+    {
+        if (data.Length < 200 * 1024 ||
+            !contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
+            contentType.Contains("gif", StringComparison.OrdinalIgnoreCase))
+        {
+            return data;
+        }
+
+        try
+        {
+            using var source = new MemoryStream(data);
+            var image = PlatformImage.FromStream(source);
+            if (image is null) return data;
+
+            var scale = Math.Min(1.0, (double)maxSide / Math.Max(image.Width, image.Height));
+            if (scale >= 1.0) return data;
+            var w = Math.Max(1, (int)Math.Round(image.Width * scale));
+            var h = Math.Max(1, (int)Math.Round(image.Height * scale));
+            using var resized = image.Resize(w, h, ResizeMode.Fit);
+            using var target = new MemoryStream();
+            resized.Save(target, ImageFormat.Jpeg, 75);
+            var result = target.ToArray();
+            return result.Length > 0 && result.Length < data.Length ? result : data;
+        }
+        catch
+        {
+            return data;
+        }
+    }
 }

@@ -887,7 +887,12 @@ KeyWaitBanner.IsVisible = false;
                 await File.WriteAllBytesAsync(path, bytes);
             }
 
-            if (message.IsImage) message.SetImageContent(bytes);
+            if (message.IsImage)
+            {
+                var thumb = await Task.Run(() => MediaCompression.MakeThumbnail(
+                    bytes, message.Media?.ContentType ?? string.Empty));
+                message.SetImageContent(thumb);
+            }
             message.TransferProgress = 100;
             message.MediaDownloaded = true;
         }
@@ -920,7 +925,9 @@ KeyWaitBanner.IsVisible = false;
                 FileSystem.CacheDirectory, message.Id + Path.GetExtension(message.FileName));
             var bytes = await _spaces.DownloadMediaAsync(message.Media);
             await File.WriteAllBytesAsync(path, bytes);
-            message.SetImageContent(bytes);
+            var thumb = await Task.Run(() => MediaCompression.MakeThumbnail(
+                bytes, message.Media?.ContentType ?? string.Empty));
+            message.SetImageContent(thumb);
             message.MediaDownloaded = true;
             _mediaDownloadErrors.Remove(message.Id);
         }
@@ -1822,6 +1829,12 @@ KeyWaitBanner.IsVisible = false;
             if (File.Exists(path))
             {
                 bytes = await File.ReadAllBytesAsync(path);
+                if (message.IsImage && !message.IsImageReady)
+                {
+                    var thumb = await Task.Run(() => MediaCompression.MakeThumbnail(
+                        bytes, message.Media?.ContentType ?? string.Empty));
+                    message.SetImageContent(thumb);
+                }
             }
             else
             {
@@ -1833,7 +1846,9 @@ KeyWaitBanner.IsVisible = false;
 
                 if (message.IsImage)
                 {
-                    message.SetImageContent(bytes);
+                    var thumb = await Task.Run(() => MediaCompression.MakeThumbnail(
+                        bytes, message.Media?.ContentType ?? string.Empty));
+                    message.SetImageContent(thumb);
                 }
                 message.TransferProgress = 100;
             }
