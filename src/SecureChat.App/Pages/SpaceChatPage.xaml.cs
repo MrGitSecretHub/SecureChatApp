@@ -27,6 +27,7 @@ public partial class SpaceChatPage : ContentPage
     private readonly LocalStore _localStore = AppServices.Get<LocalStore>();
     private readonly ChatService _chatService = AppServices.Get<ChatService>();
     private readonly Dictionary<string, (PollVoteData Data, string Voter)> _spaceVotes = new();
+    private readonly HashSet<string> _mediaDownloadErrors = new(StringComparer.Ordinal);
     private readonly ChatManager _chat = AppServices.Get<ChatManager>();
     private readonly SecureChat.App.Scheduling.ScheduledPostService _scheduledPosts =
         AppServices.Get<SecureChat.App.Scheduling.ScheduledPostService>();
@@ -895,11 +896,44 @@ KeyWaitBanner.IsVisible = false;
             // auto-download не критичен — картинку можно открыть вручную,
             // но показываем причину, чтобы было понятно, почему она не появилась.
             message.TransferProgress = 100;
-            MainThread.BeginInvokeOnMainThread(async () =>
-                await DisplayAlert(
-                    Loc.T("common_error", "Error"),
-                    string.Format(Loc.T("uc_036"), message.FileName, ex.Message),
-                    "OK"));
+            if (_mediaDownloadErrors.Add(message.Id))
+            {
+                MainThread.BeginInvokeOnMainThread(async () =>
+                    await DisplayAlert(
+                        Loc.T("common_error", "Error"),
+                        string.Format(Loc.T("uc_036"), message.FileName, ex.Message),
+                        "OK"));
+            }
+        }
+    }
+
+    private async void OnRetryImageClicked(object sender, EventArgs e)
+    {
+        if (sender is not Button button ||
+            button.CommandParameter is not SpaceMessageVm message ||
+            message.Media is null) return;
+
+        button.IsEnabled = false;
+        try
+        {
+            var path = Path.Combine(
+                FileSystem.CacheDirectory, message.Id + Path.GetExtension(message.FileName));
+            var bytes = await _spaces.DownloadMediaAsync(message.Media);
+            await File.WriteAllBytesAsync(path, bytes);
+            message.SetImageContent(bytes);
+            message.MediaDownloaded = true;
+            _mediaDownloadErrors.Remove(message.Id);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(
+                Loc.T("common_error", "Error"),
+                string.Format(Loc.T("uc_036"), message.FileName, ex.Message),
+                "OK");
+        }
+        finally
+        {
+            button.IsEnabled = true;
         }
     }
 

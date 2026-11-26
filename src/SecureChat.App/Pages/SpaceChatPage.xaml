@@ -637,7 +637,7 @@
                                                      Padding="0"
                                                      Style="{DynamicResource GhostButton}"
                                                      CommandParameter="{Binding .}"
-                                                     Clicked="OnOpenMediaClicked" />
+                                                     Clicked="OnRetryImageClicked" />
                                          </VerticalStackLayout>
                                     </Grid>
                                     <!-- Прогресс загрузки/отправки поверх превью (как в Telegram) -->
