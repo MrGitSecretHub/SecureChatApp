@@ -1007,5 +1007,13 @@
   "poll_need_two": "Введите вопрос и минимум два варианта.",
   "poll_votes": "Голосов: {0}",
   "menu_quick_replies": "Быстрые ответы",
-  "menu_auto_delete": "Автоудаление"
+  "menu_auto_delete": "Автоудаление",
+  "forum_topics": "Темы",
+  "forum_new_topic": "Новая тема",
+  "forum_locked": "Закрыта",
+  "forum_empty": "В этой теме ещё нет сообщений",
+  "forum_start": "Напишите первым",
+  "forum_message_placeholder": "Сообщение в тему",
+  "forum_created_by": "Создал {0}",
+  "forum_messages_count": "{0} сообщений"
 }

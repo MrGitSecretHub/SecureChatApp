@@ -33,6 +33,8 @@ public partial class SpaceChatPage : ContentPage
     private readonly LinkPreviewService _previewService = AppServices.Get<LinkPreviewService>();
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<SpaceMessageVm> _messages = new();
+    private readonly ObservableCollection<TopicDto> _topics = new();
+    private bool _forumPaneVisible;
     private readonly string _spaceId;
     private readonly string _spaceName;
     private readonly string _spaceType;
@@ -134,7 +136,15 @@ public partial class SpaceChatPage : ContentPage
         _myUserId = AppServices.Get<AppSession>().User?.Id;
 
         TopicsButton.IsVisible = type == SpaceTypes.Forum;
+        TopicsView.ItemsSource = _topics;
         MessagesView.ItemsSource = _messages;
+        if (type == SpaceTypes.Forum &&
+            Microsoft.Maui.Devices.DeviceInfo.Platform == Microsoft.Maui.Devices.DevicePlatform.WinUI)
+        {
+            _forumPaneVisible = true;
+            ForumTopicsPane.IsVisible = true;
+            ApplyForumPaneLayout();
+        }
         PinnedItemsViewInline.ItemsSource = _pinnedItems;
     }
 
@@ -257,6 +267,7 @@ public partial class SpaceChatPage : ContentPage
 
         MainThread.BeginInvokeOnMainThread(async () =>
         {
+            if (_forumPaneVisible) await RefreshTopicsAsync();
             if (string.Equals(topic.Id, _topicId, StringComparison.Ordinal))
             {
                 _topicTitle = topic.Title;
@@ -538,12 +549,33 @@ KeyWaitBanner.IsVisible = false;
 // Закрытая тема форума: писать в неё нельзя.
             TopicClosedBanner.IsVisible = _currentTopicClosed && _canPost;
             TopicClosedLabel.Text = _topicTitle is null
-                ? "Тема закрыта — писать в неё нельзя."
+                ? Loc.T("ui_161", "Topic closed — you cannot post here.")
                 : string.Format(Loc.T("rs_156"), _topicTitle);
 
-            SpaceInfoLabel.Text = _topicTitle is null
-                ? string.Format(Loc.T("uc_000"), members.Count)
-                : string.Format(Loc.T("fx_001"), (_currentTopicClosed ? "🔒 " : string.Empty), _topicTitle, members.Count);
+            var isForumTopic = _spaceType == SpaceTypes.Forum && _topicId is not null;
+            SpaceTitleLabel.Text = isForumTopic ? _topicTitle ?? _spaceName : _spaceName;
+            SpaceInfoLabel.Text = isForumTopic
+                ? $"🧵 {_spaceName} · {string.Format(Loc.T("uc_000"), members.Count)}"
+                : string.Format(Loc.T("uc_000"), members.Count);
+
+            TopicInfoCard.IsVisible = isForumTopic;
+            if (isForumTopic)
+            {
+                TopicInfoTitle.Text = _topicTitle ?? string.Empty;
+                var topic = _topics.FirstOrDefault(t => t.Id == _topicId);
+                var createdBy = topic?.CreatedByUsername ?? string.Empty;
+                var subtitle = string.Format(Loc.T("forum_created_by", "Started by {0}"), createdBy);
+                if (topic is not null)
+                    subtitle += " · " + string.Format(Loc.T("forum_messages_count", "{0} messages"), topic.MessageCount);
+                TopicInfoSubtitle.Text = subtitle;
+                TopicInfoLock.IsVisible = _currentTopicClosed;
+            }
+
+            EmptyStatePanel.IsVisible = isForumTopic && _messages.Count == 0;
+            MessageEntry.Placeholder = isForumTopic
+                ? Loc.T("forum_message_placeholder", "Message in topic")
+                : Loc.T("ui_153", "Message in space");
+            if (_forumPaneVisible) await RefreshTopicsAsync();
 
             UpdatePinnedBanner();
         }
@@ -2717,131 +2749,108 @@ KeyWaitBanner.IsVisible = false;
 
     private async void OnTopicsClicked(object sender, EventArgs e)
     {
+        _forumPaneVisible = !_forumPaneVisible;
+        ForumTopicsPane.IsVisible = _forumPaneVisible;
+        ApplyForumPaneLayout();
+        if (_forumPaneVisible) await RefreshTopicsAsync();
+    }
+
+    private void ApplyForumPaneLayout()
+    {
+        var isDesktop = Microsoft.Maui.Devices.DeviceInfo.Platform ==
+                        Microsoft.Maui.Devices.DevicePlatform.WinUI;
+        if (isDesktop)
+        {
+            ForumTopicsPane.WidthRequest = 288;
+            ForumTopicsPane.HorizontalOptions = LayoutOptions.Start;
+        }
+        else
+        {
+            ForumTopicsPane.WidthRequest = -1;
+            ForumTopicsPane.HorizontalOptions = LayoutOptions.Fill;
+        }
+
+        var left = _forumPaneVisible && isDesktop ? 296d : 0d;
+        MessagesView.Margin = new Thickness(left, 4, 0, 0);
+        EmptyStatePanel.Margin = new Thickness(left, 0, 0, 0);
+        TopicInfoCard.Margin = new Thickness(12 + left, 6, 12, 0);
+        LoadingPlaceholder.Margin = new Thickness(left, 0, 0, 0);
+    }
+
+    private async Task RefreshTopicsAsync()
+    {
         var topics = await _spaces.GetTopicsAsync(_spaceId);
-        if (topics.Count == 0)
-        {
-            var title = await DisplayPromptAsync(
-                "Новая тема",
-                Loc.T("rs_018", "Введите название темы:"),
-                Loc.T("rs_149", "Создать"),
-                Loc.T("common_cancel", "Отмена"),
-                maxLength: 120,
-                keyboard: Keyboard.Text);
-            if (string.IsNullOrWhiteSpace(title))
-            {
-                return;
-            }
+        _topics.Clear();
+        foreach (var topic in topics) _topics.Add(topic);
+        TopicsView.SelectedItem = _topics.FirstOrDefault(t => t.Id == _topicId);
+    }
 
-            var created = await _spaces.CreateTopicAsync(_spaceId, title, null);
-            if (created is not null)
-            {
-                _topicId = created.Id;
-                _topicTitle = created.Title;
-                await LoadAsync();
-            }
+    private async void OnTopicSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is not TopicDto topic) return;
+        _topicId = topic.Id;
+        _topicTitle = topic.Title;
+        _currentTopicClosed = topic.IsClosed;
+        await LoadAsync();
+    }
 
-            return;
-        }
+    private async void OnAddTopicClicked(object sender, EventArgs e)
+    {
+        var title = await DisplayPromptAsync(
+            Loc.T("forum_new_topic", "New topic"),
+            Loc.T("rs_018", "Enter the topic name:"),
+            Loc.T("rs_149", "Create"),
+            Loc.T("common_cancel", "Cancel"),
+            maxLength: 120,
+            keyboard: Keyboard.Text);
+        if (string.IsNullOrWhiteSpace(title)) return;
+        var created = await _spaces.CreateTopicAsync(_spaceId, title, null);
+        if (created is null) return;
+        _topicId = created.Id;
+        _topicTitle = created.Title;
+        _currentTopicClosed = false;
+        if (_forumPaneVisible) await RefreshTopicsAsync();
+        await LoadAsync();
+    }
 
-        var options = new List<string> { Loc.T("rs_195", "＋ Новая тема") };
-        options.AddRange(topics.Select(TopicLabel));
-        if (_canModerate)
-        {
-            options.Add(Loc.T("rs_189", "✏️ Переименовать тему…"));
-            options.Add(Loc.T("rs_215", "🔒 Закрыть или открыть тему…"));
-            options.Add(Loc.T("rs_193", "⬆️ Переместить тему выше"));
-            options.Add(Loc.T("rs_194", "⬇️ Переместить тему ниже"));
-            options.Add(Loc.T("rs_220", "🗑 Удалить тему…"));
-        }
-
+    private async void OnManageTopicsClicked(object sender, EventArgs e)
+    {
+        if (!_canModerate) return;
+        var topics = (await _spaces.GetTopicsAsync(_spaceId)).ToList();
+        var rename = Loc.T("rs_189", "✏️ Rename topic…");
+        var toggle = Loc.T("rs_215", "🔒 Close or reopen topic…");
+        var up = Loc.T("rs_193", "⬆️ Move topic up");
+        var down = Loc.T("rs_194", "⬇️ Move topic down");
+        var delete = Loc.T("rs_220", "🗑 Delete topic…");
         var selected = await DisplayActionSheet(
-            "Темы форума",
-            Loc.T("common_cancel", "Отмена"),
-            null,
-            options.ToArray());
-        if (string.IsNullOrWhiteSpace(selected) || selected == Loc.T("common_cancel", "Отмена"))
+            Loc.T("forum_topics", "Topics"),
+            Loc.T("common_cancel", "Cancel"), null,
+            rename, toggle, up, down, delete);
+        if (string.IsNullOrWhiteSpace(selected)) return;
+
+        if (selected == rename) { await RenameTopicAsync(topics); return; }
+        if (selected == toggle) { await ToggleTopicClosedAsync(topics); return; }
+        if (selected == up || selected == down)
         {
+            await MoveTopicAsync(topics, selected == up ? -1 : 1);
             return;
         }
-
-        if (selected == Loc.T("rs_189", "✏️ Переименовать тему…"))
+        if (selected == delete)
         {
-            await RenameTopicAsync(topics);
-            return;
-        }
-
-        if (selected == Loc.T("rs_215", "🔒 Закрыть или открыть тему…"))
-        {
-            await ToggleTopicClosedAsync(topics);
-            return;
-        }
-
-        if (selected == Loc.T("rs_193", "⬆️ Переместить тему выше") || selected == Loc.T("rs_194", "⬇️ Переместить тему ниже"))
-        {
-            await MoveTopicAsync(topics, selected == Loc.T("rs_193", "⬆️ Переместить тему выше") ? -1 : 1);
-            return;
-        }
-
-        if (selected == Loc.T("rs_220", "🗑 Удалить тему…"))
-        {
-            var target = await PickTopicAsync(topics, Loc.T("rs_064", "Какую тему удалить? Все её сообщения будут стёрты."));
-            if (target is null)
-            {
-                return;
-            }
-
-            var doomed = target;
+            var target = await PickTopicAsync(topics, Loc.T("rs_064", "Which topic to delete? All its messages will be erased."));
+            if (target is null) return;
             var confirmed = await DisplayAlert(
-                Loc.T("dg_079", "Удалить тему"),
-                string.Format(Loc.T("dg_066"), doomed.Title),
-                Loc.T("common_delete", "Удалить"), Loc.T("common_cancel", "Отмена"));
-            if (!confirmed)
-            {
-                return;
-            }
-
-            if (await _spaces.DeleteTopicAsync(_spaceId, doomed.Id) &&
-                string.Equals(_topicId, doomed.Id, StringComparison.Ordinal))
+                Loc.T("dg_079", "Delete topic"),
+                string.Format(Loc.T("dg_066"), target.Title),
+                Loc.T("common_delete", "Delete"), Loc.T("common_cancel", "Cancel"));
+            if (!confirmed) return;
+            if (await _spaces.DeleteTopicAsync(_spaceId, target.Id) &&
+                string.Equals(_topicId, target.Id, StringComparison.Ordinal))
             {
                 _topicId = null;
                 _topicTitle = null;
             }
-
-            await LoadAsync();
-            return;
-        }
-
-        if (selected == Loc.T("rs_195", "＋ Новая тема"))
-        {
-            var title = await DisplayPromptAsync(
-                "Новая тема",
-                Loc.T("rs_018", "Введите название темы:"),
-                Loc.T("rs_149", "Создать"),
-                Loc.T("common_cancel", "Отмена"),
-                maxLength: 120,
-                keyboard: Keyboard.Text);
-            if (!string.IsNullOrWhiteSpace(title))
-            {
-                var created = await _spaces.CreateTopicAsync(_spaceId, title, null);
-                if (created is not null)
-                {
-                    _topicId = created.Id;
-                    _topicTitle = created.Title;
-                    await LoadAsync();
-                }
-            }
-
-            return;
-        }
-
-        // Иначе выбрана тема: ищем её по позиции в списке (у закрытых — замок).
-        var index = options.IndexOf(selected) - 1;
-        var topic = index >= 0 && index < topics.Count ? topics[index] : null;
-        if (topic is not null)
-        {
-            _topicId = topic.Id;
-            _topicTitle = topic.Title;
-            _currentTopicClosed = topic.IsClosed;
+            if (_forumPaneVisible) await RefreshTopicsAsync();
             await LoadAsync();
         }
     }
