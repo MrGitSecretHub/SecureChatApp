@@ -469,6 +469,10 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
     public bool IsImageReady => ImageSource is not null;
     public bool IsImagePending => IsImage && ImageSource is null;
+
+    /// <summary>Картинку можно скачать повторно: медиа есть, изображения ещё нет.</summary>
+    public bool CanRetryImage => IsImage && Media is not null && ImageSource is null;
+
     public bool HasText => !string.IsNullOrEmpty(Text) && Poll is null;
 
     /// <summary>Текст с подсветкой упоминаний (для Label FormattedText); null — обычный текст.</summary>
@@ -619,8 +623,13 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
 
     public bool IsFilePending => IsFile && !MediaDownloaded;
 
-    public void SetImageBytes(byte[] bytes) =>
+    public void SetImageBytes(byte[] bytes)
+    {
         ImageSource = ImageSource.FromStream(() => new MemoryStream(bytes));
+        OnPropertyChanged(nameof(IsImageReady));
+        OnPropertyChanged(nameof(IsImagePending));
+        OnPropertyChanged(nameof(CanRetryImage));
+    }
 
     /// <summary>Для GIF дополнительно храним байты: их рисует GifWebView с полными кадрами.</summary>
     public void SetImageContent(byte[] bytes)

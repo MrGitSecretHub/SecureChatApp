@@ -624,10 +624,21 @@
                                                MaximumWidthRequest="340"
                                                MaximumHeightRequest="240"
                                                HorizontalOptions="Start" />
-                                        <Label Text="{DynamicResource s_ui_038}"
-                                               IsVisible="{Binding IsImagePending}"
-                                               FontSize="12"
-                                               TextColor="{DynamicResource TextMuted}" />
+                                         <VerticalStackLayout IsVisible="{Binding IsImagePending}"
+                                                              Spacing="4">
+                                             <Label Text="{DynamicResource s_ui_038}"
+                                                    FontSize="12"
+                                                    TextColor="{DynamicResource TextMuted}" />
+                                             <Button Text="↻"
+                                                     IsVisible="{Binding CanRetryImage}"
+                                                     FontSize="16"
+                                                     WidthRequest="36"
+                                                     HeightRequest="30"
+                                                     Padding="0"
+                                                     Style="{DynamicResource GhostButton}"
+                                                     CommandParameter="{Binding .}"
+                                                     Clicked="OnOpenMediaClicked" />
+                                         </VerticalStackLayout>
                                     </Grid>
                                     <!-- Прогресс загрузки/отправки поверх превью (как в Telegram) -->
                                     <Grid Grid.Row="0"
