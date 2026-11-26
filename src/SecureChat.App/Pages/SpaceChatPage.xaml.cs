@@ -890,10 +890,16 @@ KeyWaitBanner.IsVisible = false;
             message.TransferProgress = 100;
             message.MediaDownloaded = true;
         }
-        catch
+        catch (Exception ex)
         {
-            // auto-download не критичен — картинку можно открыть вручную
+            // auto-download не критичен — картинку можно открыть вручную,
+            // но показываем причину, чтобы было понятно, почему она не появилась.
             message.TransferProgress = 100;
+            MainThread.BeginInvokeOnMainThread(async () =>
+                await DisplayAlert(
+                    Loc.T("common_error", "Error"),
+                    string.Format(Loc.T("uc_036"), message.FileName, ex.Message),
+                    "OK"));
         }
     }
 
