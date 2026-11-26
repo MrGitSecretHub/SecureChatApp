@@ -39,6 +39,7 @@ public partial class SpaceChatPage : ContentPage
     private int _topicSortMode;
     private bool _forumPaneVisible;
     private bool _suppressTopicSelection;
+    private bool _skipNextLoad;
     private readonly string _spaceId;
     private readonly string _spaceName;
     private readonly string _spaceType;
@@ -190,6 +191,14 @@ public partial class SpaceChatPage : ContentPage
         AppServices.Get<AppSession>().AppearanceChanged += OnAppearanceChanged;
         RefreshSenderNameColors();
         ApplySpaceWallpaper();
+        Diag.Log($"ON-APPEAR skip={_skipNextLoad}");
+        if (_skipNextLoad)
+        {
+            // Возврат из полноэкранного просмотрщика: лента уже актуальна,
+            // пересоздавать все пузыри и заново скачивать медиа не нужно.
+            _skipNextLoad = false;
+            return;
+        }
         await LoadAsync();
     }
 
@@ -395,6 +404,7 @@ public partial class SpaceChatPage : ContentPage
 
     private async Task LoadAsync()
     {
+        Diag.Log("LOAD start");
         try
         {
             // Участники нужны раньше сообщений: меню @упоминаний и счётчики.
@@ -634,6 +644,7 @@ KeyWaitBanner.IsVisible = false;
             if (_forumPaneVisible) await RefreshTopicsAsync();
 
             UpdatePinnedBanner();
+            Diag.Log("LOAD done");
         }
         catch (Exception ex)
         {
@@ -1887,6 +1898,7 @@ KeyWaitBanner.IsVisible = false;
             if (message.IsImage)
             {
                 Diag.Log($"VIEWER push {message.Id} {bytes.Length}");
+                _skipNextLoad = true;
                 await page.Navigation.PushAsync(
                     new ImageViewerPage(bytes, message.FileName));
                 Diag.Log("VIEWER pushed");
