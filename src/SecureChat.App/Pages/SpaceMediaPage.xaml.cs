@@ -127,7 +127,7 @@ public partial class SpaceMediaPage : ContentPage
             if (message.IsImage)
             {
                 message.SetImageContent(bytes);
-                await Navigation.PushModalAsync(
+                await Navigation.PushAsync(
                     new ImageViewerPage(bytes, message.FileName));
                 return;
             }

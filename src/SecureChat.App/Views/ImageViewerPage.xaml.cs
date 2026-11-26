@@ -166,7 +166,7 @@ public partial class ImageViewerPage : ContentPage
     {
         if (_closing) return;
         _closing = true;
-        await Navigation.PopModalAsync();
+        await Navigation.PopAsync();
     }
 
     private void ResetZoom()
