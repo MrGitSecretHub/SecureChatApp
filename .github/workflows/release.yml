@@ -36,7 +36,14 @@ jobs:
       #   ANDROID_KEYSTORE_BASE64 — base64 файла keys/securechat-release.keystore
       #   ANDROID_KEYSTORE_PASS   — пароль ключа
       #   ANDROID_KEY_ALIAS       — алиас ключа
-      # Если секреты не заданы, APK подписывается отладочным ключом.
+      # Без секретов APK подписывается отладочным ключом — такое обновление
+      # не встанет поверх уже установленного приложения. Поэтому падаем сразу.
+      - name: Check signing secrets
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 == '' || secrets.ANDROID_KEYSTORE_PASS == '' || secrets.ANDROID_KEY_ALIAS == '' }}
+        run: |
+          echo "::error::Missing ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASS / ANDROID_KEY_ALIAS. Release APK cannot be signed."
+          exit 1
+
       - name: Prepare signing key
         if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         env:
@@ -46,14 +53,14 @@ jobs:
         run: |
           mkdir -p keys
           printf '%s' "$KEYSTORE_BASE64" | base64 -d > keys/securechat-release.keystore
-          cat > src/SecureChat.App/keystore.props <<'PROPS'
+          cat > src/SecureChat.App/keystore.props <<PROPS
           <Project>
-            <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+            <PropertyGroup Condition="'\$(Configuration)' == 'Release'">
               <AndroidKeyStore>true</AndroidKeyStore>
-              <AndroidSigningKeyStore>$(MSBuildThisFileDirectory)../../keys/securechat-release.keystore</AndroidSigningKeyStore>
-              <AndroidSigningKeyAlias>$(KEY_ALIAS)</AndroidSigningKeyAlias>
-              <AndroidSigningKeyPass>$(KEYSTORE_PASS)</AndroidSigningKeyPass>
-              <AndroidSigningStorePass>$(KEYSTORE_PASS)</AndroidSigningStorePass>
+              <AndroidSigningKeyStore>\$(MSBuildThisFileDirectory)../../keys/securechat-release.keystore</AndroidSigningKeyStore>
+              <AndroidSigningKeyAlias>$KEY_ALIAS</AndroidSigningKeyAlias>
+              <AndroidSigningKeyPass>$KEYSTORE_PASS</AndroidSigningKeyPass>
+              <AndroidSigningStorePass>$KEYSTORE_PASS</AndroidSigningStorePass>
             </PropertyGroup>
           </Project>
           PROPS
@@ -68,12 +75,13 @@ jobs:
           $apk = Get-ChildItem "src/SecureChat.App/bin/Release/net9.0-android/*.apk" |
                  Where-Object { $_.Name -like "*Signed*" } | Select-Object -First 1
           if (-not $apk) { $apk = Get-ChildItem "src/SecureChat.App/bin/Release/net9.0-android/*.apk" | Select-Object -First 1 }
-          Copy-Item $apk.FullName "release/SecureChat-1.1.apk"
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          Copy-Item $apk.FullName "release/SecureChat-$version.apk"
 
       - uses: actions/upload-artifact@v4
         with:
           name: securechat-apk
-          path: release/SecureChat-1.1.apk
+          path: release/SecureChat-*.apk
           if-no-files-found: error
 
   windows:
@@ -95,12 +103,13 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release | Out-Null
-          Compress-Archive -Path "src/SecureChat.App/bin/Release/net9.0-windows10.0.19041.0/win10-x64/*" -DestinationPath "release/SecureChat-1.1-win-x64.zip"
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          Compress-Archive -Path "src/SecureChat.App/bin/Release/net9.0-windows10.0.19041.0/win10-x64/*" -DestinationPath "release/SecureChat-$version-win-x64.zip"
 
       - uses: actions/upload-artifact@v4
         with:
           name: securechat-windows
-          path: release/SecureChat-1.1-win-x64.zip
+          path: release/SecureChat-*-win-x64.zip
           if-no-files-found: error
 
   publish:
@@ -115,18 +124,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/securechat-apk/SecureChat-1.1.apk
-            artifacts/securechat-windows/SecureChat-1.1-win-x64.zip
+            artifacts/securechat-apk/SecureChat-*.apk
+            artifacts/securechat-windows/SecureChat-*-win-x64.zip
           generate_release_notes: true
           body: |
-            SecureChat 1.1 — «Telegram-подобный интерфейс».
+            SecureChat ${{ github.ref_name }}
 
-            Изменения: меню скрепки в стиле Telegram, удаление и очистка
-            переписки («для себя» / «для всех»), обои пространств, панель
-            Эмодзи | Стикеры | GIF, обновление базы данных.
-
-            Полный список — в CHANGELOG.md репозитория.
-
-            Ограничения: push-уведомления в фоне не реализованы (уведомления
-            приходят, пока живёт процесс приложения), рабочая конфигурация
-            использует cleartext HTTP — для боевого развёртывания нужен HTTPS.
+            Полный список изменений — в CHANGELOG.md репозитория.
+            Артефакты: подписанный Android-APK и Windows ZIP (с DLL).

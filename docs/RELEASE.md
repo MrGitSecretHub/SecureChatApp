@@ -91,3 +91,32 @@ Get-FileHash $apk -Algorithm SHA256
    `ANDROID_KEYSTORE_PASS`, `ANDROID_KEY_ALIAS`. Если Release уже собран
    без них, проверьте подпись по инструкции выше; при несовпадении добавьте
    секреты и перезапустите workflow.
+
+### Настройка секретов подписи в GitHub Actions
+
+В репозитории: **Settings → Secrets and variables → Actions → New repository secret**.
+Добавьте три секрета:
+
+| Имя | Значение |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | base64 файла `keys/securechat-release.keystore` |
+| `ANDROID_KEYSTORE_PASS` | содержимое `keys/keystore.password.txt` (без перевода строки) |
+| `ANDROID_KEY_ALIAS` | `securechat` |
+
+Получить base64 keystore на Windows:
+
+```powershell
+$bytes = [IO.File]::ReadAllBytes("keys\securechat-release.keystore")
+[Convert]::ToBase64String($bytes) | Set-Clipboard
+```
+
+Проверить алиас:
+
+```powershell
+$env:SC_PASS = (Get-Content "keys\keystore.password.txt" -Raw).Trim()
+& "C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot\bin\keytool.exe" `
+  -list -keystore "keys\securechat-release.keystore" -storepass:env SC_PASS
+```
+
+Workflow `release.yml` теперь падает с понятной ошибкой, если секретов нет,
+и подставляет версию из тега в имена артефактов.
