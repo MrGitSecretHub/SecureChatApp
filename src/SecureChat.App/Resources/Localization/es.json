@@ -1034,5 +1034,6 @@
   "community_members_channels": "{0} miembros · {1} canales",
   "community_rules": "Reglas",
   "community_open": "Abrir comunidad",
-  "community_title": "Comunidad"
+  "community_title": "Comunidad",
+  "spaces_create": "＋ Crear espacio"
 }

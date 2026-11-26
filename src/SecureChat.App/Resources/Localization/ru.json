@@ -1034,5 +1034,6 @@
   "community_members_channels": "{0} участников · {1} каналов",
   "community_rules": "Правила",
   "community_open": "Открыть сообщество",
-  "community_title": "Сообщество"
+  "community_title": "Сообщество",
+  "spaces_create": "＋ Создать пространство"
 }

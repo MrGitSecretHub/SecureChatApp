@@ -1034,5 +1034,6 @@
   "community_members_channels": "{0} 名成员 · {1} 个频道",
   "community_rules": "规则",
   "community_open": "打开社区",
-  "community_title": "社区"
+  "community_title": "社区",
+  "spaces_create": "＋ 创建空间"
 }

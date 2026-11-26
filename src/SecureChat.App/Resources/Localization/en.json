@@ -1034,5 +1034,6 @@
   "community_members_channels": "{0} members · {1} channels",
   "community_rules": "Rules",
   "community_open": "Open community",
-  "community_title": "Community"
+  "community_title": "Community",
+  "spaces_create": "＋ Create space"
 }
