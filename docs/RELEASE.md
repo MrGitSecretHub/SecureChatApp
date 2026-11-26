@@ -6,8 +6,9 @@
 
 ## Опубликованные релизы
 
-- 1.2: https://github.com/MrGitSecretHub/SecureChatApp/releases/tag/v1.2 —
-  ассеты `SecureChat-v1.2.apk`, `SecureChat-1.2-win.zip`, `SecureChat.App.exe`.
+- 1.3: https://github.com/MrGitSecretHub/SecureChatApp/releases/tag/v1.3 —
+  ассеты `SecureChat-v1.3.apk`, `SecureChat-1.3-win.zip`, `SecureChat.App.exe`.
+- 1.2: https://github.com/MrGitSecretHub/SecureChatApp/releases/tag/v1.2
 - 1.1: https://github.com/MrGitSecretHub/SecureChatApp/releases/tag/v1.1
 
 Полная папка `publish\win` поставляется ZIP-архивом — `exe` один не запустится
@@ -15,8 +16,8 @@
 
 ## Версия
 
-- `ApplicationDisplayVersion` — `1.2` (`src/SecureChat.App/SecureChat.App.csproj`).
-- `ApplicationVersion` (Android versionCode) — `3`. При повторной публикации
+- `ApplicationDisplayVersion` — `1.3` (`src/SecureChat.App/SecureChat.App.csproj`).
+- `ApplicationVersion` (Android versionCode) — `4`. При повторной публикации
   увеличивать на 1, иначе Android не примет обновление.
 - Префикс тега: `v1.1`. Workflow `.github/workflows/release.yml` собирает APK
   и Windows-версию по любому тегу `v*`.
@@ -54,7 +55,9 @@ $apk = "C:\Users\Administrator\Desktop\SecureChat-APK\SecureChat-1.1.apk"
 Get-FileHash $apk -Algorithm SHA256
 ```
 
-Ожидаемый хеш APK 1.2:
+Ожидаемый хеш APK 1.3:
+`46576D3ED74C2EE163DE4C5325355C6A2834962776FFC0FBA2FE76415898791C`.
+Для сравнения, APK 1.2:
 `B9A5E3873340AEAB97BFDAC0B61049A7B42FB378CD0C383F4F65059BB547E5C2`.
 Для сравнения, APK 1.1:
 `6CB00B1D2DAA72CA399581C8DE1BFB4F1B310098CF62392A8A72A1105D4B4B31`.
