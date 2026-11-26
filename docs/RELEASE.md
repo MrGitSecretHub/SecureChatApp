@@ -54,7 +54,9 @@ $apk = "C:\Users\Administrator\Desktop\SecureChat-APK\SecureChat-1.1.apk"
 Get-FileHash $apk -Algorithm SHA256
 ```
 
-Ожидаемый хеш локальной сборки:
+Ожидаемый хеш APK 1.2:
+`B9A5E3873340AEAB97BFDAC0B61049A7B42FB378CD0C383F4F65059BB547E5C2`.
+Для сравнения, APK 1.1:
 `6CB00B1D2DAA72CA399581C8DE1BFB4F1B310098CF62392A8A72A1105D4B4B31`.
 
 Подпись должна совпадать с сертификатом из `keys/securechat-release.keystore`:
