@@ -179,7 +179,7 @@ public sealed class PollView : ContentView
         {
             FontSize = 11,
             TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray,
-            Text = $"{poll.TotalVotes} votes"
+            Text = string.Format(Loc.T("poll_votes", "{0} votes"), poll.TotalVotes)
         };
         root.Add(votesLabel);
 

@@ -1213,7 +1213,7 @@
                         </Border.GestureRecognizers>
                         <HorizontalStackLayout Spacing="12">
                             <Label Text="📊" FontSize="15" VerticalOptions="Center" />
-                            <Label Text="Опрос" FontSize="14" TextColor="{DynamicResource TextPrimary}" VerticalOptions="Center" />
+                            <Label Text="{DynamicResource s_menu_poll}" FontSize="14" TextColor="{DynamicResource TextPrimary}" VerticalOptions="Center" />
                         </HorizontalStackLayout>
                     </Border>
                     <Border StyleId="replies" Padding="16,10" BackgroundColor="{DynamicResource SurfaceAlt}">
@@ -1222,7 +1222,7 @@
                         </Border.GestureRecognizers>
                         <HorizontalStackLayout Spacing="12">
                             <Label Text="💬" FontSize="15" VerticalOptions="Center" />
-                            <Label Text="Быстрые ответы" FontSize="14" TextColor="{DynamicResource TextPrimary}" VerticalOptions="Center" />
+                            <Label Text="{DynamicResource s_menu_quick_replies}" FontSize="14" TextColor="{DynamicResource TextPrimary}" VerticalOptions="Center" />
                         </HorizontalStackLayout>
                     </Border>
                     <Border StyleId="ttl" Padding="16,10" BackgroundColor="{DynamicResource SurfaceAlt}">
@@ -1231,7 +1231,7 @@
                         </Border.GestureRecognizers>
                         <HorizontalStackLayout Spacing="12">
                             <Label Text="⏲" FontSize="15" VerticalOptions="Center" />
-                            <Label Text="Автоудаление" FontSize="14" TextColor="{DynamicResource TextPrimary}" VerticalOptions="Center" />
+                            <Label Text="{DynamicResource s_menu_auto_delete}" FontSize="14" TextColor="{DynamicResource TextPrimary}" VerticalOptions="Center" />
                         </HorizontalStackLayout>
                     </Border>
                 </VerticalStackLayout>
