@@ -2393,8 +2393,28 @@ KeyWaitBanner.IsVisible = false;
                     item.Status = Loc.T("set_036", "Готово");
                     if (sent is not null)
                     {
-                        var sentVm = _messages.FirstOrDefault(m => m.Id == sent.Id);
-                        if (sentVm is not null) sentVm.TransferProgress = 100;
+                        MainThread.BeginInvokeOnMainThread(async () =>
+                        {
+                            var sentVm = _messages.FirstOrDefault(m => m.Id == sent.Id);
+                            if (sentVm is not null)
+                            {
+                                sentVm.TransferProgress = 100;
+                                return;
+                            }
+
+                            // Если событие SignalR/TCP не дошло, добавляем отправленное
+                            // вложение в текущую ленту сами.
+                            if (string.Equals(sent.TopicId, _topicId, StringComparison.Ordinal))
+                            {
+                                var sentPayload = await _spaces.DecryptPayloadAsync(_spaceId, sent);
+                                if (sentPayload is not null)
+                                {
+                                    _messages.Add(CreateVm(sent, sentPayload));
+                                    RefreshDateLabels();
+                                    RefreshMentionJump();
+                                }
+                            }
+                        });
                     }
                     await Task.Delay(350);
                     _pendingMedia.Remove(item);
