@@ -4,17 +4,19 @@
 Документ на русском; текст для GitHub Release лежит в
 [RELEASE_NOTES_1.1.md](RELEASE_NOTES_1.1.md).
 
-## Опубликованный релиз
+## Опубликованные релизы
 
-https://github.com/MrGitSecretHub/SecureChatApp/releases/tag/v1.1
+- 1.2: https://github.com/MrGitSecretHub/SecureChatApp/releases/tag/v1.2 —
+  ассеты `SecureChat-v1.2.apk`, `SecureChat-1.2-win.zip`, `SecureChat.App.exe`.
+- 1.1: https://github.com/MrGitSecretHub/SecureChatApp/releases/tag/v1.1
 
-Ассеты: `SecureChat-v1.1.apk`, `SecureChat.App.exe`, `SecureChat-1.1-win.zip`
-(полная папка `publish\win` — exe один не запустится без DLL).
+Полная папка `publish\win` поставляется ZIP-архивом — `exe` один не запустится
+без DLL.
 
 ## Версия
 
-- `ApplicationDisplayVersion` — `1.1` (`src/SecureChat.App/SecureChat.App.csproj`).
-- `ApplicationVersion` (Android versionCode) — `2`. При повторной публикации
+- `ApplicationDisplayVersion` — `1.2` (`src/SecureChat.App/SecureChat.App.csproj`).
+- `ApplicationVersion` (Android versionCode) — `3`. При повторной публикации
   увеличивать на 1, иначе Android не примет обновление.
 - Префикс тега: `v1.1`. Workflow `.github/workflows/release.yml` собирает APK
   и Windows-версию по любому тегу `v*`.
