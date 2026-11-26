@@ -38,7 +38,7 @@
 
         <!-- Шапка: тип, название, кнопки -->
         <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto"
+              ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto"
               ColumnSpacing="8"
               Padding="14,10"
               BackgroundColor="{DynamicResource Surface}">
@@ -110,6 +110,13 @@
                     Style="{DynamicResource IconButton}"
                     Clicked="OnToggleMuteClicked"
                     ToolTipProperties.Text="{DynamicResource s_ui_046}" />
+            <Button Grid.Column="7"
+                    x:Name="SwitchSpaceButton"
+                    Text="⇄"
+                    FontSize="17"
+                    Style="{DynamicResource IconButton}"
+                    Clicked="OnSwitchSpaceClicked"
+                    ToolTipProperties.Text="{DynamicResource s_forum_switch}" />
         </Grid>
 
         <!-- Список тем форума: левая панель на ПК, открывается кнопкой 🧵 -->

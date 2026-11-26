@@ -1020,5 +1020,8 @@
   "forum_sort_position": "Nach Reihenfolge",
   "forum_sort_activity": "Nach Aktivität",
   "forum_sort_unread": "Ungelesene zuerst",
-  "forum_sort_name": "Nach Name"
+  "forum_sort_name": "Nach Name",
+  "forum_switch": "Raum wechseln",
+  "forum_switch_empty": "Noch keine anderen Räume",
+  "forum_switch_title": "Forum wechseln"
 }

@@ -1020,5 +1020,8 @@
   "forum_sort_position": "By order",
   "forum_sort_activity": "By activity",
   "forum_sort_unread": "Unread first",
-  "forum_sort_name": "By name"
+  "forum_sort_name": "By name",
+  "forum_switch": "Switch space",
+  "forum_switch_empty": "No other spaces yet",
+  "forum_switch_title": "Switch forum"
 }

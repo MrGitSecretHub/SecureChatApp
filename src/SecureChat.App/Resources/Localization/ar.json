@@ -1020,5 +1020,8 @@
   "forum_sort_position": "حسب الترتيب",
   "forum_sort_activity": "حسب النشاط",
   "forum_sort_unread": "غير المقروءة أولاً",
-  "forum_sort_name": "حسب الاسم"
+  "forum_sort_name": "حسب الاسم",
+  "forum_switch": "تبديل المساحة",
+  "forum_switch_empty": "لا توجد مساحات أخرى",
+  "forum_switch_title": "تبديل المنتدى"
 }

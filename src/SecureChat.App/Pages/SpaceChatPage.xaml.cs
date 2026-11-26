@@ -2773,6 +2773,44 @@ KeyWaitBanner.IsVisible = false;
         }
     }
 
+    private async void OnSwitchSpaceClicked(object sender, EventArgs e)
+    {
+        var spaces = (await _spaces.ListAsync())
+            .Where(s => s.Type == SpaceTypes.Forum)
+            .ToList();
+        if (spaces.Count <= 1)
+        {
+            await DisplayAlert(
+                Loc.T("forum_switch_title", "Switch forum"),
+                Loc.T("forum_switch_empty", "No other spaces yet"),
+                "OK");
+            return;
+        }
+
+        static string Icon(string type) => type switch
+        {
+            SpaceTypes.Forum => "🧵",
+            SpaceTypes.Channel => "📢",
+            SpaceTypes.Community => "🌐",
+            _ => "👥"
+        };
+
+        var labels = spaces.Select(s => $"{Icon(s.Type)} {s.Name}").ToArray();
+        var selected = await DisplayActionSheet(
+            Loc.T("forum_switch_title", "Switch forum"),
+            Loc.T("common_cancel", "Cancel"), null, labels);
+        if (string.IsNullOrWhiteSpace(selected)) return;
+        var index = Array.IndexOf(labels, selected);
+        if (index < 0) return;
+        var target = spaces[index];
+        if (string.Equals(target.Id, _spaceId, StringComparison.Ordinal)) return;
+
+        if (Navigation.NavigationStack.Count > 1)
+            await Navigation.PopAsync(false);
+        await Navigation.PushAsync(new SpaceChatPage(
+            target.Id, target.Name, target.Type, target.CanPost));
+    }
+
     private async void OnTopicsClicked(object sender, EventArgs e)
     {
         _forumPaneVisible = !_forumPaneVisible;

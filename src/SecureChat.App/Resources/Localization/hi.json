@@ -1020,5 +1020,8 @@
   "forum_sort_position": "क्रम अनुसार",
   "forum_sort_activity": "गतिविधि अनुसार",
   "forum_sort_unread": "अपठित पहले",
-  "forum_sort_name": "नाम अनुसार"
+  "forum_sort_name": "नाम अनुसार",
+  "forum_switch": "स्थान बदलें",
+  "forum_switch_empty": "अभी कोई दूसरा स्थान नहीं",
+  "forum_switch_title": "फ़ोरम बदलें"
 }

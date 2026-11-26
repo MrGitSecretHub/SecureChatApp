@@ -1020,5 +1020,8 @@
   "forum_sort_position": "按顺序",
   "forum_sort_activity": "按活跃度",
   "forum_sort_unread": "未读优先",
-  "forum_sort_name": "按名称"
+  "forum_sort_name": "按名称",
+  "forum_switch": "切换空间",
+  "forum_switch_empty": "暂无其他空间",
+  "forum_switch_title": "切换论坛"
 }

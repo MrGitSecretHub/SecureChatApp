@@ -1020,5 +1020,8 @@
   "forum_sort_position": "По порядку",
   "forum_sort_activity": "По активности",
   "forum_sort_unread": "Сначала непрочитанные",
-  "forum_sort_name": "По названию"
+  "forum_sort_name": "По названию",
+  "forum_switch": "Сменить пространство",
+  "forum_switch_empty": "Других пространств пока нет",
+  "forum_switch_title": "Сменить форум"
 }

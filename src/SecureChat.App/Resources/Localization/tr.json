@@ -1020,5 +1020,8 @@
   "forum_sort_position": "Sıraya göre",
   "forum_sort_activity": "Aktiviteye göre",
   "forum_sort_unread": "Okunmamış önce",
-  "forum_sort_name": "Ada göre"
+  "forum_sort_name": "Ada göre",
+  "forum_switch": "Alanı değiştir",
+  "forum_switch_empty": "Başka alan yok",
+  "forum_switch_title": "Forum değiştir"
 }

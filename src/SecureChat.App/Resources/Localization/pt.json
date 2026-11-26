@@ -1020,5 +1020,8 @@
   "forum_sort_position": "Por ordem",
   "forum_sort_activity": "Por atividade",
   "forum_sort_unread": "Não lidos primeiro",
-  "forum_sort_name": "Por nome"
+  "forum_sort_name": "Por nome",
+  "forum_switch": "Trocar espaço",
+  "forum_switch_empty": "Ainda não há outros espaços",
+  "forum_switch_title": "Trocar fórum"
 }
