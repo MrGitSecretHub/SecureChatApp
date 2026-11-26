@@ -37,6 +37,7 @@ public partial class SpaceChatPage : ContentPage
     private readonly List<TopicVm> _allTopics = new();
     private int _topicSortMode;
     private bool _forumPaneVisible;
+    private bool _suppressTopicSelection;
     private readonly string _spaceId;
     private readonly string _spaceName;
     private readonly string _spaceType;
@@ -2887,7 +2888,15 @@ KeyWaitBanner.IsVisible = false;
 
         _topics.Clear();
         foreach (var item in items.ToList()) _topics.Add(item);
-        TopicsView.SelectedItem = _topics.FirstOrDefault(t => t.Id == _topicId);
+        _suppressTopicSelection = true;
+        try
+        {
+            TopicsView.SelectedItem = _topics.FirstOrDefault(t => t.Id == _topicId);
+        }
+        finally
+        {
+            _suppressTopicSelection = false;
+        }
     }
 
     private void OnTopicSearchChanged(object sender, TextChangedEventArgs e) => FilterTopics();
@@ -2900,6 +2909,7 @@ KeyWaitBanner.IsVisible = false;
 
     private async void OnTopicSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_suppressTopicSelection) return;
         if (e.CurrentSelection.FirstOrDefault() is not TopicVm topic) return;
         _topicId = topic.Id;
         _topicTitle = topic.Title;
