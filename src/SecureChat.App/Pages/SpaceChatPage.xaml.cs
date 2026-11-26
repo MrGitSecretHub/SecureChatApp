@@ -191,7 +191,6 @@ public partial class SpaceChatPage : ContentPage
         AppServices.Get<AppSession>().AppearanceChanged += OnAppearanceChanged;
         RefreshSenderNameColors();
         ApplySpaceWallpaper();
-        Diag.Log($"ON-APPEAR skip={_skipNextLoad}");
         if (_skipNextLoad)
         {
             // Возврат из полноэкранного просмотрщика: лента уже актуальна,
@@ -404,7 +403,6 @@ public partial class SpaceChatPage : ContentPage
 
     private async Task LoadAsync()
     {
-        Diag.Log("LOAD start");
         try
         {
             // Участники нужны раньше сообщений: меню @упоминаний и счётчики.
@@ -644,7 +642,6 @@ KeyWaitBanner.IsVisible = false;
             if (_forumPaneVisible) await RefreshTopicsAsync();
 
             UpdatePinnedBanner();
-            Diag.Log("LOAD done");
         }
         catch (Exception ex)
         {
@@ -880,7 +877,6 @@ KeyWaitBanner.IsVisible = false;
 
     private async Task AutoDownloadImageAsync(SpaceMessageVm message)
     {
-        Diag.Log($"AUTO-DL start {message.Id}");
         try
         {
             if (message.Media is null || message.MediaDownloaded) return;
@@ -899,21 +895,17 @@ KeyWaitBanner.IsVisible = false;
                 await File.WriteAllBytesAsync(path, bytes);
             }
 
-            Diag.Log($"AUTO-DL bytes {message.Id} {bytes.Length}");
             if (message.IsImage)
             {
                 var thumb = await Task.Run(() => MediaCompression.MakeThumbnail(
                     bytes, message.Media?.ContentType ?? string.Empty));
-                Diag.Log($"AUTO-DL thumb {message.Id} {thumb.Length}");
                 message.SetImageContent(thumb);
             }
             message.TransferProgress = 100;
             message.MediaDownloaded = true;
-            Diag.Log($"AUTO-DL done {message.Id}");
         }
         catch (Exception ex)
         {
-            Diag.Log($"AUTO-DL FAIL {message.Id} {ex.Message}");
             // auto-download не критичен — картинку можно открыть вручную,
             // но показываем причину, чтобы было понятно, почему она не появилась.
             message.TransferProgress = 100;
@@ -930,12 +922,10 @@ KeyWaitBanner.IsVisible = false;
 
     private async void OnRetryImageClicked(object sender, EventArgs e)
     {
-        Diag.Log("RETRY click");
         if (sender is not Button button ||
             button.CommandParameter is not SpaceMessageVm message ||
             message.Media is null) return;
 
-        Diag.Log($"RETRY id {message.Id}");
         button.IsEnabled = false;
         try
         {
@@ -948,11 +938,9 @@ KeyWaitBanner.IsVisible = false;
             message.SetImageContent(thumb);
             message.MediaDownloaded = true;
             _mediaDownloadErrors.Remove(message.Id);
-            Diag.Log("RETRY done");
         }
         catch (Exception ex)
         {
-            Diag.Log($"RETRY FAIL {ex.Message}");
             await DisplayAlert(
                 Loc.T("common_error", "Error"),
                 string.Format(Loc.T("uc_036"), message.FileName, ex.Message),
@@ -1897,11 +1885,9 @@ KeyWaitBanner.IsVisible = false;
 
             if (message.IsImage)
             {
-                Diag.Log($"VIEWER push {message.Id} {bytes.Length}");
                 _skipNextLoad = true;
                 await page.Navigation.PushAsync(
                     new ImageViewerPage(bytes, message.FileName));
-                Diag.Log("VIEWER pushed");
                 return;
             }
 

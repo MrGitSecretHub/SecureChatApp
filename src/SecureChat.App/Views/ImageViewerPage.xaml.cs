@@ -25,7 +25,6 @@ public partial class ImageViewerPage : ContentPage
 
     public ImageViewerPage(byte[] imageBytes, string? fileName)
     {
-        Diag.Log("VIEWER ctor");
         InitializeComponent();
 
         _bytes = imageBytes;
@@ -154,7 +153,6 @@ public partial class ImageViewerPage : ContentPage
 
     private async void OnSwipeDown(object? sender, SwipedEventArgs e)
     {
-        Diag.Log("VIEWER swipe down");
         if (_currentScale > 1.05)
         {
             ResetZoom();
@@ -166,11 +164,9 @@ public partial class ImageViewerPage : ContentPage
 
     private async Task CloseAsync()
     {
-        Diag.Log($"VIEWER close begin {_closing}");
         if (_closing) return;
         _closing = true;
         await Navigation.PopAsync();
-        Diag.Log("VIEWER closed");
     }
 
     private void ResetZoom()
@@ -201,7 +197,6 @@ public partial class ImageViewerPage : ContentPage
 
     private async void OnCloseClicked(object? sender, EventArgs e)
     {
-        Diag.Log("VIEWER X clicked");
         await CloseAsync();
     }
 
