@@ -872,16 +872,22 @@ KeyWaitBanner.IsVisible = false;
         {
             if (message.Media is null || message.MediaDownloaded) return;
             var path = Path.Combine(FileSystem.CacheDirectory, message.Id + Path.GetExtension(message.FileName));
-            if (!File.Exists(path))
+            byte[] bytes;
+            if (File.Exists(path))
+            {
+                bytes = await File.ReadAllBytesAsync(path);
+            }
+            else
             {
                 message.TransferProgress = 0;
                 var progress = new Progress<int>(p =>
                     MainThread.BeginInvokeOnMainThread(() => message.TransferProgress = p));
-                var bytes = await _spaces.DownloadMediaAsync(message.Media, progress: progress);
+                bytes = await _spaces.DownloadMediaAsync(message.Media, progress: progress);
                 await File.WriteAllBytesAsync(path, bytes);
-                if (message.IsImage) message.SetImageContent(bytes);
-                message.TransferProgress = 100;
             }
+
+            if (message.IsImage) message.SetImageContent(bytes);
+            message.TransferProgress = 100;
             message.MediaDownloaded = true;
         }
         catch
