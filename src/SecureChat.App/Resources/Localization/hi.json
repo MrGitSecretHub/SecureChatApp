@@ -1015,5 +1015,10 @@
   "forum_start": "पहले लिखें",
   "forum_message_placeholder": "विषय में संदेश",
   "forum_created_by": "{0} ने बनाया",
-  "forum_messages_count": "{0} संदेश"
+  "forum_messages_count": "{0} संदेश",
+  "forum_search_topics": "विषय खोजें",
+  "forum_sort_position": "क्रम अनुसार",
+  "forum_sort_activity": "गतिविधि अनुसार",
+  "forum_sort_unread": "अपठित पहले",
+  "forum_sort_name": "नाम अनुसार"
 }

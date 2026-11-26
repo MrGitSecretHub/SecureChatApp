@@ -1015,5 +1015,10 @@
   "forum_start": "كن أول من يكتب",
   "forum_message_placeholder": "رسالة في الموضوع",
   "forum_created_by": "أنشأه {0}",
-  "forum_messages_count": "{0} رسالة"
+  "forum_messages_count": "{0} رسالة",
+  "forum_search_topics": "ابحث في المواضيع",
+  "forum_sort_position": "حسب الترتيب",
+  "forum_sort_activity": "حسب النشاط",
+  "forum_sort_unread": "غير المقروءة أولاً",
+  "forum_sort_name": "حسب الاسم"
 }

@@ -9,13 +9,22 @@ public sealed class TopicVm : INotifyPropertyChanged
     private bool _isActive;
     private int _unread;
 
-    public TopicVm(string id, string title, int messageCount, bool isClosed, string createdByUsername)
+    public TopicVm(
+        string id,
+        string title,
+        int messageCount,
+        bool isClosed,
+        string createdByUsername,
+        string subtitleText,
+        long lastMessageAtUnixMs)
     {
         Id = id;
         Title = title;
         MessageCount = messageCount;
         IsClosed = isClosed;
         CreatedByUsername = createdByUsername;
+        SubtitleText = subtitleText;
+        LastMessageAtUnixMs = lastMessageAtUnixMs;
     }
 
     public string Id { get; }
@@ -23,6 +32,8 @@ public sealed class TopicVm : INotifyPropertyChanged
     public int MessageCount { get; }
     public bool IsClosed { get; }
     public string CreatedByUsername { get; }
+    public string SubtitleText { get; }
+    public long LastMessageAtUnixMs { get; }
 
     public bool IsActive
     {

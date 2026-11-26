@@ -1015,5 +1015,10 @@
   "forum_start": "İlk yazan sen ol",
   "forum_message_placeholder": "Konuya mesaj",
   "forum_created_by": "Başlatan: {0}",
-  "forum_messages_count": "{0} mesaj"
+  "forum_messages_count": "{0} mesaj",
+  "forum_search_topics": "Konuları ara",
+  "forum_sort_position": "Sıraya göre",
+  "forum_sort_activity": "Aktiviteye göre",
+  "forum_sort_unread": "Okunmamış önce",
+  "forum_sort_name": "Ada göre"
 }

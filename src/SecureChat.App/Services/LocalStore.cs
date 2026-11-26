@@ -2506,6 +2506,30 @@ public sealed class LocalStore
         }
     }
 
+    /// <summary>Последнее расшифрованное сообщение каждой темы форума.</summary>
+    public async Task<IReadOnlyDictionary<string, (string Text, long SentAtUnixMs)>>
+        GetSpaceTopicLastMessagesAsync(string spaceId)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var result = new Dictionary<string, (string, long)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var group in _state!.SpaceMessages
+                         .Where(m => m.SpaceId == spaceId && m.TopicId is not null)
+                         .GroupBy(m => m.TopicId!))
+            {
+                var last = group.OrderByDescending(m => m.SentAtUnixMs).First();
+                string text;
+                try { text = SpacePayloadCodec.Decode(last.PayloadJson).Text ?? string.Empty; }
+                catch { text = string.Empty; }
+                result[group.Key] = (text, last.SentAtUnixMs);
+            }
+            return result;
+        }
+        finally { _lock.Release(); }
+    }
+
     private static string TopicReadKey(string spaceId, string? topicId) =>
         spaceId + "|" + (topicId ?? string.Empty);
 

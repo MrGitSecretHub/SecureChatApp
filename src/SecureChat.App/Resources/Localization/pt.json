@@ -1015,5 +1015,10 @@
   "forum_start": "Seja o primeiro a escrever",
   "forum_message_placeholder": "Mensagem no tópico",
   "forum_created_by": "Criado por {0}",
-  "forum_messages_count": "{0} mensagens"
+  "forum_messages_count": "{0} mensagens",
+  "forum_search_topics": "Buscar tópicos",
+  "forum_sort_position": "Por ordem",
+  "forum_sort_activity": "Por atividade",
+  "forum_sort_unread": "Não lidos primeiro",
+  "forum_sort_name": "Por nome"
 }

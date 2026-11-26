@@ -1015,5 +1015,10 @@
   "forum_start": "Напишите первым",
   "forum_message_placeholder": "Сообщение в тему",
   "forum_created_by": "Создал {0}",
-  "forum_messages_count": "{0} сообщений"
+  "forum_messages_count": "{0} сообщений",
+  "forum_search_topics": "Поиск тем",
+  "forum_sort_position": "По порядку",
+  "forum_sort_activity": "По активности",
+  "forum_sort_unread": "Сначала непрочитанные",
+  "forum_sort_name": "По названию"
 }

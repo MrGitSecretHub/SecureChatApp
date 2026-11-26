@@ -1015,5 +1015,10 @@
   "forum_start": "来抢个沙发",
   "forum_message_placeholder": "在话题中发消息",
   "forum_created_by": "由 {0} 创建",
-  "forum_messages_count": "{0} 条消息"
+  "forum_messages_count": "{0} 条消息",
+  "forum_search_topics": "搜索话题",
+  "forum_sort_position": "按顺序",
+  "forum_sort_activity": "按活跃度",
+  "forum_sort_unread": "未读优先",
+  "forum_sort_name": "按名称"
 }

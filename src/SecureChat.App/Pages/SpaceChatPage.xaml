@@ -126,7 +126,7 @@
             <Border.StrokeShape>
                 <RoundRectangle CornerRadius="0" />
             </Border.StrokeShape>
-            <Grid RowDefinitions="Auto,Auto,*">
+            <Grid RowDefinitions="Auto,Auto,Auto,*">
                 <Grid Grid.Row="0"
                       ColumnDefinitions="*,Auto,Auto"
                       Padding="14,10,10,10"
@@ -151,10 +151,27 @@
                             Clicked="OnManageTopicsClicked"
                             ToolTipProperties.Text="{DynamicResource s_ui_079}" />
                 </Grid>
-                <BoxView Grid.Row="1"
+                 <Grid Grid.Row="1"
+                      ColumnDefinitions="*,Auto"
+                      Padding="10,0,10,6"
+                      ColumnSpacing="6">
+                     <SearchBar x:Name="TopicSearchBar"
+                                Grid.Column="0"
+                                Placeholder="{DynamicResource s_forum_search_topics}"
+                                FontSize="13"
+                                HeightRequest="36"
+                                TextChanged="OnTopicSearchChanged" />
+                     <Picker x:Name="TopicSortPicker"
+                             Grid.Column="1"
+                             WidthRequest="92"
+                             FontSize="12"
+                             VerticalOptions="Center"
+                             SelectedIndexChanged="OnTopicSortChanged" />
+                 </Grid>
+                <BoxView Grid.Row="2"
                          HeightRequest="1"
                          Color="{DynamicResource BorderColor}" />
-                <CollectionView Grid.Row="2"
+                <CollectionView Grid.Row="3"
                                 x:Name="TopicsView"
                                 SelectionMode="Single"
                                 SelectionChanged="OnTopicSelectionChanged"
@@ -176,15 +193,11 @@
                                                FontSize="14"
                                                TextColor="{DynamicResource TextPrimary}"
                                                LineBreakMode="TailTruncation" />
-                                        <HorizontalStackLayout Spacing="8">
-                                            <Label Text="{Binding MessageCount, StringFormat='💬 {0}'}"
-                                                   FontSize="11"
-                                                   TextColor="{DynamicResource TextMuted}" />
-                                            <Label Text="{DynamicResource s_forum_locked}"
-                                                   FontSize="11"
-                                                   TextColor="{DynamicResource Danger}"
-                                                   IsVisible="{Binding IsClosed}" />
-                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding SubtitleText}"
+                                               FontSize="11"
+                                               TextColor="{DynamicResource TextMuted}"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1" />
                                     </VerticalStackLayout>
                                     <Border Grid.Column="2"
                                             IsVisible="{Binding HasUnread}"

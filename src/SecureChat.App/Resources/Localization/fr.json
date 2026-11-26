@@ -1015,5 +1015,10 @@
   "forum_start": "Soyez le premier à écrire",
   "forum_message_placeholder": "Message dans le sujet",
   "forum_created_by": "Créé par {0}",
-  "forum_messages_count": "{0} messages"
+  "forum_messages_count": "{0} messages",
+  "forum_search_topics": "Rechercher des sujets",
+  "forum_sort_position": "Par ordre",
+  "forum_sort_activity": "Par activité",
+  "forum_sort_unread": "Non lus d'abord",
+  "forum_sort_name": "Par nom"
 }

@@ -34,6 +34,8 @@ public partial class SpaceChatPage : ContentPage
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<SpaceMessageVm> _messages = new();
     private readonly ObservableCollection<TopicVm> _topics = new();
+    private readonly List<TopicVm> _allTopics = new();
+    private int _topicSortMode;
     private bool _forumPaneVisible;
     private readonly string _spaceId;
     private readonly string _spaceName;
@@ -136,6 +138,14 @@ public partial class SpaceChatPage : ContentPage
         _myUserId = AppServices.Get<AppSession>().User?.Id;
 
         TopicsButton.IsVisible = type == SpaceTypes.Forum;
+        TopicSortPicker.ItemsSource = new[]
+        {
+            Loc.T("forum_sort_position", "By order"),
+            Loc.T("forum_sort_activity", "By activity"),
+            Loc.T("forum_sort_unread", "Unread first"),
+            Loc.T("forum_sort_name", "By name")
+        };
+        TopicSortPicker.SelectedIndex = 0;
         TopicsView.ItemsSource = _topics;
         MessagesView.ItemsSource = _messages;
         if (type == SpaceTypes.Forum &&
@@ -2796,20 +2806,58 @@ KeyWaitBanner.IsVisible = false;
     private async Task RefreshTopicsAsync()
     {
         var topics = await _spaces.GetTopicsAsync(_spaceId);
-        _topics.Clear();
+        var previews = await _localStore.GetSpaceTopicLastMessagesAsync(_spaceId);
+        _allTopics.Clear();
         foreach (var topic in topics)
         {
             var unread = await _localStore.GetSpaceTopicUnreadCountAsync(
                 _spaceId, topic.Id, _myUserId ?? string.Empty);
-            _topics.Add(new TopicVm(
+            previews.TryGetValue(topic.Id, out var last);
+            var preview = string.IsNullOrWhiteSpace(last.Text)
+                ? string.Empty
+                : last.Text.Replace('\n', ' ').Trim();
+            var subtitle = $"💬 {topic.MessageCount}";
+            if (topic.IsClosed) subtitle += " · 🔒";
+            if (preview.Length > 0) subtitle += " · " + preview;
+            _allTopics.Add(new TopicVm(
                 topic.Id, topic.Title, topic.MessageCount, topic.IsClosed,
-                topic.CreatedByUsername)
+                topic.CreatedByUsername, subtitle, last.SentAtUnixMs)
             {
                 IsActive = string.Equals(topic.Id, _topicId, StringComparison.Ordinal),
                 Unread = unread
             });
         }
+        FilterTopics();
+    }
+
+    private void FilterTopics()
+    {
+        var query = TopicSearchBar.Text?.Trim() ?? string.Empty;
+        IEnumerable<TopicVm> items = _allTopics;
+        if (query.Length > 0)
+            items = items.Where(t =>
+                t.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                t.SubtitleText.Contains(query, StringComparison.OrdinalIgnoreCase));
+
+        items = _topicSortMode switch
+        {
+            1 => items.OrderByDescending(t => t.LastMessageAtUnixMs),
+            2 => items.OrderByDescending(t => t.Unread).ThenByDescending(t => t.LastMessageAtUnixMs),
+            3 => items.OrderBy(t => t.Title, StringComparer.CurrentCultureIgnoreCase),
+            _ => items
+        };
+
+        _topics.Clear();
+        foreach (var item in items.ToList()) _topics.Add(item);
         TopicsView.SelectedItem = _topics.FirstOrDefault(t => t.Id == _topicId);
+    }
+
+    private void OnTopicSearchChanged(object sender, TextChangedEventArgs e) => FilterTopics();
+
+    private void OnTopicSortChanged(object sender, EventArgs e)
+    {
+        _topicSortMode = TopicSortPicker.SelectedIndex;
+        FilterTopics();
     }
 
     private async void OnTopicSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -2818,6 +2866,13 @@ KeyWaitBanner.IsVisible = false;
         _topicId = topic.Id;
         _topicTitle = topic.Title;
         _currentTopicClosed = topic.IsClosed;
+        if (Microsoft.Maui.Devices.DeviceInfo.Platform !=
+            Microsoft.Maui.Devices.DevicePlatform.WinUI)
+        {
+            _forumPaneVisible = false;
+            ForumTopicsPane.IsVisible = false;
+            ApplyForumPaneLayout();
+        }
         await LoadAsync();
     }
 
