@@ -2,7 +2,6 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:views="clr-namespace:SecureChat.App.Views"
-             xmlns:dto="clr-namespace:SecureChat.Core.Contracts;assembly=SecureChat.Core"
              x:Class="SecureChat.App.Pages.SpaceChatPage"
              Title="{DynamicResource s_ui_136}">
     <ContentPage.Resources>
@@ -161,30 +160,47 @@
                                 SelectionChanged="OnTopicSelectionChanged"
                                 BackgroundColor="Transparent">
                     <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="dto:TopicDto">
-                            <Grid ColumnDefinitions="Auto,*"
-                                  Padding="12,10"
-                                  ColumnSpacing="10">
-                                <Label Grid.Column="0"
-                                       Text="🧵"
-                                       FontSize="15"
-                                       VerticalOptions="Center" />
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="{Binding Title}"
-                                           FontSize="14"
-                                           TextColor="{DynamicResource TextPrimary}"
-                                           LineBreakMode="TailTruncation" />
-                                    <HorizontalStackLayout Spacing="8">
-                                        <Label Text="{Binding MessageCount, StringFormat='💬 {0}'}"
+                        <DataTemplate x:DataType="views:TopicVm">
+                            <Border Padding="10,8"
+                                    BackgroundColor="Transparent"
+                                    StrokeThickness="0">
+                                <Grid ColumnDefinitions="3,*,Auto"
+                                      ColumnSpacing="8">
+                                    <BoxView Grid.Column="0"
+                                             WidthRequest="3"
+                                             Color="{DynamicResource Accent}"
+                                             IsVisible="{Binding IsActive}"
+                                             VerticalOptions="Fill" />
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                        <Label Text="{Binding Title}"
+                                               FontSize="14"
+                                               TextColor="{DynamicResource TextPrimary}"
+                                               LineBreakMode="TailTruncation" />
+                                        <HorizontalStackLayout Spacing="8">
+                                            <Label Text="{Binding MessageCount, StringFormat='💬 {0}'}"
+                                                   FontSize="11"
+                                                   TextColor="{DynamicResource TextMuted}" />
+                                            <Label Text="{DynamicResource s_forum_locked}"
+                                                   FontSize="11"
+                                                   TextColor="{DynamicResource Danger}"
+                                                   IsVisible="{Binding IsClosed}" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                    <Border Grid.Column="2"
+                                            IsVisible="{Binding HasUnread}"
+                                            BackgroundColor="{DynamicResource Accent}"
+                                            StrokeThickness="0"
+                                            Padding="7,2"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding UnreadText}"
                                                FontSize="11"
-                                               TextColor="{DynamicResource TextMuted}" />
-                                        <Label Text="{DynamicResource s_forum_locked}"
-                                               FontSize="11"
-                                               TextColor="{DynamicResource Danger}"
-                                               IsVisible="{Binding IsClosed}" />
-                                    </HorizontalStackLayout>
-                                </VerticalStackLayout>
-                            </Grid>
+                                               TextColor="{DynamicResource AccentText}" />
+                                    </Border>
+                                </Grid>
+                            </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>

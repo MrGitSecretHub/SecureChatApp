@@ -145,6 +145,10 @@ public sealed class LocalState
     /// <summary>Кэш расшифрованных сообщений пространств.</summary>
     public List<StoredSpaceMessage> SpaceMessages { get; set; } = new();
 
+    /// <summary>Последнее прочитанное сообщение темы форума: spaceId|topicId -> Unix ms.</summary>
+    public Dictionary<string, long> SpaceTopicLastRead { get; set; } =
+        new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Истории (24 часа).</summary>
     public List<StoredStory> Stories { get; set; } = new();
 }
@@ -2500,6 +2504,48 @@ public sealed class LocalStore
         {
             _lock.Release();
         }
+    }
+
+    private static string TopicReadKey(string spaceId, string? topicId) =>
+        spaceId + "|" + (topicId ?? string.Empty);
+
+    /// <summary>Отмечает тему форума прочитанной до указанного времени.</summary>
+    public async Task MarkSpaceTopicReadAsync(string spaceId, string? topicId, long lastSentAtUnixMs)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var key = TopicReadKey(spaceId, topicId);
+            if (!_state!.SpaceTopicLastRead.TryGetValue(key, out var current) ||
+                lastSentAtUnixMs > current)
+            {
+                _state.SpaceTopicLastRead[key] = lastSentAtUnixMs;
+                await SaveAsync();
+            }
+        }
+        finally { _lock.Release(); }
+    }
+
+    /// <summary>Число непрочитанных сообщений темы форума из локального кэша.</summary>
+    public async Task<int> GetSpaceTopicUnreadCountAsync(
+        string spaceId,
+        string? topicId,
+        string myUserId)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var key = TopicReadKey(spaceId, topicId);
+            var lastRead = _state!.SpaceTopicLastRead.TryGetValue(key, out var value) ? value : 0;
+            return _state.SpaceMessages.Count(m =>
+                m.SpaceId == spaceId &&
+                m.TopicId == topicId &&
+                m.SentAtUnixMs > lastRead &&
+                !string.Equals(m.SenderId, myUserId, StringComparison.Ordinal));
+        }
+        finally { _lock.Release(); }
     }
 
     /// <summary>Ищет по расшифрованным сообщениям всех пространств (только локальный кэш).</summary>

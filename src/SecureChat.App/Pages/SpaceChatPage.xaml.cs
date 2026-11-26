@@ -33,7 +33,7 @@ public partial class SpaceChatPage : ContentPage
     private readonly LinkPreviewService _previewService = AppServices.Get<LinkPreviewService>();
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<SpaceMessageVm> _messages = new();
-    private readonly ObservableCollection<TopicDto> _topics = new();
+    private readonly ObservableCollection<TopicVm> _topics = new();
     private bool _forumPaneVisible;
     private readonly string _spaceId;
     private readonly string _spaceName;
@@ -522,6 +522,13 @@ KeyWaitBanner.IsVisible = false;
             ApplySpacePollVotes();
             _ = RecordChannelViewsAsync();
             RefreshDateLabels();
+            if (_spaceType == SpaceTypes.Forum && _topicId is not null)
+            {
+                var lastRead = _messages.Count == 0
+                    ? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                    : _messages.Max(m => m.SentAtUnixMs);
+                await _localStore.MarkSpaceTopicReadAsync(_spaceId, _topicId, lastRead);
+            }
             RefreshMentionJump();
             if (AppServices.Get<AppSession>().LinkPreviewEnabled)
             {
@@ -738,6 +745,13 @@ KeyWaitBanner.IsVisible = false;
 
         if (_topicId is not null && !string.Equals(message.TopicId, _topicId, StringComparison.Ordinal))
         {
+            // Сообщение в другой теме форума: кэшируем, чтобы счётчик непрочитанного
+            // пережил перезапуск, и обновляем панель тем.
+            var otherPayload = await _spaces.DecryptPayloadAsync(_spaceId, message);
+            if (otherPayload is not null)
+                await _localStore.CacheSpaceMessagesAsync(
+                    _spaceId, new[] { (message, SpacePayloadCodec.Encode(otherPayload)) });
+            if (_forumPaneVisible) await RefreshTopicsAsync();
             return;
         }
 
@@ -775,6 +789,8 @@ KeyWaitBanner.IsVisible = false;
                     Text = Loc.T("rs_216", "🔒 Сообщение не удалось расшифровать")
                 });
             _messages.Add(vm);
+            if (_spaceType == SpaceTypes.Forum && _topicId is not null)
+                _ = _localStore.MarkSpaceTopicReadAsync(_spaceId, _topicId, message.SentAtUnixMs);
             RefreshDateLabels();
             RefreshMentionJump();
 
@@ -2781,13 +2797,24 @@ KeyWaitBanner.IsVisible = false;
     {
         var topics = await _spaces.GetTopicsAsync(_spaceId);
         _topics.Clear();
-        foreach (var topic in topics) _topics.Add(topic);
+        foreach (var topic in topics)
+        {
+            var unread = await _localStore.GetSpaceTopicUnreadCountAsync(
+                _spaceId, topic.Id, _myUserId ?? string.Empty);
+            _topics.Add(new TopicVm(
+                topic.Id, topic.Title, topic.MessageCount, topic.IsClosed,
+                topic.CreatedByUsername)
+            {
+                IsActive = string.Equals(topic.Id, _topicId, StringComparison.Ordinal),
+                Unread = unread
+            });
+        }
         TopicsView.SelectedItem = _topics.FirstOrDefault(t => t.Id == _topicId);
     }
 
     private async void OnTopicSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is not TopicDto topic) return;
+        if (e.CurrentSelection.FirstOrDefault() is not TopicVm topic) return;
         _topicId = topic.Id;
         _topicTitle = topic.Title;
         _currentTopicClosed = topic.IsClosed;
