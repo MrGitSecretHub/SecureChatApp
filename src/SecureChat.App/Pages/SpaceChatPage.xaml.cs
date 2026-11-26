@@ -2886,6 +2886,7 @@ KeyWaitBanner.IsVisible = false;
         MessagesView.Margin = new Thickness(left, 4, 0, 0);
         EmptyStatePanel.Margin = new Thickness(left, 0, 0, 0);
         TopicInfoCard.Margin = new Thickness(12 + left, 6, 12, 0);
+        CommunityInfoCard.Margin = new Thickness(12 + left, 6, 12, 0);
         LoadingPlaceholder.Margin = new Thickness(left, 0, 0, 0);
     }
 
