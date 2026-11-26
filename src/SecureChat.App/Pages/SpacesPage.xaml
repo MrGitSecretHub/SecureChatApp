@@ -28,7 +28,7 @@
         <VerticalStackLayout Grid.Row="0"
                              Padding="16,12,16,2"
                              Spacing="2">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                 <VerticalStackLayout Grid.Column="0" Spacing="2">
                     <Label Text="{DynamicResource s_spaces_title}" Style="{DynamicResource H1}" />
                     <Label Text="{DynamicResource s_spaces_subtitle}"
@@ -42,6 +42,13 @@
                         IsVisible="False"
                         Clicked="OnJoinRequestsClicked"
                         ToolTipProperties.Text="{DynamicResource s_spaces_join_requests}" />
+                <Button Grid.Column="2"
+                        x:Name="CommunitiesCatalogButton"
+                        Text="🌐"
+                        Style="{DynamicResource IconButton}"
+                        VerticalOptions="Center"
+                        Clicked="OnCommunitiesClicked"
+                        ToolTipProperties.Text="{DynamicResource s_community_catalog}" />
             </Grid>
         </VerticalStackLayout>
 

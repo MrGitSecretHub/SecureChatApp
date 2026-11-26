@@ -1023,5 +1023,16 @@
   "forum_sort_name": "नाम अनुसार",
   "forum_switch": "स्थान बदलें",
   "forum_switch_empty": "अभी कोई दूसरा स्थान नहीं",
-  "forum_switch_title": "फ़ोरम बदलें"
+  "forum_switch_title": "फ़ोरम बदलें",
+  "community_channels": "चैनल",
+  "community_add_channel": "नया चैनल",
+  "community_search_channels": "चैनल खोजें",
+  "community_leave": "समुदाय छोड़ें",
+  "community_catalog": "समुदाय सूची",
+  "community_no_communities": "अभी कोई सार्वजनिक समुदाय नहीं",
+  "community_join": "शामिल हों",
+  "community_members_channels": "{0} सदस्य · {1} चैनल",
+  "community_rules": "नियम",
+  "community_open": "समुदाय खोलें",
+  "community_title": "समुदाय"
 }

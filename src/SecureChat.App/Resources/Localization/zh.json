@@ -1023,5 +1023,16 @@
   "forum_sort_name": "按名称",
   "forum_switch": "切换空间",
   "forum_switch_empty": "暂无其他空间",
-  "forum_switch_title": "切换论坛"
+  "forum_switch_title": "切换论坛",
+  "community_channels": "频道",
+  "community_add_channel": "新频道",
+  "community_search_channels": "搜索频道",
+  "community_leave": "退出社区",
+  "community_catalog": "社区目录",
+  "community_no_communities": "暂无公开社区",
+  "community_join": "加入",
+  "community_members_channels": "{0} 名成员 · {1} 个频道",
+  "community_rules": "规则",
+  "community_open": "打开社区",
+  "community_title": "社区"
 }

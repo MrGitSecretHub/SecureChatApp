@@ -484,6 +484,11 @@ public partial class SpacesPage : ContentPage
     }
 
     /// <summary>Показать ожидающие заявки на вступление в наши пространства.</summary>
+    private async void OnCommunitiesClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new CommunitiesPage());
+    }
+
     private async void OnJoinRequestsClicked(object? sender, EventArgs e)
     {
         var adminSpaces = _all.Where(space =>

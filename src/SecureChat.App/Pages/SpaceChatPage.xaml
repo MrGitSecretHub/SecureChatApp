@@ -139,6 +139,7 @@
                       Padding="14,10,10,10"
                       ColumnSpacing="8">
                     <Label Grid.Column="0"
+                           x:Name="TopicsPaneTitle"
                            Text="{DynamicResource s_forum_topics}"
                            FontSize="15"
                            FontAttributes="Bold"
@@ -224,6 +225,51 @@
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
+            </Grid>
+        </Border>
+
+        <!-- Витрина сообщества: описание, участники, каналы -->
+        <Border Grid.Row="1"
+                x:Name="CommunityInfoCard"
+                IsVisible="False"
+                Margin="12,6,12,0"
+                Padding="12,10"
+                BackgroundColor="{DynamicResource SurfaceAlt}"
+                Stroke="{DynamicResource Accent}"
+                StrokeThickness="1">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="12" />
+            </Border.StrokeShape>
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnCommunityInfoTapped" />
+            </Border.GestureRecognizers>
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <Border Grid.Column="0"
+                        WidthRequest="44" HeightRequest="44"
+                        BackgroundColor="{DynamicResource Accent}"
+                        StrokeThickness="0">
+                    <Border.StrokeShape><Ellipse /></Border.StrokeShape>
+                    <Label Text="🌐" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
+                </Border>
+                <VerticalStackLayout Grid.Column="1" Spacing="3">
+                    <Label x:Name="CommunityInfoTitle"
+                           FontSize="15" FontAttributes="Bold"
+                           TextColor="{DynamicResource TextPrimary}"
+                           LineBreakMode="TailTruncation" />
+                    <Label x:Name="CommunityInfoMeta"
+                           FontSize="11" TextColor="{DynamicResource TextMuted}" />
+                    <Label x:Name="CommunityInfoDescription"
+                           FontSize="12" TextColor="{DynamicResource TextSecondary}"
+                           LineBreakMode="TailTruncation" MaxLines="2" />
+                </VerticalStackLayout>
+                <Button Grid.Column="2"
+                        x:Name="CommunityLeaveButton"
+                        Text="🚪"
+                        FontSize="15"
+                        Style="{DynamicResource IconButton}"
+                        IsVisible="False"
+                        Clicked="OnCommunityLeaveClicked"
+                        ToolTipProperties.Text="{DynamicResource s_community_leave}" />
             </Grid>
         </Border>
 

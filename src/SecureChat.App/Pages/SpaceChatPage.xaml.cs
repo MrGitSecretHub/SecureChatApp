@@ -41,6 +41,7 @@ public partial class SpaceChatPage : ContentPage
     private readonly string _spaceId;
     private readonly string _spaceName;
     private readonly string _spaceType;
+    private SpaceDto? _community;
     private bool _signMessages;
     private bool _silentPosting;
     private string? _topicId;
@@ -138,7 +139,14 @@ public partial class SpaceChatPage : ContentPage
         SpaceTitleLabel.Text = name;
         _myUserId = AppServices.Get<AppSession>().User?.Id;
 
-        TopicsButton.IsVisible = type == SpaceTypes.Forum;
+        var isSections = type is SpaceTypes.Forum or SpaceTypes.Community;
+        TopicsButton.IsVisible = isSections;
+        if (type == SpaceTypes.Community)
+        {
+            TopicsPaneTitle.Text = Loc.T("community_channels", "Channels");
+            ToolTipProperties.SetText(AddTopicButton, Loc.T("community_add_channel", "New channel"));
+            TopicSearchBar.Placeholder = Loc.T("community_search_channels", "Search channels");
+        }
         TopicSortPicker.ItemsSource = new[]
         {
             Loc.T("forum_sort_position", "By order"),
@@ -149,7 +157,7 @@ public partial class SpaceChatPage : ContentPage
         TopicSortPicker.SelectedIndex = 0;
         TopicsView.ItemsSource = _topics;
         MessagesView.ItemsSource = _messages;
-        if (type == SpaceTypes.Forum &&
+        if (isSections &&
             Microsoft.Maui.Devices.DeviceInfo.Platform == Microsoft.Maui.Devices.DevicePlatform.WinUI)
         {
             _forumPaneVisible = true;
@@ -412,8 +420,8 @@ public partial class SpaceChatPage : ContentPage
                 members.Select(member => member.Username));
 
             // Режимы канала (подписи «через @админ») берём из описания пространства.
-            _signMessages = (await _spaces.ListAsync())
-                .FirstOrDefault(s => s.Id == _spaceId)?.SignMessages == true;
+            _community = (await _spaces.ListAsync()).FirstOrDefault(s => s.Id == _spaceId);
+            _signMessages = _community?.SignMessages == true;
 
             // Статус темы форума: закрытая тема не принимает новых сообщений.
             if (_topicId is not null)
@@ -570,14 +578,15 @@ KeyWaitBanner.IsVisible = false;
                 ? Loc.T("ui_161", "Topic closed — you cannot post here.")
                 : string.Format(Loc.T("rs_156"), _topicTitle);
 
-            var isForumTopic = _spaceType == SpaceTypes.Forum && _topicId is not null;
-            SpaceTitleLabel.Text = isForumTopic ? _topicTitle ?? _spaceName : _spaceName;
-            SpaceInfoLabel.Text = isForumTopic
-                ? $"🧵 {_spaceName} · {string.Format(Loc.T("uc_000"), members.Count)}"
+            var isSection = _spaceType is SpaceTypes.Forum or SpaceTypes.Community && _topicId is not null;
+            var sectionIcon = _spaceType == SpaceTypes.Community ? "🌐" : "🧵";
+            SpaceTitleLabel.Text = isSection ? _topicTitle ?? _spaceName : _spaceName;
+            SpaceInfoLabel.Text = isSection
+                ? $"{sectionIcon} {_spaceName} · {string.Format(Loc.T("uc_000"), members.Count)}"
                 : string.Format(Loc.T("uc_000"), members.Count);
 
-            TopicInfoCard.IsVisible = isForumTopic;
-            if (isForumTopic)
+            TopicInfoCard.IsVisible = isSection;
+            if (isSection)
             {
                 TopicInfoTitle.Text = _topicTitle ?? string.Empty;
                 var topic = _topics.FirstOrDefault(t => t.Id == _topicId);
@@ -589,8 +598,27 @@ KeyWaitBanner.IsVisible = false;
                 TopicInfoLock.IsVisible = _currentTopicClosed;
             }
 
-            EmptyStatePanel.IsVisible = isForumTopic && _messages.Count == 0;
-            MessageEntry.Placeholder = isForumTopic
+            var showCommunityCard = _spaceType == SpaceTypes.Community && _topicId is null;
+            CommunityInfoCard.IsVisible = showCommunityCard;
+            if (showCommunityCard)
+            {
+                CommunityInfoTitle.Text = _spaceName;
+                CommunityInfoMeta.Text = string.Format(
+                    Loc.T("community_members_channels", "{0} members · {1} channels"),
+                    _community?.MemberCount ?? members.Count,
+                    _community?.TopicCount ?? 0);
+                CommunityInfoDescription.Text = _community?.Description ?? string.Empty;
+                CommunityLeaveButton.IsVisible =
+                    _community?.MyRole is not null &&
+                    _community.MyRole != SpaceRoles.Owner;
+            }
+            else
+            {
+                CommunityLeaveButton.IsVisible = false;
+            }
+
+            EmptyStatePanel.IsVisible = isSection && _messages.Count == 0;
+            MessageEntry.Placeholder = isSection
                 ? Loc.T("forum_message_placeholder", "Message in topic")
                 : Loc.T("ui_153", "Message in space");
             if (_forumPaneVisible) await RefreshTopicsAsync();
@@ -2774,10 +2802,29 @@ KeyWaitBanner.IsVisible = false;
         }
     }
 
+    private async void OnCommunityInfoTapped(object sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new SpaceProfilePage(_spaceId));
+    }
+
+    private async void OnCommunityLeaveClicked(object sender, EventArgs e)
+    {
+        var confirmed = await DisplayAlert(
+            Loc.T("community_leave", "Leave community"),
+            Loc.T("community_leave", "Leave community?"),
+            Loc.T("common_delete", "Leave"), Loc.T("common_cancel", "Cancel"));
+        if (!confirmed) return;
+        if (await _spaces.LeaveAsync(_spaceId))
+        {
+            if (Navigation.NavigationStack.Count > 1)
+                await Navigation.PopAsync(false);
+        }
+    }
+
     private async void OnSwitchSpaceClicked(object sender, EventArgs e)
     {
         var spaces = (await _spaces.ListAsync())
-            .Where(s => s.Type == SpaceTypes.Forum)
+            .Where(s => s.Type is SpaceTypes.Forum or SpaceTypes.Community)
             .ToList();
         if (spaces.Count <= 1)
         {

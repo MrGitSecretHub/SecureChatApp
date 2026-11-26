@@ -1023,5 +1023,16 @@
   "forum_sort_name": "По названию",
   "forum_switch": "Сменить пространство",
   "forum_switch_empty": "Других пространств пока нет",
-  "forum_switch_title": "Сменить форум"
+  "forum_switch_title": "Сменить форум",
+  "community_channels": "Каналы",
+  "community_add_channel": "Новый канал",
+  "community_search_channels": "Поиск каналов",
+  "community_leave": "Выйти из сообщества",
+  "community_catalog": "Каталог сообществ",
+  "community_no_communities": "Публичных сообществ пока нет",
+  "community_join": "Вступить",
+  "community_members_channels": "{0} участников · {1} каналов",
+  "community_rules": "Правила",
+  "community_open": "Открыть сообщество",
+  "community_title": "Сообщество"
 }

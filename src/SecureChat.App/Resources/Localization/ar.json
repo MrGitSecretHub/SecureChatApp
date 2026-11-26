@@ -1023,5 +1023,16 @@
   "forum_sort_name": "حسب الاسم",
   "forum_switch": "تبديل المساحة",
   "forum_switch_empty": "لا توجد مساحات أخرى",
-  "forum_switch_title": "تبديل المنتدى"
+  "forum_switch_title": "تبديل المنتدى",
+  "community_channels": "القنوات",
+  "community_add_channel": "قناة جديدة",
+  "community_search_channels": "ابحث في القنوات",
+  "community_leave": "مغادرة المجتمع",
+  "community_catalog": "دليل المجتمعات",
+  "community_no_communities": "لا توجد مجتمعات عامة بعد",
+  "community_join": "انضم",
+  "community_members_channels": "{0} أعضاء · {1} قنوات",
+  "community_rules": "القواعد",
+  "community_open": "فتح المجتمع",
+  "community_title": "مجتمع"
 }

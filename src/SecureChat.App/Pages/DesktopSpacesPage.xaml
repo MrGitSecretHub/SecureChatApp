@@ -95,6 +95,11 @@
             <Button Grid.Row="3" x:Name="CreateSpaceButton" Text="＋ Создать пространство"
                     Style="{DynamicResource PrimaryButton}" MaximumWidthRequest="320" HorizontalOptions="Start"
                     Clicked="OnCreateSpaceClicked" />
+            <Button Grid.Row="3" x:Name="CommunitiesCatalogButton"
+                    Text="{DynamicResource s_community_catalog}"
+                    Style="{DynamicResource SecondaryButton}" MaximumWidthRequest="320"
+                    HorizontalOptions="Start" Margin="0,44,0,0"
+                    Clicked="OnCommunitiesClicked" />
         </Grid>
     </Grid>
 </ContentPage>

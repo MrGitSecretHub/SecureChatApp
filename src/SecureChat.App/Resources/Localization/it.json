@@ -1023,5 +1023,16 @@
   "forum_sort_name": "Per nome",
   "forum_switch": "Cambia spazio",
   "forum_switch_empty": "Non ci sono altri spazi",
-  "forum_switch_title": "Cambia forum"
+  "forum_switch_title": "Cambia forum",
+  "community_channels": "Canali",
+  "community_add_channel": "Nuovo canale",
+  "community_search_channels": "Cerca canali",
+  "community_leave": "Esci dalla comunità",
+  "community_catalog": "Catalogo comunità",
+  "community_no_communities": "Non ci sono ancora comunità pubbliche",
+  "community_join": "Unisciti",
+  "community_members_channels": "{0} membri · {1} canali",
+  "community_rules": "Regole",
+  "community_open": "Apri comunità",
+  "community_title": "Comunità"
 }

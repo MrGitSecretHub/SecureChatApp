@@ -1023,5 +1023,16 @@
   "forum_sort_name": "By name",
   "forum_switch": "Switch space",
   "forum_switch_empty": "No other spaces yet",
-  "forum_switch_title": "Switch forum"
+  "forum_switch_title": "Switch forum",
+  "community_channels": "Channels",
+  "community_add_channel": "New channel",
+  "community_search_channels": "Search channels",
+  "community_leave": "Leave community",
+  "community_catalog": "Community catalog",
+  "community_no_communities": "No public communities yet",
+  "community_join": "Join",
+  "community_members_channels": "{0} members · {1} channels",
+  "community_rules": "Rules",
+  "community_open": "Open community",
+  "community_title": "Community"
 }

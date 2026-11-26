@@ -1023,5 +1023,16 @@
   "forum_sort_name": "Ada göre",
   "forum_switch": "Alanı değiştir",
   "forum_switch_empty": "Başka alan yok",
-  "forum_switch_title": "Forum değiştir"
+  "forum_switch_title": "Forum değiştir",
+  "community_channels": "Kanallar",
+  "community_add_channel": "Yeni kanal",
+  "community_search_channels": "Kanalları ara",
+  "community_leave": "Topluluktan ayrıl",
+  "community_catalog": "Topluluk kataloğu",
+  "community_no_communities": "Henüz herkese açık topluluk yok",
+  "community_join": "Katıl",
+  "community_members_channels": "{0} üye · {1} kanal",
+  "community_rules": "Kurallar",
+  "community_open": "Topluluğu aç",
+  "community_title": "Topluluk"
 }

@@ -217,6 +217,11 @@ public partial class DesktopSpacesPage : ContentPage
         await Navigation.PushAsync(new StoryCreatePage(space.Id));
     }
 
+    private async void OnCommunitiesClicked(object sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new CommunitiesPage());
+    }
+
     private async void OnCreateSpaceClicked(object sender, EventArgs e)
     {
         await Navigation.PushAsync(new SpacesPage());
