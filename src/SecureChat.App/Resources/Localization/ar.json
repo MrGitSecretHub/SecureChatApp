@@ -1035,5 +1035,8 @@
   "community_rules": "القواعد",
   "community_open": "فتح المجتمع",
   "community_title": "مجتمع",
-  "spaces_create": "＋ إنشاء مساحة"
+  "spaces_create": "＋ إنشاء مساحة",
+  "topic_pin": "📌 تثبيت الموضوع",
+  "topic_unpin": "📌 إلغاء التثبيت",
+  "topic_pinned": "المثبتة"
 }

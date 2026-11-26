@@ -1377,6 +1377,37 @@ public sealed class ChatHub : Hub
         return topic;
     }
 
+    /// <summary>Закрепляет или открепляет тему форума/канал сообщества.</summary>
+    public async Task<TopicDto?> SetTopicPinned(string spaceId, string topicId, bool isPinned)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId) ||
+            string.IsNullOrWhiteSpace(topicId))
+        {
+            return null;
+        }
+
+        var space = await _spaces.GetAsync(spaceId, userId);
+        if (space is null || !IsAdmin(space.MyRole))
+        {
+            return null;
+        }
+
+        if (!await _spaces.SetTopicPinnedAsync(spaceId, topicId, isPinned))
+        {
+            return null;
+        }
+
+        var topic = (await _spaces.ListTopicsAsync(spaceId))
+            .FirstOrDefault(item => item.Id == topicId);
+        if (topic is not null)
+        {
+            await Clients.Group($"space:{spaceId}").SendAsync("TopicUpdated", topic);
+        }
+
+        return topic;
+    }
+
     /// <summary>Меняет порядок темы в списке форума (владелец или администратор).</summary>
     public async Task<TopicDto?> SetTopicPosition(string spaceId, string topicId, int position)
     {

@@ -103,6 +103,9 @@ public sealed class TopicDto
 
     /// <summary>Порядок темы в списке форума; меньше — выше.</summary>
     public int Position { get; set; }
+
+    /// <summary>Тема закреплена — показывается выше остальных.</summary>
+    public bool IsPinned { get; set; }
 }
 
 public sealed class CreateTopicRequest

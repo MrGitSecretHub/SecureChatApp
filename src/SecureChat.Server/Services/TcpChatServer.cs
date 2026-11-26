@@ -737,6 +737,46 @@ public sealed class TcpChatServer : BackgroundService
                 return;
             }
 
+            case "spaces.pinTopic":
+            {
+                var req = frame.Payload?.Deserialize<TcpTopicPinRequest>(SpaceJsonOptions);
+                if (req is null)
+                {
+                    await SendErrorAsync(principal, frame.Id, "Некорректный запрос", cancellationToken);
+                    return;
+                }
+
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+                var space = await _spaces.GetAsync(req.SpaceId, userId, cancellationToken);
+                if (space is null || space.MyRole is not (SpaceRoles.Owner or SpaceRoles.Admin))
+                {
+                    await SendErrorAsync(principal, frame.Id, "Нет права", cancellationToken);
+                    return;
+                }
+
+                await _spaces.SetTopicPinnedAsync(req.SpaceId, req.TopicId, req.IsPinned, cancellationToken);
+                var topic = (await _spaces.ListTopicsAsync(req.SpaceId, cancellationToken))
+                    .FirstOrDefault(x => x.Id == req.TopicId);
+                if (topic is not null)
+                {
+                    var ids = await _spaces.GetMemberIdsAsync(req.SpaceId, cancellationToken);
+                    foreach (var id in ids)
+                        await SendToUserAsync(id, new TcpFrame
+                        {
+                            Type = "topicUpdated",
+                            Payload = JsonSerializer.SerializeToElement(topic, SpaceJsonOptions)
+                        }, cancellationToken);
+                }
+
+                await SendToCallerAsync(principal, new TcpFrame
+                {
+                    Type = "spaces.pinTopic.result",
+                    Id = frame.Id,
+                    Accepted = true
+                }, cancellationToken);
+                return;
+            }
+
             case "spaces.join":
             {
                 var request = frame.Payload?.Deserialize<TcpSpaceJoinRequest>(SpaceJsonOptions);

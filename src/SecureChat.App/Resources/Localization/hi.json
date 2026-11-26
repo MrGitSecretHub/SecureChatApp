@@ -1035,5 +1035,8 @@
   "community_rules": "नियम",
   "community_open": "समुदाय खोलें",
   "community_title": "समुदाय",
-  "spaces_create": "＋ स्थान बनाएँ"
+  "spaces_create": "＋ स्थान बनाएँ",
+  "topic_pin": "📌 विषय पिन करें",
+  "topic_unpin": "📌 पिन हटाएँ",
+  "topic_pinned": "पिन किए गए"
 }

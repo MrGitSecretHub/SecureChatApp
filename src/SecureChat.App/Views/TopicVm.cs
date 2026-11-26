@@ -16,7 +16,8 @@ public sealed class TopicVm : INotifyPropertyChanged
         bool isClosed,
         string createdByUsername,
         string subtitleText,
-        long lastMessageAtUnixMs)
+        long lastMessageAtUnixMs,
+        bool isPinned)
     {
         Id = id;
         Title = title;
@@ -25,6 +26,7 @@ public sealed class TopicVm : INotifyPropertyChanged
         CreatedByUsername = createdByUsername;
         SubtitleText = subtitleText;
         LastMessageAtUnixMs = lastMessageAtUnixMs;
+        IsPinned = isPinned;
     }
 
     public string Id { get; }
@@ -34,6 +36,7 @@ public sealed class TopicVm : INotifyPropertyChanged
     public string CreatedByUsername { get; }
     public string SubtitleText { get; }
     public long LastMessageAtUnixMs { get; }
+    public bool IsPinned { get; }
 
     public bool IsActive
     {

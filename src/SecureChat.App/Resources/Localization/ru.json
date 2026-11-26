@@ -1035,5 +1035,8 @@
   "community_rules": "Правила",
   "community_open": "Открыть сообщество",
   "community_title": "Сообщество",
-  "spaces_create": "＋ Создать пространство"
+  "spaces_create": "＋ Создать пространство",
+  "topic_pin": "📌 Закрепить тему",
+  "topic_unpin": "📌 Открепить тему",
+  "topic_pinned": "Закреплённые"
 }

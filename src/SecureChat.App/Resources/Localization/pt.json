@@ -1035,5 +1035,8 @@
   "community_rules": "Regras",
   "community_open": "Abrir comunidade",
   "community_title": "Comunidade",
-  "spaces_create": "＋ Criar espaço"
+  "spaces_create": "＋ Criar espaço",
+  "topic_pin": "📌 Fixar tópico",
+  "topic_unpin": "📌 Desafixar tópico",
+  "topic_pinned": "Fixados"
 }

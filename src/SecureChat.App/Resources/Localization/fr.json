@@ -1035,5 +1035,8 @@
   "community_rules": "Règles",
   "community_open": "Ouvrir la communauté",
   "community_title": "Communauté",
-  "spaces_create": "＋ Créer un espace"
+  "spaces_create": "＋ Créer un espace",
+  "topic_pin": "📌 Épingler le sujet",
+  "topic_unpin": "📌 Désépingler le sujet",
+  "topic_pinned": "Épinglés"
 }

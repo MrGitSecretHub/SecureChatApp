@@ -71,6 +71,7 @@ public static class TcpMethods
     public const string SpaceTopics = "spaces.topics";
     public const string SpaceCreateTopic = "spaces.createTopic";
     public const string SpaceDeleteTopic = "spaces.deleteTopic";
+    public const string SpacePinTopic = "spaces.pinTopic";
     public const string SpaceUpdate = "spaces.update";
     public const string SpaceUpdateMember = "spaces.updateMember";
     public const string SpaceRemoveMember = "spaces.removeMember";

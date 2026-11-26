@@ -14,6 +14,14 @@ public sealed class TcpSpaceTopicRequest
     public string? Text { get; set; }
 }
 
+/// <summary>Закрепление темы форума/канала сообщества через TCP.</summary>
+public sealed class TcpTopicPinRequest
+{
+    public required string SpaceId { get; set; }
+    public required string TopicId { get; set; }
+    public bool IsPinned { get; set; }
+}
+
 /// <summary>Запрос вступления/выхода из публичного пространства.</summary>
 public sealed class TcpSpaceJoinRequest
 {

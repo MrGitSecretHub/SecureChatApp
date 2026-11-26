@@ -199,6 +199,7 @@ public sealed class TcpTransport : IDisposable
                     case "joinRequest":
                     case "spaceAdded":
                     case "spaceMemberNeedKey":
+                    case "topicUpdated":
                         SpaceEventReceived?.Invoke(frame.Type, frame.Payload);
                         break;
 

@@ -1035,5 +1035,8 @@
   "community_rules": "规则",
   "community_open": "打开社区",
   "community_title": "社区",
-  "spaces_create": "＋ 创建空间"
+  "spaces_create": "＋ 创建空间",
+  "topic_pin": "📌 置顶话题",
+  "topic_unpin": "📌 取消置顶",
+  "topic_pinned": "已置顶"
 }

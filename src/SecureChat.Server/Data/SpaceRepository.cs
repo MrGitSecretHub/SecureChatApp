@@ -101,6 +101,7 @@ public sealed class SpaceRepository
                 CreatedAt   TEXT NOT NULL,
                 IsClosed    INTEGER NOT NULL DEFAULT 0,
                 Position    INTEGER NOT NULL DEFAULT 0,
+                IsPinned    INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (SpaceId) REFERENCES Spaces(Id) ON DELETE CASCADE
             );
 
@@ -174,7 +175,8 @@ public sealed class SpaceRepository
         var columns = new (string Name, string Definition)[]
         {
             ("IsClosed", "INTEGER NOT NULL DEFAULT 0"),
-            ("Position", "INTEGER NOT NULL DEFAULT 0")
+            ("Position", "INTEGER NOT NULL DEFAULT 0"),
+            ("IsPinned", "INTEGER NOT NULL DEFAULT 0")
         };
 
         foreach (var column in columns)
@@ -1549,11 +1551,11 @@ public sealed class SpaceRepository
             SELECT t.Id, t.SpaceId, t.Title, t.CreatedBy, u.Username, t.CreatedAt,
                    (SELECT COUNT(*) FROM SpaceMessages sm WHERE sm.TopicId = t.Id),
                    (SELECT COALESCE(MAX(SentAtUnixMs), 0) FROM SpaceMessages sm WHERE sm.TopicId = t.Id),
-                   t.IsClosed, t.Position
+                   t.IsClosed, t.Position, t.IsPinned
             FROM Topics t
             LEFT JOIN Users u ON u.Id = t.CreatedBy
             WHERE t.SpaceId = $spaceId
-            ORDER BY t.Position ASC, t.CreatedAt DESC;
+            ORDER BY t.IsPinned DESC, t.Position ASC, t.CreatedAt DESC;
             """;
         command.Parameters.AddWithValue("$spaceId", spaceId);
 
@@ -1575,7 +1577,8 @@ public sealed class SpaceRepository
                 MessageCount = reader.GetInt32(6),
                 LastMessageAtUnixMs = reader.GetInt64(7),
                 IsClosed = reader.GetInt64(8) != 0,
-                Position = reader.GetInt32(9)
+                Position = reader.GetInt32(9),
+                IsPinned = reader.GetInt64(10) != 0
             });
         }
 
@@ -1661,6 +1664,36 @@ public sealed class SpaceRepository
                 WHERE Id = $topicId AND SpaceId = $spaceId;
                 """;
             command.Parameters.AddWithValue("$position", position);
+            command.Parameters.AddWithValue("$topicId", topicId);
+            command.Parameters.AddWithValue("$spaceId", spaceId);
+
+            return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    /// <summary>Закрепляет или открепляет тему форума/канал сообщества.</summary>
+    public async Task<bool> SetTopicPinnedAsync(
+        string spaceId,
+        string topicId,
+        bool isPinned,
+        CancellationToken cancellationToken = default)
+    {
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                UPDATE Topics SET IsPinned = $pinned
+                WHERE Id = $topicId AND SpaceId = $spaceId;
+                """;
+            command.Parameters.AddWithValue("$pinned", isPinned ? 1 : 0);
             command.Parameters.AddWithValue("$topicId", topicId);
             command.Parameters.AddWithValue("$spaceId", spaceId);
 

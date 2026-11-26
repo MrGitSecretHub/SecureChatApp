@@ -1035,5 +1035,8 @@
   "community_rules": "Regole",
   "community_open": "Apri comunità",
   "community_title": "Comunità",
-  "spaces_create": "＋ Crea spazio"
+  "spaces_create": "＋ Crea spazio",
+  "topic_pin": "📌 Fissa argomento",
+  "topic_unpin": "📌 Rimuovi dai fissati",
+  "topic_pinned": "Fissati"
 }

@@ -3003,11 +3003,12 @@ KeyWaitBanner.IsVisible = false;
                 ? string.Empty
                 : last.Text.Replace('\n', ' ').Trim();
             var subtitle = $"💬 {topic.MessageCount}";
+            if (topic.IsPinned) subtitle = "📌 " + subtitle;
             if (topic.IsClosed) subtitle += " · 🔒";
             if (preview.Length > 0) subtitle += " · " + preview;
             _allTopics.Add(new TopicVm(
                 topic.Id, topic.Title, topic.MessageCount, topic.IsClosed,
-                topic.CreatedByUsername, subtitle, last.SentAtUnixMs)
+                topic.CreatedByUsername, subtitle, last.SentAtUnixMs, topic.IsPinned)
             {
                 IsActive = string.Equals(topic.Id, _topicId, StringComparison.Ordinal),
                 Unread = unread
@@ -3025,12 +3026,13 @@ KeyWaitBanner.IsVisible = false;
                 t.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                 t.SubtitleText.Contains(query, StringComparison.OrdinalIgnoreCase));
 
+        var ordered = items.OrderByDescending(t => t.IsPinned);
         items = _topicSortMode switch
         {
-            1 => items.OrderByDescending(t => t.LastMessageAtUnixMs),
-            2 => items.OrderByDescending(t => t.Unread).ThenByDescending(t => t.LastMessageAtUnixMs),
-            3 => items.OrderBy(t => t.Title, StringComparer.CurrentCultureIgnoreCase),
-            _ => items
+            1 => ordered.ThenByDescending(t => t.LastMessageAtUnixMs),
+            2 => ordered.ThenByDescending(t => t.Unread).ThenByDescending(t => t.LastMessageAtUnixMs),
+            3 => ordered.ThenBy(t => t.Title, StringComparer.CurrentCultureIgnoreCase),
+            _ => ordered
         };
 
         _topics.Clear();
@@ -3096,17 +3098,26 @@ KeyWaitBanner.IsVisible = false;
         var topics = (await _spaces.GetTopicsAsync(_spaceId)).ToList();
         var rename = Loc.T("rs_189", "✏️ Rename topic…");
         var toggle = Loc.T("rs_215", "🔒 Close or reopen topic…");
+        var pin = Loc.T("topic_pin", "📌 Pin topic");
         var up = Loc.T("rs_193", "⬆️ Move topic up");
         var down = Loc.T("rs_194", "⬇️ Move topic down");
         var delete = Loc.T("rs_220", "🗑 Delete topic…");
         var selected = await DisplayActionSheet(
             Loc.T("forum_topics", "Topics"),
             Loc.T("common_cancel", "Cancel"), null,
-            rename, toggle, up, down, delete);
+            rename, toggle, pin, up, down, delete);
         if (string.IsNullOrWhiteSpace(selected)) return;
 
         if (selected == rename) { await RenameTopicAsync(topics); return; }
         if (selected == toggle) { await ToggleTopicClosedAsync(topics); return; }
+        if (selected == pin)
+        {
+            var target = await PickTopicAsync(topics, Loc.T("topic_pin", "📌 Pin topic"));
+            if (target is null) return;
+            await _spaces.SetTopicPinnedAsync(_spaceId, target.Id, !target.IsPinned);
+            if (_forumPaneVisible) await RefreshTopicsAsync();
+            return;
+        }
         if (selected == up || selected == down)
         {
             await MoveTopicAsync(topics, selected == up ? -1 : 1);

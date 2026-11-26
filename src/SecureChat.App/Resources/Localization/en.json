@@ -1035,5 +1035,8 @@
   "community_rules": "Rules",
   "community_open": "Open community",
   "community_title": "Community",
-  "spaces_create": "＋ Create space"
+  "spaces_create": "＋ Create space",
+  "topic_pin": "📌 Pin topic",
+  "topic_unpin": "📌 Unpin topic",
+  "topic_pinned": "Pinned"
 }

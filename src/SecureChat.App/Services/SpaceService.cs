@@ -1262,6 +1262,30 @@ public sealed class SpaceService
             "SetTopicClosed", spaceId, topicId, isClosed, cancellationToken);
     }
 
+    /// <summary>Закрепляет или открепляет тему форума/канал сообщества.</summary>
+    public async Task<TopicDto?> SetTopicPinnedAsync(
+        string spaceId,
+        string topicId,
+        bool isPinned,
+        CancellationToken cancellationToken = default)
+    {
+        var tcp = await TryTcpAsync("spaces.pinTopic", new TcpTopicPinRequest
+        {
+            SpaceId = spaceId,
+            TopicId = topicId,
+            IsPinned = isPinned
+        }, cancellationToken);
+        if (tcp.HasValue)
+        {
+            return (await GetTopicsAsync(spaceId, cancellationToken))
+                .FirstOrDefault(x => x.Id == topicId);
+        }
+
+        var connection = await GetConnectionAsync();
+        return await connection.InvokeAsync<TopicDto?>(
+            "SetTopicPinned", spaceId, topicId, isPinned, cancellationToken);
+    }
+
     /// <summary>Меняет порядок темы в списке форума.</summary>
     public async Task<TopicDto?> SetTopicPositionAsync(
         string spaceId,
@@ -1374,6 +1398,15 @@ public sealed class SpaceService
                 InvalidateSpaceKey(spaceId);
                 SpaceKeyRotated?.Invoke(spaceId);
             }
+        }
+        else if (type == "topicUpdated" && payload.HasValue)
+        {
+            try
+            {
+                var topic = payload.Value.Deserialize<TopicDto>(ChatJson.Options);
+                if (topic is not null) TopicUpdated?.Invoke(topic);
+            }
+            catch (JsonException) { }
         }
         else if (type == "spaceAdded" || type == "joinRequest" || type == "topicCreated")
         {
