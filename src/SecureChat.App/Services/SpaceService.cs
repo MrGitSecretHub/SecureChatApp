@@ -897,6 +897,7 @@ public sealed class SpaceService
             }
         });
 
+        progress?.Report(5);
         await AppServices.Get<ApiClient>().UploadMediaAsync(
             _session.ServerUrl,
             _session.Token!,
@@ -906,6 +907,7 @@ public sealed class SpaceService
             uploadProgress,
             cancellationToken,
             spaceId: spaceId);
+        progress?.Report(95);
 
         var payload = new SpaceMessagePayload
         {
@@ -930,7 +932,26 @@ public sealed class SpaceService
             }
         };
 
-        return await SendPayloadAsync(spaceId, topicId, payload, cancellationToken);
+        var sent = await SendPayloadAsync(spaceId, topicId, payload, cancellationToken);
+
+        // Даже если сервер не вернул DTO (или событие SignalR не дошло),
+        // сохраняем расшифрованное вложение локально — пузырь не должен пропасть.
+        var local = sent ?? new SpaceMessageDto
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            SpaceId = spaceId,
+            TopicId = topicId,
+            SenderId = _session.User?.Id ?? string.Empty,
+            SenderUsername = _session.Username,
+            Nonce = string.Empty,
+            Tag = string.Empty,
+            Ciphertext = string.Empty,
+            Signature = string.Empty,
+            SentAtUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        };
+        await AppServices.Get<LocalStore>().CacheSpaceMessagesAsync(
+            spaceId, new[] { (local, ChatJson.Serialize(payload)) });
+        return sent ?? local;
     }
 
     /// <summary>Редактирует сообщение автора: участники получают новый шифротекст.</summary>
