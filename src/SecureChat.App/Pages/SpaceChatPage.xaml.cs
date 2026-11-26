@@ -1878,7 +1878,7 @@ KeyWaitBanner.IsVisible = false;
             if (message.IsImage)
             {
                 await page.Navigation.PushModalAsync(
-                    new NavigationPage(new ImageViewerPage(bytes, message.FileName)));
+                    new ImageViewerPage(bytes, message.FileName));
                 return;
             }
 

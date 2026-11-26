@@ -3159,7 +3159,7 @@ public partial class ChatView : ContentView
             }
 
             await page.Navigation.PushModalAsync(
-                new NavigationPage(new ImageViewerPage(bytes, message.FileName)));
+                new ImageViewerPage(bytes, message.FileName));
 
             // Одноразовое сообщение исчезает после закрытия просмотрщика.
             if (message.IsOnce && !message.IsMine)

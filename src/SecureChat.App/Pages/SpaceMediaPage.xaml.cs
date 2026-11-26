@@ -128,7 +128,7 @@ public partial class SpaceMediaPage : ContentPage
             {
                 message.SetImageContent(bytes);
                 await Navigation.PushModalAsync(
-                    new NavigationPage(new ImageViewerPage(bytes, message.FileName)));
+                    new ImageViewerPage(bytes, message.FileName));
                 return;
             }
 

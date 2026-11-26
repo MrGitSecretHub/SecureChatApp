@@ -21,6 +21,7 @@ public partial class ImageViewerPage : ContentPage
     private double _offsetY;
     private double _startOffsetX;
     private double _startOffsetY;
+    private bool _closing;
 
     public ImageViewerPage(byte[] imageBytes, string? fileName)
     {
@@ -158,6 +159,13 @@ public partial class ImageViewerPage : ContentPage
             return;
         }
 
+        await CloseAsync();
+    }
+
+    private async Task CloseAsync()
+    {
+        if (_closing) return;
+        _closing = true;
         await Navigation.PopModalAsync();
     }
 
@@ -189,7 +197,7 @@ public partial class ImageViewerPage : ContentPage
 
     private async void OnCloseClicked(object? sender, EventArgs e)
     {
-        await Navigation.PopModalAsync();
+        await CloseAsync();
     }
 
     /// <summary>Сохранить фото на устройство: в галерею или в папку «Pictures».</summary>
