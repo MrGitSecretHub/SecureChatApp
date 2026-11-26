@@ -45,6 +45,7 @@ public partial class SpaceChatPage : ContentPage
     private bool _signMessages;
     private bool _silentPosting;
     private string? _topicId;
+    private string? _loadedTopicId;
     private string? _topicTitle;
 
     /// <summary>Текущая тема закрыта — в неё нельзя писать.</summary>
@@ -526,12 +527,14 @@ KeyWaitBanner.IsVisible = false;
             }
 
             // Сервер иногда отдаёт пустой список — не стираем показанные сообщения.
-            if (source.Count == 0 && _messages.Count > 0)
+            if (source.Count == 0 && _messages.Count > 0 &&
+                string.Equals(_loadedTopicId, _topicId, StringComparison.Ordinal))
             {
                 HideScrollToBottom();
                 return;
             }
 
+            _loadedTopicId = _topicId;
             _messages.Clear();
             foreach (var item in feed)
             {
@@ -606,7 +609,7 @@ KeyWaitBanner.IsVisible = false;
                 CommunityInfoMeta.Text = string.Format(
                     Loc.T("community_members_channels", "{0} members · {1} channels"),
                     _community?.MemberCount ?? members.Count,
-                    _community?.TopicCount ?? 0);
+                    _topics.Count > 0 ? _topics.Count : _community?.TopicCount ?? 0);
                 CommunityInfoDescription.Text = _community?.Description ?? string.Empty;
                 CommunityLeaveButton.IsVisible =
                     _community?.MyRole is not null &&
