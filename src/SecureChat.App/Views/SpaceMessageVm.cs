@@ -22,7 +22,7 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     private double _playbackPositionSeconds;
     private double _playbackDurationSeconds;
     private bool _mediaDownloaded;
-    private int _transferProgress;
+    private int _transferProgress = 100;
     /// <summary>Прогресс передачи вложения 0..100 (отправка или скачивание).</summary>
     public int TransferProgress
     {

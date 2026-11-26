@@ -541,6 +541,12 @@ KeyWaitBanner.IsVisible = false;
                 _messages.Add(item);
             }
 
+            foreach (var item in _messages.Where(x =>
+                         x.IsImage && x.Media is not null && !x.MediaDownloaded))
+            {
+                _ = AutoDownloadImageAsync(item);
+            }
+
             ApplySpacePollVotes();
             _ = RecordChannelViewsAsync();
             RefreshDateLabels();
