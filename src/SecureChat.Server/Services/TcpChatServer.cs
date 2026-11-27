@@ -34,6 +34,7 @@ public sealed class TcpChatServer : BackgroundService
     private readonly ChatRepository _repository;
     private readonly SpaceRepository _spaces;
     private readonly IHubContext<ChatHub> _hub;
+    private readonly PushNotificationService _push;
     private readonly JwtSettings _jwt;
     private readonly ILogger<TcpChatServer> _logger;
 
@@ -42,6 +43,7 @@ public sealed class TcpChatServer : BackgroundService
         ChatRepository repository,
         SpaceRepository spaces,
         IHubContext<ChatHub> hub,
+        PushNotificationService push,
         IOptions<JwtSettings> jwtOptions,
         IConfiguration configuration,
         ILogger<TcpChatServer> logger)
@@ -50,6 +52,7 @@ public sealed class TcpChatServer : BackgroundService
         _repository = repository;
         _spaces = spaces;
         _hub = hub;
+        _push = push;
         _jwt = jwtOptions.Value;
         _logger = logger;
 
@@ -178,6 +181,11 @@ public sealed class TcpChatServer : BackgroundService
                     route.RecipientUserId!,
                     new TcpFrame { Type = "message", Envelope = route.Envelope },
                     cancellationToken);
+
+                var recipient = await _repository.GetUserByIdAsync(route.RecipientUserId!);
+                var senderName = principal.FindFirstValue(ClaimTypes.Name) ?? "SecureChat";
+                if (!string.IsNullOrEmpty(recipient?.PushTopic))
+                    await _push.NotifyAsync(recipient.PushTopic, senderName, cancellationToken);
 
                 await SendToUserAsync(
                     principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty,
@@ -335,6 +343,14 @@ public sealed class TcpChatServer : BackgroundService
                 // увидеть сообщение, отправленное по TCP.
                 await _hub.Clients.Group($"space:{request.SpaceId}")
                     .SendAsync("SpaceMessage", message, cancellationToken);
+
+                var topics = new List<string>();
+                foreach (var memberId in memberIds.Where(id => id != userId))
+                {
+                    var member = await _repository.GetUserByIdAsync(memberId, cancellationToken);
+                    if (!string.IsNullOrEmpty(member?.PushTopic)) topics.Add(member.PushTopic);
+                }
+                await _push.NotifyManyAsync(topics, sender.Username, cancellationToken);
 
                 await SendToCallerAsync(principal, new TcpFrame
                 {
