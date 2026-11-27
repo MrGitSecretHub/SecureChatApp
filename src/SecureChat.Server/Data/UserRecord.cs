@@ -16,7 +16,7 @@ public sealed class UserRecord
     public string StatusMessage { get; init; } = "Онлайн";
     public long LastSeenUnixMs { get; init; }
     public bool IsAdmin { get; init; }
-    public string PushTopic { get; init; } = string.Empty;
+    public string PushTopic { get; set; } = string.Empty;
 }
 
 public sealed record PendingEnvelope(string Id, string Json);

@@ -703,6 +703,29 @@ public sealed class ChatRepository
         }
     }
 
+    /// <summary>Сохраняет ntfy-topic пользователя (для аккаунтов старой регистрации).</summary>
+    public async Task SetPushTopicAsync(
+        string userId,
+        string topic,
+        CancellationToken cancellationToken = default)
+    {
+        await _writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE Users SET PushTopic = $topic WHERE Id = $id;";
+            command.Parameters.AddWithValue("$topic", topic);
+            command.Parameters.AddWithValue("$id", userId);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
     public async Task<bool> SaveMessageAsync(
         string id,
         string senderId,

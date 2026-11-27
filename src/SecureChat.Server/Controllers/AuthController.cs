@@ -147,6 +147,15 @@ public sealed class AuthController : ControllerBase
             return Unauthorized(new ApiError { Error = "Неверное имя пользователя/почта или пароль." });
         }
 
+        // Аккаунты, зарегистрированные до добавления push, не имеют topic —
+        // создаём его при первом входе.
+        if (string.IsNullOrWhiteSpace(user.PushTopic))
+        {
+            user.PushTopic = "sc-" +
+                Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+            await _repository.SetPushTopicAsync(user.Id, user.PushTopic, cancellationToken);
+        }
+
         return Ok(new AuthResponse
         {
             Token = _tokens.CreateToken(user),
