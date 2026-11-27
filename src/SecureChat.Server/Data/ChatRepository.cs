@@ -122,6 +122,16 @@ public sealed class ChatRepository
         await EnsureMediaTableMigrationAsync(connection, cancellationToken);
         await EnsureMessagePairIndexAsync(connection, cancellationToken);
 
+        // Push-топики для аккаунтов, которые не проходили логин после обновления.
+        await using (var topics = connection.CreateCommand())
+        {
+            topics.CommandText = """
+                UPDATE Users SET PushTopic = 'sc-' || lower(hex(randomblob(16)))
+                WHERE PushTopic IS NULL OR PushTopic = '';
+                """;
+            await topics.ExecuteNonQueryAsync(cancellationToken);
+        }
+
         var cutoff = DateTimeOffset.UtcNow.AddDays(-30).ToString("O");
         await using var cleanup = connection.CreateCommand();
         cleanup.CommandText =
