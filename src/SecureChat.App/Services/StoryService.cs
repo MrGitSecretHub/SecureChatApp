@@ -86,6 +86,20 @@ public sealed class StoryService
         var identity = _session.Identity ?? throw new InvalidOperationException("Нет ключей устройства.");
         var created = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
+        // Сервер ограничивает суммарный размер зашифрованных конвертов 32 МБ.
+        // Одно фото на каждого получателя быстро превысит лимит, поэтому
+        // уменьшаем изображение до 1080 px перед шифрованием.
+        if (!string.IsNullOrWhiteSpace(imageBase64))
+        {
+            try
+            {
+                var raw = Convert.FromBase64String(imageBase64);
+                var small = MediaCompression.MakeThumbnail(raw, "image/jpeg", 1080);
+                imageBase64 = Convert.ToBase64String(small);
+            }
+            catch { }
+        }
+
         var users = await _api.ListUsersAsync(_session.ServerUrl, _session.Token!);
         // Including self lets the author see their own story on any device.
         var recipients = users.ToList();

@@ -483,7 +483,9 @@ public sealed class ApiException : Exception
         }
         catch (JsonException)
         {
-            message = $"Ошибка сервера ({(int)response.StatusCode}).";
+            message = string.IsNullOrWhiteSpace(body)
+                ? $"Ошибка сервера ({(int)response.StatusCode})."
+                : body.Length > 200 ? body[..200] : body;
         }
 
         throw new ApiException(response.StatusCode, message);
@@ -524,7 +526,9 @@ public sealed class ApiException : Exception
         }
         catch (JsonException)
         {
-            message = $"Ошибка сервера ({(int)response.StatusCode}).";
+            message = string.IsNullOrWhiteSpace(body)
+                ? $"Ошибка сервера ({(int)response.StatusCode})."
+                : body.Length > 200 ? body[..200] : body;
         }
 
         throw new ApiException(response.StatusCode, message);
