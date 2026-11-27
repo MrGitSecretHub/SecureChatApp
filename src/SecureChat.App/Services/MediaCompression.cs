@@ -1,4 +1,5 @@
 using Microsoft.Maui.Graphics.Platform;
+using SkiaSharp;
 
 namespace SecureChat.App.Services;
 
@@ -71,17 +72,19 @@ public static class MediaCompression
 
         try
         {
-            using var source = new MemoryStream(data);
-            var image = PlatformImage.FromStream(source);
-            if (image is null) return data;
+            using var bitmap = SKBitmap.Decode(data);
+            if (bitmap is null) return data;
 
-            var scale = Math.Min(1.0, (double)maxSide / Math.Max(image.Width, image.Height));
+            var scale = Math.Min(1.0, (double)maxSide / Math.Max(bitmap.Width, bitmap.Height));
             if (scale >= 1.0) return data;
-            var w = Math.Max(1, (int)Math.Round(image.Width * scale));
-            var h = Math.Max(1, (int)Math.Round(image.Height * scale));
-            using var resized = image.Resize(w, h, ResizeMode.Fit);
+            var w = Math.Max(1, (int)Math.Round(bitmap.Width * scale));
+            var h = Math.Max(1, (int)Math.Round(bitmap.Height * scale));
+            using var resized = bitmap.Resize(new SKImageInfo(w, h), SKFilterQuality.Medium);
+            if (resized is null) return data;
+            using var image = SKImage.FromBitmap(resized);
+            using var encoded = image.Encode(SKEncodedImageFormat.Jpeg, 72);
             using var target = new MemoryStream();
-            resized.Save(target, ImageFormat.Jpeg, 75);
+            encoded.SaveTo(target);
             var result = target.ToArray();
             return result.Length > 0 && result.Length < data.Length ? result : data;
         }
