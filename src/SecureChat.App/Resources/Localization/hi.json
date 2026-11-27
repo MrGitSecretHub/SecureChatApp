@@ -1038,5 +1038,14 @@
   "spaces_create": "＋ स्थान बनाएँ",
   "topic_pin": "📌 विषय पिन करें",
   "topic_unpin": "📌 पिन हटाएँ",
-  "topic_pinned": "पिन किए गए"
+  "topic_pinned": "पिन किए गए",
+  "media_manager_title": "फ़ाइलें और मेमोरी",
+  "media_manager_empty": "कोई कैश नहीं",
+  "media_manager_clear": "साफ़ करें",
+  "media_manager_clear_all": "सब साफ़ करें",
+  "media_manager_summary": "कैश फ़ाइलें: {0} · {1}",
+  "media_manager_confirm": "{0} की फ़ाइलें साफ़ करें?",
+  "settings_proxy": "प्रॉक्सी सर्वर",
+  "settings_proxy_hint": "http://host:port. खाली = सिस्टम प्रॉक्सी नजरअंदाज करें। पुनः कनेक्ट पर लागू।",
+  "settings_proxy_placeholder": "http://127.0.0.1:10809"
 }

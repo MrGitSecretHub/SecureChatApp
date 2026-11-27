@@ -180,6 +180,7 @@ public partial class SpaceChatPage : ContentPage
         _spaces.TopicUpdated += OnTopicUpdated;
         _spaces.SpaceActivityReceived += OnSpaceActivityReceived;
         _spaces.SpaceKeyRotated += OnSpaceKeyRotated;
+        _spaces.SpaceMessagesViewed += OnSpaceMessagesViewed;
 
         // TCP-транспорт: события пространств приходят не через SignalR.
         _chatService.Tcp.SpaceEventReceived += OnTcpSpaceEvent;
@@ -246,6 +247,7 @@ public partial class SpaceChatPage : ContentPage
         _spaces.TopicUpdated -= OnTopicUpdated;
         _spaces.SpaceActivityReceived -= OnSpaceActivityReceived;
         _spaces.SpaceKeyRotated -= OnSpaceKeyRotated;
+        _spaces.SpaceMessagesViewed -= OnSpaceMessagesViewed;
         _scheduledPosts.PostSent -= OnScheduledPostSent;
         _chatService.Tcp.SpaceEventReceived -= OnTcpSpaceEvent;
         AppServices.Get<AppSession>().AppearanceChanged -= OnAppearanceChanged;
@@ -920,6 +922,19 @@ KeyWaitBanner.IsVisible = false;
         }
     }
 
+    private void OnSpaceMessagesViewed(string spaceId, string viewerId, IReadOnlyList<string> ids)
+    {
+        if (!string.Equals(spaceId, _spaceId, StringComparison.Ordinal)) return;
+        if (string.Equals(viewerId, _myUserId, StringComparison.Ordinal)) return;
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            foreach (var message in _messages.Where(m => m.IsMine && ids.Contains(m.Id)))
+            {
+                message.DeliveryStatus = "Прочитано";
+            }
+        });
+    }
+
     private async void OnRetryImageClicked(object sender, EventArgs e)
     {
         if (sender is not Button button ||
@@ -1006,9 +1021,15 @@ KeyWaitBanner.IsVisible = false;
 
             var sent = await _spaces.SendPayloadAsync(_spaceId, _topicId, payload);
 
-            if (sent is not null && !_messages.Any(item => item.Id == sent.Id))
+            if (sent is not null)
             {
-                _messages.Add(CreateVm(sent, payload));
+                var sentVm = _messages.FirstOrDefault(item => item.Id == sent.Id);
+                if (sentVm is null)
+                {
+                    sentVm = CreateVm(sent, payload);
+                    _messages.Add(sentVm);
+                }
+                sentVm.DeliveryStatus = "Доставлено";
             }
         }
         catch (Exception ex)
@@ -3354,7 +3375,6 @@ KeyWaitBanner.IsVisible = false;
 
     private async Task RecordChannelViewsAsync()
     {
-        if (_spaceType != SpaceTypes.Channel) return;
         var ids = _messages.Where(m => m.ViewCount >= 0).Select(m => m.Id).ToList();
         await _spaces.RecordViewsAsync(_spaceId, ids);
     }

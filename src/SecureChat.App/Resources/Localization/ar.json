@@ -1038,5 +1038,14 @@
   "spaces_create": "＋ إنشاء مساحة",
   "topic_pin": "📌 تثبيت الموضوع",
   "topic_unpin": "📌 إلغاء التثبيت",
-  "topic_pinned": "المثبتة"
+  "topic_pinned": "المثبتة",
+  "media_manager_title": "الملفات والذاكرة",
+  "media_manager_empty": "لا توجد ملفات مخزنة",
+  "media_manager_clear": "مسح",
+  "media_manager_clear_all": "مسح الكل",
+  "media_manager_summary": "ملفات مخزنة: {0} · {1}",
+  "media_manager_confirm": "مسح ملفات {0}؟",
+  "settings_proxy": "خادم الوكيل",
+  "settings_proxy_hint": "http://المضيف:المنفذ. فارغ = تجاهل وكيل النظام. يُطبق بعد إعادة الاتصال.",
+  "settings_proxy_placeholder": "http://127.0.0.1:10809"
 }

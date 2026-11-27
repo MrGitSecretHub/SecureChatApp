@@ -192,6 +192,9 @@ public sealed class AppSession
     /// </summary>
     public string TcpHost { get; set; } = string.Empty;
 
+    /// <summary>Прокси-сервер (http://host:port). Пусто — системный прокси игнорируется.</summary>
+    public string ProxyUrl { get; set; } = string.Empty;
+
     /// <summary>Сессия восстановлена без сервера, по локальному профилю.</summary>
     public bool RestoredOffline { get; set; }
 

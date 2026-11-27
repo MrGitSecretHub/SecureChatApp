@@ -1038,5 +1038,14 @@
   "spaces_create": "＋ Raum erstellen",
   "topic_pin": "📌 Thema anheften",
   "topic_unpin": "📌 Thema lösen",
-  "topic_pinned": "Angeheftet"
+  "topic_pinned": "Angeheftet",
+  "media_manager_title": "Dateien und Speicher",
+  "media_manager_empty": "Keine zwischengespeicherten Dateien",
+  "media_manager_clear": "Löschen",
+  "media_manager_clear_all": "Alle löschen",
+  "media_manager_summary": "Dateien im Cache: {0} · {1}",
+  "media_manager_confirm": "Dateien von {0} löschen?",
+  "settings_proxy": "Proxy-Server",
+  "settings_proxy_hint": "http://host:port. Leer = Systemproxy ignorieren. Gilt nach Neuerbindung.",
+  "settings_proxy_placeholder": "http://127.0.0.1:10809"
 }

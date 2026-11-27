@@ -21,6 +21,7 @@ public partial class App : Application
     private const string TcpHostKey = "net.tcpHost";
     private const string TcpPortKey = "net.tcpPort";
     private const string TransportKey = "net.transport";
+    private const string ProxyKey = "net.proxy";
     private const string CustomThemesKey = "ui.customThemes";
     private const string ActiveCustomThemeKey = "ui.activeCustomTheme";
 
@@ -551,6 +552,7 @@ public partial class App : Application
             var tcpHost = await secrets.GetAsync(TcpHostKey);
             var tcpPort = await secrets.GetAsync(TcpPortKey);
             var transport = await secrets.GetAsync(TransportKey);
+            var proxy = await secrets.GetAsync(ProxyKey);
 
             session.TcpHost = tcpHost ?? string.Empty;
             if (int.TryParse(tcpPort, out var parsedPort) && parsedPort > 0)
@@ -562,6 +564,9 @@ public partial class App : Application
             {
                 session.TransportMode = transport;
             }
+
+            session.ProxyUrl = proxy ?? string.Empty;
+            AppServices.Get<ApiClient>().SetProxy(session.ProxyUrl);
 
             if (!string.IsNullOrWhiteSpace(theme))
             {
@@ -652,6 +657,7 @@ public partial class App : Application
             await secrets.SetAsync(TcpHostKey, session.TcpHost);
             await secrets.SetAsync(TcpPortKey, session.TcpPort.ToString());
             await secrets.SetAsync(TransportKey, session.TransportMode);
+            await secrets.SetAsync(ProxyKey, session.ProxyUrl);
         }
         catch
         {

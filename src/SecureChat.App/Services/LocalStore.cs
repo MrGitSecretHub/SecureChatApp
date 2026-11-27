@@ -1982,6 +1982,97 @@ public sealed class LocalStore
         return (bytes, files);
     }
 
+    /// <summary>Группа кэшированных вложений: чат или пространство.</summary>
+    public sealed record MediaCacheGroup(
+        string Key,
+        string Name,
+        bool IsSpace,
+        long Bytes,
+        int Files,
+        IReadOnlyList<string> Ids);
+
+    /// <summary>Разбивка кэша вложений по чатам и пространствам.</summary>
+    public async Task<List<MediaCacheGroup>> GetMediaCacheBreakdownAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+
+            var owners = new Dictionary<string, (string Name, bool IsSpace)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var conversation in _state!.Conversations)
+            {
+                foreach (var message in conversation.Messages)
+                {
+                    owners[message.Id] = (conversation.Username, false);
+                }
+            }
+            foreach (var message in _state.SpaceMessages)
+            {
+                owners[message.Id] = ("Пространство " + message.SpaceId[..Math.Min(8, message.SpaceId.Length)], true);
+            }
+
+            var groups = new Dictionary<string, (string Name, bool IsSpace, long Bytes, List<string> Ids)>(StringComparer.OrdinalIgnoreCase);
+            if (Directory.Exists(MediaDirectory))
+            {
+                foreach (var file in Directory.EnumerateFiles(MediaDirectory, "*.bin"))
+                {
+                    var id = Path.GetFileNameWithoutExtension(file);
+                    if (!owners.TryGetValue(id, out var owner)) continue;
+                    var info = new FileInfo(file);
+                    if (!info.Exists) continue;
+                    var key = (owner.IsSpace ? "space:" : "chat:") + owner.Name;
+                    groups.TryGetValue(key, out var current);
+                    var ids = current.Ids ?? new List<string>();
+                    ids.Add(id);
+                    groups[key] = (owner.Name, owner.IsSpace,
+                        current.Bytes + info.Length, ids);
+                }
+            }
+
+            return groups.Select(g => new MediaCacheGroup(
+                    g.Key, g.Value.Name, g.Value.IsSpace, g.Value.Bytes,
+                    g.Value.Ids.Count, g.Value.Ids))
+                .OrderByDescending(g => g.Bytes)
+                .ToList();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Удаляет локальные копии указанных вложений.</summary>
+    public async Task<long> ClearMediaCacheAsync(IReadOnlyCollection<string> messageIds)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var removed = 0L;
+            foreach (var id in messageIds)
+            {
+                var path = MediaPath(id);
+                if (!File.Exists(path)) continue;
+                var info = new FileInfo(path);
+                removed += info.Length;
+                File.Delete(path);
+
+                foreach (var conversation in _state!.Conversations)
+                {
+                    var message = conversation.Messages.FirstOrDefault(m => m.Id == id);
+                    if (message is not null) message.MediaDownloaded = false;
+                }
+            }
+            if (removed > 0) await SaveAsync();
+            return removed;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     /// <summary>
     /// Освобождает место: удаляет локальные копии вложений. Сообщения и их
     /// шифротексты остаются, файлы снова скачаются при открытии.

@@ -17,6 +17,7 @@ public partial class SettingsPage : ContentPage
     private CancellationTokenSource? _profileSyncCts;
     private bool _showAllThemes;
     private bool _tcpTunnelInitialized;
+    private bool _proxyInitialized;
     private readonly ObservableCollection<ThemeTileVm> _themeItems = new();
 
     public SettingsPage()
@@ -121,6 +122,10 @@ public partial class SettingsPage : ContentPage
         TcpHostEntry.Text = _session.TcpHost;
         TcpPortEntry.Text = _session.TcpPort.ToString();
         _tcpTunnelInitialized = true;
+
+        _proxyInitialized = false;
+        ProxyEntry.Text = _session.ProxyUrl;
+        _proxyInitialized = true;
         TimestampsSwitch.IsToggled = _session.ShowTimestamps;
         CompactSidebarSwitch.IsToggled = _session.CompactSidebar;
 
@@ -286,6 +291,14 @@ public partial class SettingsPage : ContentPage
             _session.TcpPort = port;
         }
 
+        await App.SaveAppearanceAsync();
+    }
+
+    private async void OnProxyChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (!_proxyInitialized) return;
+        _session.ProxyUrl = ProxyEntry.Text?.Trim() ?? string.Empty;
+        AppServices.Get<ApiClient>().SetProxy(_session.ProxyUrl);
         await App.SaveAppearanceAsync();
     }
 
@@ -722,6 +735,11 @@ public partial class SettingsPage : ContentPage
     }
 
     /// <summary>Удаляет локальные копии вложений: переписка остаётся.</summary>
+    private async void OnOpenMediaManagerClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new MediaManagerPage());
+    }
+
     private async void OnClearMediaCacheClicked(object? sender, EventArgs e)
     {
         var confirmed = await DisplayAlert(

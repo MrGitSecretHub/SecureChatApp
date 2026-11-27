@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using SecureChat.Core.Contracts;
@@ -160,6 +161,18 @@ public sealed class ChatService : IDisposable
         }
     }
 
+    private void ApplyProxy(SocketsHttpHandler handler)
+    {
+        if (string.IsNullOrWhiteSpace(_session.ProxyUrl))
+        {
+            handler.UseProxy = false;
+            return;
+        }
+
+        handler.UseProxy = true;
+        handler.Proxy = new WebProxy(_session.ProxyUrl);
+    }
+
     private async Task ConnectSignalRAsync(CancellationToken cancellationToken)
     {
         var builder = new HubConnectionBuilder()
@@ -175,12 +188,13 @@ public sealed class ChatService : IDisposable
                     switch (inner)
                     {
                         case SocketsHttpHandler sockets:
-                            sockets.UseProxy = false;
+                            ApplyProxy(sockets);
                             sockets.SslOptions.RemoteCertificateValidationCallback =
                                 ServerCertificatePin.Validate;
                             break;
                         case HttpClientHandler http:
-                            http.UseProxy = false;
+                            http.UseProxy = !string.IsNullOrWhiteSpace(_session.ProxyUrl);
+                            if (http.UseProxy) http.Proxy = new WebProxy(_session.ProxyUrl);
                             http.ServerCertificateCustomValidationCallback =
                                 ServerCertificatePin.Validate;
                             break;

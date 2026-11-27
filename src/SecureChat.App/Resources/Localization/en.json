@@ -1038,5 +1038,14 @@
   "spaces_create": "＋ Create space",
   "topic_pin": "📌 Pin topic",
   "topic_unpin": "📌 Unpin topic",
-  "topic_pinned": "Pinned"
+  "topic_pinned": "Pinned",
+  "media_manager_title": "Files and memory",
+  "media_manager_empty": "No cached files",
+  "media_manager_clear": "Clear",
+  "media_manager_clear_all": "Clear all",
+  "media_manager_summary": "Cached files: {0} · {1}",
+  "media_manager_confirm": "Clear files for {0}?",
+  "settings_proxy": "Proxy server",
+  "settings_proxy_hint": "http://host:port. Empty = ignore system proxy. Applies after reconnect.",
+  "settings_proxy_placeholder": "http://127.0.0.1:10809"
 }

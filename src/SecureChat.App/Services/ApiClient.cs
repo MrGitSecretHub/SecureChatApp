@@ -21,21 +21,38 @@ public sealed class ApiException : Exception
     /// </summary>
     public sealed class ApiClient : IDisposable
     {
-        private readonly HttpClient _http = new(new SocketsHttpHandler
+        private HttpClient _http = CreateClient(null);
+        private string? _proxyUrl;
+
+    public ApiClient() { }
+
+    private static HttpClient CreateClient(string? proxyUrl)
+    {
+        var handler = new SocketsHttpHandler
         {
-            UseProxy = false,
+            UseProxy = !string.IsNullOrWhiteSpace(proxyUrl),
             SslOptions = new System.Net.Security.SslClientAuthenticationOptions
             {
                 RemoteCertificateValidationCallback = ServerCertificatePin.Validate
             }
-        })
-        {
-            Timeout = TimeSpan.FromSeconds(90)
         };
+        if (!string.IsNullOrWhiteSpace(proxyUrl))
+        {
+            handler.Proxy = new WebProxy(proxyUrl);
+        }
 
-    public ApiClient()
+        return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(90) };
+    }
+
+    /// <summary>Меняет прокси без перезапуска приложения.</summary>
+    public void SetProxy(string? proxyUrl)
     {
-        _http.DefaultRequestHeaders.UserAgent.ParseAdd("SecureChat/1.0");
+        proxyUrl = string.IsNullOrWhiteSpace(proxyUrl) ? null : proxyUrl.Trim();
+        if (string.Equals(_proxyUrl, proxyUrl, StringComparison.Ordinal)) return;
+        _proxyUrl = proxyUrl;
+        var previous = _http;
+        _http = CreateClient(proxyUrl);
+        previous.Dispose();
     }
 
     public async Task<AuthResponse> RegisterAsync(

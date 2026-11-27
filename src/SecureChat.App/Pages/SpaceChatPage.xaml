@@ -587,6 +587,11 @@
                                        FontSize="10"
                                        TextColor="{DynamicResource TextMuted}"
                                        Margin="0,0,0,2" />
+                                 <Label Text="{Binding DeliveryGlyph}"
+                                        IsVisible="{Binding HasDeliveryStatus}"
+                                        FontSize="10"
+                                        TextColor="{DynamicResource Accent}"
+                                        Margin="0,0,0,2" />
 
                                 <Label Text="{DynamicResource s_ui_184}"
                                        IsVisible="{Binding IsForwarded}"

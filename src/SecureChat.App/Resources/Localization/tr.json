@@ -1038,5 +1038,14 @@
   "spaces_create": "＋ Alan oluştur",
   "topic_pin": "📌 Konuyu sabitle",
   "topic_unpin": "📌 Sabitlemeyi kaldır",
-  "topic_pinned": "Sabitlenen"
+  "topic_pinned": "Sabitlenen",
+  "media_manager_title": "Dosyalar ve bellek",
+  "media_manager_empty": "Önbellekte dosya yok",
+  "media_manager_clear": "Temizle",
+  "media_manager_clear_all": "Tümünü temizle",
+  "media_manager_summary": "Önbellekte: {0} dosya · {1}",
+  "media_manager_confirm": "{0} dosyaları temizlensin mi?",
+  "settings_proxy": "Proxy sunucusu",
+  "settings_proxy_hint": "http://sunucu:port. Boş = sistem proxy'sini yoksay. Yeniden bağlanınca uygulanır.",
+  "settings_proxy_placeholder": "http://127.0.0.1:10809"
 }

@@ -1038,5 +1038,14 @@
   "spaces_create": "＋ Crea spazio",
   "topic_pin": "📌 Fissa argomento",
   "topic_unpin": "📌 Rimuovi dai fissati",
-  "topic_pinned": "Fissati"
+  "topic_pinned": "Fissati",
+  "media_manager_title": "File e memoria",
+  "media_manager_empty": "Nessun file in cache",
+  "media_manager_clear": "Pulisci",
+  "media_manager_clear_all": "Pulisci tutto",
+  "media_manager_summary": "File in cache: {0} · {1}",
+  "media_manager_confirm": "Pulire i file di {0}?",
+  "settings_proxy": "Server proxy",
+  "settings_proxy_hint": "http://host:porta. Vuoto = ignora il proxy di sistema. Si applica dopo la riconnessione.",
+  "settings_proxy_placeholder": "http://127.0.0.1:10809"
 }

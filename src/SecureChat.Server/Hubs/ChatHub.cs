@@ -1105,7 +1105,10 @@ public sealed class ChatHub : Hub
         var userId = Context.UserIdentifier;
         if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(spaceId)) return;
         if (await FindMemberAsync(spaceId, userId) is null) return;
-        await _spaces.RecordViewsAsync(messageIds, userId);
+        var ids = messageIds.Take(200).ToList();
+        await _spaces.RecordViewsAsync(ids, userId);
+        await Clients.Group($"space:{spaceId}")
+            .SendAsync("SpaceMessagesViewed", spaceId, userId, ids);
     }
 
     /// <summary>Список логинов, просмотревших пост канала.</summary>

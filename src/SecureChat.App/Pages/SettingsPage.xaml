@@ -189,6 +189,17 @@
                         </Grid>
                     </VerticalStackLayout>
 
+                    <!-- Прокси -->
+                    <VerticalStackLayout Spacing="6" Margin="0,8,0,0">
+                        <Label Text="{DynamicResource s_settings_proxy}" Style="{DynamicResource SectionTitle}" Margin="0" />
+                        <Label Text="{DynamicResource s_settings_proxy_hint}" Style="{DynamicResource Caption}" />
+                        <Entry x:Name="ProxyEntry"
+                               Placeholder="{DynamicResource s_settings_proxy_placeholder}"
+                               TextColor="{DynamicResource TextPrimary}"
+                               Keyboard="Url"
+                               TextChanged="OnProxyChanged" />
+                    </VerticalStackLayout>
+
                     <Label x:Name="FingerprintLabel"
                            Style="{DynamicResource Caption}"
                            LineBreakMode="CharacterWrap" />
@@ -680,6 +691,10 @@
                                 Style="{DynamicResource SecondaryButton}"
                                 VerticalOptions="Center"
                                 Clicked="OnClearMediaCacheClicked" />
+                    <Button x:Name="OpenMediaManagerButton"
+                            Text="{DynamicResource s_media_manager_title}"
+                            Style="{DynamicResource SecondaryButton}"
+                            Clicked="OnOpenMediaManagerClicked" />
                     </Grid>
 
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">

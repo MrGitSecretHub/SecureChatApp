@@ -1038,5 +1038,14 @@
   "spaces_create": "＋ Créer un espace",
   "topic_pin": "📌 Épingler le sujet",
   "topic_unpin": "📌 Désépingler le sujet",
-  "topic_pinned": "Épinglés"
+  "topic_pinned": "Épinglés",
+  "media_manager_title": "Fichiers et mémoire",
+  "media_manager_empty": "Aucun fichier en cache",
+  "media_manager_clear": "Effacer",
+  "media_manager_clear_all": "Tout effacer",
+  "media_manager_summary": "Fichiers en cache : {0} · {1}",
+  "media_manager_confirm": "Effacer les fichiers de {0} ?",
+  "settings_proxy": "Serveur proxy",
+  "settings_proxy_hint": "http://hôte:port. Vide = ignorer le proxy système. Appliqué après reconnexion.",
+  "settings_proxy_placeholder": "http://127.0.0.1:10809"
 }

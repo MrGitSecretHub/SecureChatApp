@@ -1038,5 +1038,14 @@
   "spaces_create": "＋ Создать пространство",
   "topic_pin": "📌 Закрепить тему",
   "topic_unpin": "📌 Открепить тему",
-  "topic_pinned": "Закреплённые"
+  "topic_pinned": "Закреплённые",
+  "media_manager_title": "Файлы и память",
+  "media_manager_empty": "Нет кэшированных файлов",
+  "media_manager_clear": "Очистить",
+  "media_manager_clear_all": "Очистить всё",
+  "media_manager_summary": "Файлов в кэше: {0} · {1}",
+  "media_manager_confirm": "Очистить файлы «{0}»?",
+  "settings_proxy": "Прокси-сервер",
+  "settings_proxy_hint": "http://хост:порт. Пусто — игнорировать системный прокси. Применится после переподключения.",
+  "settings_proxy_placeholder": "http://127.0.0.1:10809"
 }

@@ -496,6 +496,29 @@ public sealed class SpaceMessageVm : INotifyPropertyChanged
     public string StatsText => ViewCount > 0 ? $"👁 {ViewCount}" : string.Empty;
     public bool HasStats => ViewCount > 0;
 
+    /// <summary>Статус своего сообщения: Отправлено / Доставлено / Прочитано.</summary>
+    public string DeliveryStatus
+    {
+        get => _deliveryStatus;
+        set
+        {
+            if (_deliveryStatus == value) return;
+            _deliveryStatus = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(DeliveryGlyph));
+        }
+    }
+    private string _deliveryStatus = "Отправлено";
+
+    public bool HasDeliveryStatus => IsMine;
+
+    public string DeliveryGlyph => DeliveryStatus switch
+    {
+        "Прочитано" => "✓✓",
+        "Доставлено" => "✓",
+        _ => "◌"
+    };
+
     public int CommentsCount
     {
         get => _commentsCount;

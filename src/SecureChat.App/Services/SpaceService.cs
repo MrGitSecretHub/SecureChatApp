@@ -127,6 +127,9 @@ public sealed class SpaceService
     /// <summary>Тему переименовали, закрыли или переставили.</summary>
     public event Action<TopicDto>? TopicUpdated;
 
+    /// <summary>Участник просмотрел сообщения: spaceId, userId, messageIds.</summary>
+    public event Action<string, string, IReadOnlyList<string>>? SpaceMessagesViewed;
+
     /// <summary>Новая заявка на вступление (у администраторов).</summary>
     public event Action<string>? JoinRequestReceived;
 
@@ -172,6 +175,10 @@ public sealed class SpaceService
         connection.On<TopicDto>(
             "TopicUpdated",
             topic => TopicUpdated?.Invoke(topic));
+
+        connection.On<string, string, string[]>(
+            "SpaceMessagesViewed",
+            (spaceId, viewerId, ids) => SpaceMessagesViewed?.Invoke(spaceId, viewerId, ids));
 
         connection.On<string>(
             "JoinRequestReceived",
