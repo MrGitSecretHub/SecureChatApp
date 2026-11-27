@@ -1067,5 +1067,8 @@
   "search_today": "今天",
   "search_7days": "最近7天",
   "search_30days": "最近30天",
-  "stories_stickers": "贴纸"
+  "stories_stickers": "贴纸",
+  "bookmark_add": "🔖 加入书签",
+  "bookmark_remove": "🔖 移除书签",
+  "bookmarks_title": "书签"
 }

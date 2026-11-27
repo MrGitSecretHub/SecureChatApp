@@ -1067,5 +1067,8 @@
   "search_today": "اليوم",
   "search_7days": "آخر 7 أيام",
   "search_30days": "آخر 30 يوماً",
-  "stories_stickers": "الملصقات"
+  "stories_stickers": "الملصقات",
+  "bookmark_add": "🔖 إضافة إلى الإشارات",
+  "bookmark_remove": "🔖 إزالة الإشارة",
+  "bookmarks_title": "الإشارات"
 }

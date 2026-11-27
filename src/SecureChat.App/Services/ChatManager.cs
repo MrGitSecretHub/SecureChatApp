@@ -1264,6 +1264,19 @@ public sealed class ChatManager
         return changed;
     }
 
+    public async Task<bool> ToggleBookmarkAsync(string messageId)
+    {
+        var username = _activeChat;
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(messageId))
+            return false;
+        var saved = await _localStore.ToggleBookmarkAsync(username, messageId);
+        ConversationsChanged?.Invoke();
+        return saved;
+    }
+
+    public Task<IReadOnlyList<StoredMessageSearchResult>> GetBookmarkedMessagesAsync() =>
+        _localStore.GetBookmarkedMessagesAsync();
+
     public async Task TogglePinnedAsync(string messageId, bool pinned)
     {
         if (string.IsNullOrWhiteSpace(messageId))

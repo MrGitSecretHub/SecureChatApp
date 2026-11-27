@@ -1067,5 +1067,8 @@
   "search_today": "आज",
   "search_7days": "पिछले 7 दिन",
   "search_30days": "पिछले 30 दिन",
-  "stories_stickers": "स्टिकर"
+  "stories_stickers": "स्टिकर",
+  "bookmark_add": "🔖 बुकमार्क करें",
+  "bookmark_remove": "🔖 बुकमार्क हटाएँ",
+  "bookmarks_title": "बुकमार्क"
 }

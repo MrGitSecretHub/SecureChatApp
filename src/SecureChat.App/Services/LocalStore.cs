@@ -38,6 +38,7 @@ public sealed class StoredMessage
     public string SenderUsername { get; set; } = string.Empty;
     public string? SenderAvatarBase64 { get; set; }
     public bool IsPinned { get; set; } = false;
+    public bool IsBookmarked { get; set; }
     public string? ReactionsJson { get; set; } = string.Empty;
     public bool IsDraft { get; set; } = false;
     public string? DraftText { get; set; } = string.Empty;
@@ -817,6 +818,55 @@ public sealed class LocalStore
                 .OrderByDescending(item => item.SentAtUnixMs)
                 .Take(limit)
                 .ToList();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Сообщения, добавленные в закладки.</summary>
+    public async Task<IReadOnlyList<StoredMessageSearchResult>> GetBookmarkedMessagesAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            return _state!.Conversations
+                .SelectMany(conversation => conversation.Messages
+                    .Where(m => m.IsBookmarked)
+                    .Select(m => new StoredMessageSearchResult
+                    {
+                        Username = conversation.Username,
+                        MessageId = m.Id,
+                        Text = m.Text,
+                        SentAtUnixMs = m.SentAtUnixMs,
+                        IsMine = m.IsMine,
+                        Kind = m.Kind,
+                        HasMedia = !string.IsNullOrEmpty(m.MediaId)
+                    }))
+                .OrderByDescending(x => x.SentAtUnixMs)
+                .ToList();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Переключает закладку сообщения.</summary>
+    public async Task<bool> ToggleBookmarkAsync(string username, string messageId)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var conversation = Find(username);
+            var message = conversation?.Messages.FirstOrDefault(m => m.Id == messageId);
+            if (message is null) return false;
+            message.IsBookmarked = !message.IsBookmarked;
+            await SaveAsync();
+            return message.IsBookmarked;
         }
         finally
         {

@@ -1067,5 +1067,8 @@
   "search_today": "Hoje",
   "search_7days": "Últimos 7 dias",
   "search_30days": "Últimos 30 dias",
-  "stories_stickers": "Adesivos"
+  "stories_stickers": "Adesivos",
+  "bookmark_add": "🔖 Adicionar aos favoritos",
+  "bookmark_remove": "🔖 Remover favorito",
+  "bookmarks_title": "Favoritos"
 }

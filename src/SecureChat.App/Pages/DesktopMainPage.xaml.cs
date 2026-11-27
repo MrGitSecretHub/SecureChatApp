@@ -222,7 +222,18 @@ public partial class DesktopMainPage : ContentPage, IDisposable
             Window,
             () => MainThread.BeginInvokeOnMainThread(async () => await StartNewChatAsync()),
             () => MainThread.BeginInvokeOnMainThread(CloseChat),
-            () => MainThread.BeginInvokeOnMainThread(FocusSearch));
+            () => MainThread.BeginInvokeOnMainThread(FocusSearch),
+            () => MainThread.BeginInvokeOnMainThread(async () =>
+                await Navigation.PushAsync(new SettingsPage())),
+            () => MainThread.BeginInvokeOnMainThread(async () =>
+                await Navigation.PushAsync(new SecureChat.App.Views.UserProfilePage(_session.Username))),
+            () => MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _session.ChatFolder = ChatFolders.Archive;
+                ApplyFilter();
+            }),
+            () => MainThread.BeginInvokeOnMainThread(async () =>
+                await Navigation.PushAsync(new GlobalSearchPage())));
 #endif
     }
 
@@ -749,6 +760,9 @@ public partial class DesktopMainPage : ContentPage, IDisposable
     }
 
     private void OnCloseChatClicked(object sender, EventArgs e) => CloseChat();
+
+    private async void OnBookmarksClicked(object sender, EventArgs e) =>
+        await Navigation.PushAsync(new BookmarksPage());
 
     private async void OnSettingsClicked(object sender, EventArgs e) =>
         await Navigation.PushAsync(AppServices.Get<SettingsPage>());

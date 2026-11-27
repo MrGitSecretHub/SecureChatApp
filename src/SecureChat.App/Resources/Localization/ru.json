@@ -1067,5 +1067,8 @@
   "search_today": "Сегодня",
   "search_7days": "За 7 дней",
   "search_30days": "За 30 дней",
-  "stories_stickers": "Стикеры"
+  "stories_stickers": "Стикеры",
+  "bookmark_add": "🔖 В закладки",
+  "bookmark_remove": "🔖 Убрать из закладок",
+  "bookmarks_title": "Закладки"
 }

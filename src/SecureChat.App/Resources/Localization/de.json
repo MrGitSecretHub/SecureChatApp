@@ -1067,5 +1067,8 @@
   "search_today": "Heute",
   "search_7days": "Letzte 7 Tage",
   "search_30days": "Letzte 30 Tage",
-  "stories_stickers": "Sticker"
+  "stories_stickers": "Sticker",
+  "bookmark_add": "🔖 Zu Lesezeichen",
+  "bookmark_remove": "🔖 Lesezeichen entfernen",
+  "bookmarks_title": "Lesezeichen"
 }

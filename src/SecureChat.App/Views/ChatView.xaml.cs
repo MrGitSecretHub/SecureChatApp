@@ -3028,6 +3028,18 @@ public partial class ChatView : ContentView
         }
     }
 
+    private async Task ToggleBookmarkAsync(MessageVm message)
+    {
+        try
+        {
+            message.IsBookmarked = await _chatManager.ToggleBookmarkAsync(message.Id);
+        }
+        catch (Exception ex)
+        {
+            ShowHint(string.Format(Loc.T("rs_082"), ex.Message), isError: true);
+        }
+    }
+
     private async Task DeleteAsync(MessageVm message)
     {
         var page = HostPage;
@@ -3540,6 +3552,7 @@ public partial class ChatView : ContentView
         AddMenuItem(Loc.T("rs_223", "😊 Реакция"), () => PickReactionAsync(message));
         AddMenuItem(Loc.T("rs_210", "🔄 Переслать"), () => ForwardAsync(message));
         AddMenuItem(message.IsPinned ? Loc.T("rs_204", "📌 Открепить") : Loc.T("rs_203", "📌 Закрепить"), () => TogglePinAsync(message));
+        AddMenuItem(message.IsBookmarked ? Loc.T("bookmark_remove", "🔖 Remove bookmark") : Loc.T("bookmark_add", "🔖 Add to bookmarks"), () => ToggleBookmarkAsync(message));
         if (message.IsMine)
         {
             if (message.Kind == MessageKinds.Text)

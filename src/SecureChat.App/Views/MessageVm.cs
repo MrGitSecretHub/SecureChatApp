@@ -608,6 +608,8 @@ public sealed class MessageVm : INotifyPropertyChanged
         private set => Set(ref _isPinned, value);
     }
 
+    public bool IsBookmarked { get; set; }
+
     public bool IsEdited
     {
         get => _isEdited;
@@ -968,6 +970,7 @@ public sealed class MessageVm : INotifyPropertyChanged
         MediaSize = message.MediaSize;
         MediaDownloaded = message.MediaDownloaded;
         IsPinned = message.IsPinned;
+        IsBookmarked = message.IsBookmarked;
         IsEdited = message.IsEdited;
         EditedText = message.EditedText;
         IsForwarded = message.IsForwarded;
