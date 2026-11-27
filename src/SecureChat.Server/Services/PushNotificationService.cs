@@ -36,7 +36,9 @@ public sealed class PushNotificationService
             request.Headers.TryAddWithoutValidation("Title", "SecureChat");
             request.Headers.TryAddWithoutValidation("Message", $"New message from {senderName}");
             request.Headers.TryAddWithoutValidation("Tags", "envelope");
-            await _http.SendAsync(request, cancellationToken);
+            using var response = await _http.SendAsync(request, cancellationToken);
+            _logger.LogInformation(
+                "ntfy push: topic={Topic}, status={Status}", topic, (int)response.StatusCode);
         }
         catch (Exception ex)
         {
