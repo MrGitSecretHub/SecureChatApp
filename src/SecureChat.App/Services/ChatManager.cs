@@ -129,6 +129,7 @@ public sealed class ChatManager
     public async Task StartAsync()
     {
         await _localStore.InitializeAsync(_session.Username);
+        AppServices.Get<NtfyPushService>().Start();
         await RefreshMuteCacheAsync();
 
         IsOffline = _session.RestoredOffline;

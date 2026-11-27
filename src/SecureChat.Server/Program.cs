@@ -34,6 +34,7 @@ builder.Services.AddSingleton<SpaceRepository>();
 builder.Services.AddSingleton<StoryRepository>();
 builder.Services.AddSingleton<EnvelopeRouter>();
 builder.Services.AddSingleton<PresenceTracker>();
+builder.Services.AddSingleton<PushNotificationService>();
 builder.Services.AddHostedService<TcpChatServer>();
 
 builder.Services.AddControllers();

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -99,6 +100,7 @@ public sealed class AuthController : ControllerBase
             AuthSalt = salt,
             EncryptionPublicKey = request.EncryptionPublicKey,
             SigningPublicKey = request.SigningPublicKey,
+            PushTopic = "sc-" + Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant(),
             CreatedAt = DateTimeOffset.UtcNow
         };
 

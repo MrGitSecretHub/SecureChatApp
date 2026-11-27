@@ -35,6 +35,17 @@ public sealed class UsersController : ControllerBase
             : Ok(AuthController.ToProfile(user, _presence));
     }
 
+    [HttpGet("me/push-topic")]
+    public async Task<IActionResult> MyPushTopic(CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var user = await _repository.GetUserByIdAsync(userId, cancellationToken);
+        return user is null
+            ? NotFound()
+            : Ok(new { topic = user.PushTopic });
+    }
+
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken cancellationToken)
     {

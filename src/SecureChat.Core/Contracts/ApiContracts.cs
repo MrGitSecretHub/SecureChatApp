@@ -57,6 +57,9 @@ public sealed class UserProfileDto
 
     /// <summary>Когда пользователь был в сети (Unix, мс).</summary>
     public long LastSeenUnixMs { get; set; }
+
+    /// <summary>Случайный topic для push-уведомлений ntfy (только своему владельцу).</summary>
+    public string? PushTopic { get; set; }
 }
 
 /// <summary>Запрос обновления публичного профиля.</summary>

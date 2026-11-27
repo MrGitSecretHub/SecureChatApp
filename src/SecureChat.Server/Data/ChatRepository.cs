@@ -154,7 +154,8 @@ public sealed class ChatRepository
             ("AvatarBase64", "TEXT NOT NULL DEFAULT ''"),
             ("StatusMessage", "TEXT NOT NULL DEFAULT 'Онлайн'"),
             ("LastSeenUnixMs", "INTEGER NOT NULL DEFAULT 0"),
-            ("IsAdmin", "INTEGER NOT NULL DEFAULT 0")
+            ("IsAdmin", "INTEGER NOT NULL DEFAULT 0"),
+            ("PushTopic", "TEXT NOT NULL DEFAULT ''")
         };
 
         foreach (var column in columns)
@@ -673,10 +674,10 @@ public sealed class ChatRepository
             command.CommandText = """
                 INSERT INTO Users
                     (Id, Username, Email, AuthHash, AuthSalt,
-                     EncryptionPublicKey, SigningPublicKey, CreatedAt)
+                     EncryptionPublicKey, SigningPublicKey, CreatedAt, PushTopic)
                 VALUES
                     ($id, $username, $email, $hash, $salt,
-                     $encryptionKey, $signingKey, $createdAt);
+                     $encryptionKey, $signingKey, $createdAt, $pushTopic);
                 """;
             command.Parameters.AddWithValue("$id", user.Id);
             command.Parameters.AddWithValue("$username", user.Username);
@@ -686,6 +687,7 @@ public sealed class ChatRepository
             command.Parameters.AddWithValue("$encryptionKey", user.EncryptionPublicKey);
             command.Parameters.AddWithValue("$signingKey", user.SigningPublicKey);
             command.Parameters.AddWithValue("$createdAt", user.CreatedAt.ToString("O"));
+            command.Parameters.AddWithValue("$pushTopic", user.PushTopic);
 
             await command.ExecuteNonQueryAsync(cancellationToken);
             return true;
@@ -1073,7 +1075,8 @@ public sealed class ChatRepository
         AvatarBase64 = reader.IsDBNull(10) ? string.Empty : reader.GetString(10),
         StatusMessage = reader.IsDBNull(11) ? "Онлайн" : reader.GetString(11),
         LastSeenUnixMs = reader.IsDBNull(12) ? 0 : reader.GetInt64(12),
-        IsAdmin = reader.IsDBNull(13) ? false : reader.GetInt64(13) == 1
+        IsAdmin = reader.IsDBNull(13) ? false : reader.GetInt64(13) == 1,
+        PushTopic = reader.IsDBNull(14) ? string.Empty : reader.GetString(14)
     };
 
     /// <summary>Создаёт индекс для быстрого удаления всей переписки между двумя пользователями.</summary>

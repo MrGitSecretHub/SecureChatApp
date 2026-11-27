@@ -18,6 +18,7 @@ public sealed class ChatHub : Hub
     private readonly SpaceRepository _spaces;
     private readonly EnvelopeRouter _router;
     private readonly PresenceTracker _presence;
+    private readonly PushNotificationService _push;
     private readonly ILogger<ChatHub> _logger;
 
     public ChatHub(
@@ -25,12 +26,14 @@ public sealed class ChatHub : Hub
         SpaceRepository spaces,
         EnvelopeRouter router,
         PresenceTracker presence,
+        PushNotificationService push,
         ILogger<ChatHub> logger)
     {
         _repository = repository;
         _spaces = spaces;
         _router = router;
         _presence = presence;
+        _push = push;
         _logger = logger;
     }
 
@@ -119,6 +122,12 @@ public sealed class ChatHub : Hub
         }
 
         await Clients.User(route.RecipientUserId!).SendAsync("ReceiveEnvelope", route.Envelope);
+
+        var recipient = await _repository.GetUserByIdAsync(route.RecipientUserId!);
+        var senderName = Context.User?.Identity?.Name ?? "SecureChat";
+        if (!string.IsNullOrEmpty(recipient?.PushTopic))
+            await _push.NotifyAsync(recipient.PushTopic, senderName);
+
         await Clients.Caller.SendAsync(
             "EnvelopeAccepted",
             envelope.Id,
@@ -859,6 +868,16 @@ public sealed class ChatHub : Hub
 
         await _spaces.SaveEncryptedMessageAsync(message);
         await Clients.Group($"space:{request.SpaceId}").SendAsync("SpaceMessage", message);
+
+        var memberIds = await _spaces.GetMemberIdsAsync(request.SpaceId);
+        var topics = new List<string>();
+        foreach (var memberId in memberIds.Where(id => id != userId))
+        {
+            var member = await _repository.GetUserByIdAsync(memberId);
+            if (!string.IsNullOrEmpty(member?.PushTopic)) topics.Add(member.PushTopic);
+        }
+        await _push.NotifyManyAsync(topics, sender.Username);
+
         return message;
     }
 

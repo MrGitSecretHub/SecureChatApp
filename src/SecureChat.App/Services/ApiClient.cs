@@ -290,6 +290,21 @@ public sealed class ApiException : Exception
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    /// <summary>Свой случайный ntfy-topic для push-уведомлений.</summary>
+    public async Task<string> GetPushTopicAsync(
+        string serverUrl,
+        string token,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get, BuildUri(serverUrl, "api/users/me/push-topic"));
+        request.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        var data = await ReadAsync<Dictionary<string, string>>(response, cancellationToken);
+        return data.TryGetValue("topic", out var topic) ? topic : string.Empty;
+    }
+
     public async Task<IReadOnlyList<StoryDto>> GetStoriesAsync(
         string serverUrl,
         string token,
