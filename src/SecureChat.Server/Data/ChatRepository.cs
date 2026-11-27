@@ -274,7 +274,7 @@ public sealed class ChatRepository
             SELECT DISTINCT u.Id, u.Username, u.Email, u.AuthHash, u.AuthSalt,
                    u.EncryptionPublicKey, u.SigningPublicKey, u.CreatedAt,
                    u.Nickname, u.Bio, u.AvatarBase64, u.StatusMessage, u.LastSeenUnixMs,
-                   u.IsAdmin
+                   u.IsAdmin, u.PushTopic
             FROM Users u
             WHERE u.Id <> $me AND u.Id IN (
                 SELECT CASE WHEN SenderId = $me THEN RecipientId ELSE SenderId END
@@ -299,7 +299,7 @@ public sealed class ChatRepository
             SELECT Id, Username, Email, AuthHash, AuthSalt,
                    EncryptionPublicKey, SigningPublicKey, CreatedAt,
                    Nickname, Bio, AvatarBase64, StatusMessage, LastSeenUnixMs,
-                   IsAdmin
+                   IsAdmin, PushTopic
             FROM Users
             ORDER BY Username;
             """;
@@ -321,7 +321,7 @@ public sealed class ChatRepository
             SELECT Id, Username, Email, AuthHash, AuthSalt,
                    EncryptionPublicKey, SigningPublicKey, CreatedAt,
                    Nickname, Bio, AvatarBase64, StatusMessage, LastSeenUnixMs,
-                   IsAdmin
+                   IsAdmin, PushTopic
             FROM Users
             WHERE Username = $username COLLATE NOCASE
             LIMIT 1;
@@ -344,7 +344,7 @@ public sealed class ChatRepository
             SELECT Id, Username, Email, AuthHash, AuthSalt,
                    EncryptionPublicKey, SigningPublicKey, CreatedAt,
                    Nickname, Bio, AvatarBase64, StatusMessage, LastSeenUnixMs,
-                   IsAdmin
+                   IsAdmin, PushTopic
             FROM Users
             WHERE Email = $email COLLATE NOCASE
             LIMIT 1;
@@ -367,7 +367,7 @@ public sealed class ChatRepository
             SELECT Id, Username, Email, AuthHash, AuthSalt,
                    EncryptionPublicKey, SigningPublicKey, CreatedAt,
                    Nickname, Bio, AvatarBase64, StatusMessage, LastSeenUnixMs,
-                   IsAdmin
+                   IsAdmin, PushTopic
             FROM Users
             WHERE Id = $id
             LIMIT 1;
