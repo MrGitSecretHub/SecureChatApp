@@ -505,8 +505,13 @@ public sealed class ChatManager
         _localStore.GetChatFoldersAsync();
 
     /// <summary>Создать (originalName = null) или обновить папку; false — имя занято или папка не найдена.</summary>
-    public Task<bool> SaveChatFolderAsync(string? originalName, string name, List<string> usernames) =>
-        _localStore.SaveChatFolderAsync(originalName, name, usernames);
+    public Task<bool> SaveChatFolderAsync(
+        string? originalName,
+        string name,
+        List<string> usernames,
+        string icon = "📁",
+        string color = "") =>
+        _localStore.SaveChatFolderAsync(originalName, name, usernames, icon, color);
 
     public Task<bool> DeleteChatFolderAsync(string name) =>
         _localStore.DeleteChatFolderAsync(name);

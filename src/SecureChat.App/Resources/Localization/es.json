@@ -1053,5 +1053,19 @@
   "media_type_photos": "Fotos",
   "media_type_videos": "Videos",
   "media_type_voice": "Voz",
-  "media_type_files": "Archivos"
+  "media_type_files": "Archivos",
+  "folder_color": "Color",
+  "folder_icon": "Icono",
+  "theme_copy_from": "Copiar color de rol",
+  "search_all": "Todos",
+  "search_mine": "Míos",
+  "search_others": "Otros",
+  "search_all_types": "Todos los tipos",
+  "search_with_files": "Con archivos",
+  "search_text_only": "Solo texto",
+  "search_any_time": "Cualquier fecha",
+  "search_today": "Hoy",
+  "search_7days": "Últimos 7 días",
+  "search_30days": "Últimos 30 días",
+  "stories_stickers": "Pegatinas"
 }

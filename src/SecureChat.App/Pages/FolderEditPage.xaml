@@ -5,7 +5,7 @@
              x:Class="SecureChat.App.Pages.FolderEditPage"
              Title="{DynamicResource s_ui_110}">
     <Grid Padding="16"
-          RowDefinitions="Auto,Auto,Auto,*,Auto"
+          RowDefinitions="Auto,Auto,Auto,Auto,*,Auto"
           RowSpacing="10"
           BackgroundColor="{DynamicResource PageBackground}">
 
@@ -17,18 +17,28 @@
                    Completed="OnSaveClicked" />
         </VerticalStackLayout>
 
-        <Label Grid.Row="1"
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <Entry x:Name="IconEntry" Text="📁" MaxLength="4"
+                   WidthRequest="52" HorizontalOptions="Center" />
+            <Entry x:Name="ColorEntry" Grid.Column="1"
+                   Placeholder="#5865F2" MaxLength="9"
+                   PlaceholderColor="{DynamicResource TextMuted}" />
+            <Picker x:Name="ColorPicker" Grid.Column="2" WidthRequest="110"
+                    Title="{DynamicResource s_folder_color}" />
+        </Grid>
+
+        <Label Grid.Row="2"
                Text="{DynamicResource s_ui_173}"
                Style="{DynamicResource Caption}" />
 
-        <Label Grid.Row="2"
+        <Label Grid.Row="3"
                x:Name="ErrorLabel"
                TextColor="{DynamicResource Danger}"
                FontSize="12"
                IsVisible="False"
                LineBreakMode="WordWrap" />
 
-        <CollectionView Grid.Row="3"
+        <CollectionView Grid.Row="4"
                         x:Name="ChatsView"
                         SelectionMode="None">
             <CollectionView.EmptyView>
@@ -55,7 +65,7 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <HorizontalStackLayout Grid.Row="4" Spacing="8">
+        <HorizontalStackLayout Grid.Row="5" Spacing="8">
             <Button x:Name="SaveButton"
                     Text="Сохранить"
                     Style="{DynamicResource SecondaryButton}"

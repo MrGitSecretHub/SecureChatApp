@@ -12,6 +12,12 @@ public partial class FolderEditPage : ContentPage
 {
     private static readonly string CreateItem = Loc.T("rs_196", "＋ Создать папку");
 
+    private static readonly (string Name, string Hex)[] Colors =
+    {
+        ("Telegram", "#3390EC"), ("Discord", "#5865F2"), ("Green", "#26A69A"),
+        ("Red", "#EF5350"), ("Orange", "#FFA726"), ("Purple", "#7E57C2")
+    };
+
     private readonly ChatManager _chatManager = AppServices.Get<ChatManager>();
     private readonly StoredChatFolder? _existing;
     private readonly ObservableCollection<FolderChatItem> _items = new();
@@ -21,11 +27,22 @@ public partial class FolderEditPage : ContentPage
         InitializeComponent();
         _existing = existing;
         ChatsView.ItemsSource = _items;
+        foreach (var (name, _) in Colors) ColorPicker.Items.Add(name);
+        ColorPicker.SelectedIndex = 0;
+        ColorPicker.SelectedIndexChanged += (_, _) =>
+        {
+            if (ColorPicker.SelectedIndex >= 0 && ColorPicker.SelectedIndex < Colors.Length)
+                ColorEntry.Text = Colors[ColorPicker.SelectedIndex].Hex;
+        };
 
         if (existing is not null)
         {
             Title = "Папка: " + existing.Name;
             NameEntry.Text = existing.Name;
+            IconEntry.Text = existing.Icon;
+            ColorEntry.Text = existing.Color;
+            var index = Array.FindIndex(Colors, c => c.Hex == existing.Color);
+            if (index >= 0) ColorPicker.SelectedIndex = index;
             DeleteButton.IsVisible = true;
         }
         else
@@ -72,7 +89,10 @@ public partial class FolderEditPage : ContentPage
             .Select(item => item.Username)
             .ToList();
 
-        var saved = await _chatManager.SaveChatFolderAsync(_existing?.Name, name, usernames);
+        var saved = await _chatManager.SaveChatFolderAsync(
+            _existing?.Name, name, usernames,
+            IconEntry.Text?.Trim() ?? "📁",
+            ColorEntry.Text?.Trim() ?? string.Empty);
         if (!saved)
         {
             ShowError(Loc.T("rs_120", "Папка с таким именем уже есть."));

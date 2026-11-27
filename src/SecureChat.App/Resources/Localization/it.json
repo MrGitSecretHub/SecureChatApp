@@ -1053,5 +1053,19 @@
   "media_type_photos": "Foto",
   "media_type_videos": "Video",
   "media_type_voice": "Vocali",
-  "media_type_files": "File"
+  "media_type_files": "File",
+  "folder_color": "Colore",
+  "folder_icon": "Icona",
+  "theme_copy_from": "Copia colore da ruolo",
+  "search_all": "Tutti",
+  "search_mine": "Miei",
+  "search_others": "Altri",
+  "search_all_types": "Tutti i tipi",
+  "search_with_files": "Con file",
+  "search_text_only": "Solo testo",
+  "search_any_time": "Qualsiasi data",
+  "search_today": "Oggi",
+  "search_7days": "Ultimi 7 giorni",
+  "search_30days": "Ultimi 30 giorni",
+  "stories_stickers": "Adesivi"
 }

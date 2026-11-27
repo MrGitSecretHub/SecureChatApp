@@ -1053,5 +1053,19 @@
   "media_type_photos": "Fotoğraflar",
   "media_type_videos": "Videolar",
   "media_type_voice": "Sesli",
-  "media_type_files": "Dosyalar"
+  "media_type_files": "Dosyalar",
+  "folder_color": "Renk",
+  "folder_icon": "Simge",
+  "theme_copy_from": "Rol renklerini kopyala",
+  "search_all": "Tümü",
+  "search_mine": "Benim",
+  "search_others": "Diğerleri",
+  "search_all_types": "Tüm tipler",
+  "search_with_files": "Dosyalı",
+  "search_text_only": "Sadece metin",
+  "search_any_time": "Tüm zamanlar",
+  "search_today": "Bugün",
+  "search_7days": "Son 7 gün",
+  "search_30days": "Son 30 gün",
+  "stories_stickers": "Çıkartmalar"
 }

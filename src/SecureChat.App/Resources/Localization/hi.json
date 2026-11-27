@@ -1053,5 +1053,19 @@
   "media_type_photos": "फ़ोटो",
   "media_type_videos": "वीडियो",
   "media_type_voice": "वॉयस",
-  "media_type_files": "फ़ाइलें"
+  "media_type_files": "फ़ाइलें",
+  "folder_color": "रंग",
+  "folder_icon": "आइकन",
+  "theme_copy_from": "भूमिका से रंग कॉपी करें",
+  "search_all": "सभी",
+  "search_mine": "मेरे",
+  "search_others": "अन्य",
+  "search_all_types": "सभी प्रकार",
+  "search_with_files": "फ़ाइल सहित",
+  "search_text_only": "केवल पाठ",
+  "search_any_time": "कभी भी",
+  "search_today": "आज",
+  "search_7days": "पिछले 7 दिन",
+  "search_30days": "पिछले 30 दिन",
+  "stories_stickers": "स्टिकर"
 }

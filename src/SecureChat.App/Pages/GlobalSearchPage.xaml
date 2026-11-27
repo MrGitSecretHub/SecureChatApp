@@ -3,19 +3,25 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SecureChat.App.Pages.GlobalSearchPage"
              Title="{DynamicResource s_ui_120}">
-    <Grid Padding="16" RowDefinitions="Auto,Auto,*" RowSpacing="10">
+    <Grid Padding="16" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
         <SearchBar x:Name="SearchEntry"
                    Placeholder="{DynamicResource s_ui_118}"
                    TextChanged="OnSearchTextChanged"
                    SearchButtonPressed="OnSearchPressed" />
 
+        <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="6">
+            <Picker x:Name="SenderPicker" Grid.Column="0" Title="{DynamicResource s_search_all}" />
+            <Picker x:Name="TypePicker" Grid.Column="1" Title="{DynamicResource s_search_all_types}" />
+            <Picker x:Name="DatePicker" Grid.Column="2" Title="{DynamicResource s_search_any_time}" />
+        </Grid>
+
         <Label x:Name="HintLabel"
-               Grid.Row="1"
+               Grid.Row="2"
                Text="{DynamicResource s_ui_010}"
                Style="{DynamicResource Caption}" />
 
         <CollectionView x:Name="ResultsView"
-                        Grid.Row="2"
+                        Grid.Row="3"
                         SelectionMode="Single"
                         SelectionChanged="OnResultSelected">
             <CollectionView.EmptyView>

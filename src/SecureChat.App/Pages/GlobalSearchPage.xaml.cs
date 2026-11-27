@@ -10,10 +10,55 @@ public partial class GlobalSearchPage : ContentPage
     private CancellationTokenSource? _searchCts;
     private string _initialQuery = string.Empty;
     private bool _navigating;
+    private List<SearchResultVm> _allResults = new();
 
     public GlobalSearchPage()
     {
         InitializeComponent();
+        SenderPicker.ItemsSource = new[]
+        {
+            Loc.T("search_all", "All"), Loc.T("search_mine", "Mine"), Loc.T("search_others", "Others")
+        };
+        TypePicker.ItemsSource = new[]
+        {
+            Loc.T("search_all_types", "All types"),
+            Loc.T("search_with_files", "With files"),
+            Loc.T("search_text_only", "Text only")
+        };
+        DatePicker.ItemsSource = new[]
+        {
+            Loc.T("search_any_time", "Any time"), Loc.T("search_today", "Today"),
+            Loc.T("search_7days", "Last 7 days"), Loc.T("search_30days", "Last 30 days")
+        };
+        SenderPicker.SelectedIndex = TypePicker.SelectedIndex = DatePicker.SelectedIndex = 0;
+        SenderPicker.SelectedIndexChanged += OnFilterChanged;
+        TypePicker.SelectedIndexChanged += OnFilterChanged;
+        DatePicker.SelectedIndexChanged += OnFilterChanged;
+    }
+
+    private void OnFilterChanged(object? sender, EventArgs e) => ApplyFilters();
+
+    private void ApplyFilters()
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var items = _allResults.Where(item =>
+        {
+            if (SenderPicker.SelectedIndex == 1 && !item.IsMine) return false;
+            if (SenderPicker.SelectedIndex == 2 && item.IsMine) return false;
+            if (TypePicker.SelectedIndex == 1 && !item.HasMedia) return false;
+            if (TypePicker.SelectedIndex == 2 && item.HasMedia) return false;
+            return DatePicker.SelectedIndex switch
+            {
+                1 => item.SentAtUnixMs >= new DateTimeOffset(DateTime.Today, TimeSpan.Zero).ToUnixTimeMilliseconds(),
+                2 => now - item.SentAtUnixMs <= TimeSpan.FromDays(7).TotalMilliseconds,
+                3 => now - item.SentAtUnixMs <= TimeSpan.FromDays(30).TotalMilliseconds,
+                _ => true
+            };
+        }).ToList();
+        ResultsView.ItemsSource = items;
+        HintLabel.Text = items.Count == 0
+            ? Loc.T("rs_148", "Совпадений нет.")
+            : string.Format(Loc.T("rs_078"), items.Count);
     }
 
     public GlobalSearchPage(string initialQuery) : this()
@@ -64,6 +109,7 @@ public partial class GlobalSearchPage : ContentPage
         var query = text?.Trim() ?? string.Empty;
         if (query.Length < 2)
         {
+            _allResults.Clear();
             ResultsView.ItemsSource = Array.Empty<SearchResultVm>();
             HintLabel.Text = "Введите минимум 2 символа.";
             return;
@@ -75,11 +121,8 @@ public partial class GlobalSearchPage : ContentPage
             return;
         }
 
-        var items = results.Select(SearchResultVm.From).ToList();
-        ResultsView.ItemsSource = items;
-        HintLabel.Text = items.Count == 0
-            ? Loc.T("rs_148", "Совпадений нет.")
-            : string.Format(Loc.T("rs_078"), items.Count);
+        _allResults = results.Select(SearchResultVm.From).ToList();
+        ApplyFilters();
     }
 
     private async void OnResultSelected(object sender, SelectionChangedEventArgs e)

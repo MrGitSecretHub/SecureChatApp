@@ -1053,5 +1053,19 @@
   "media_type_photos": "الصور",
   "media_type_videos": "الفيديو",
   "media_type_voice": "الصوت",
-  "media_type_files": "الملفات"
+  "media_type_files": "الملفات",
+  "folder_color": "اللون",
+  "folder_icon": "الأيقونة",
+  "theme_copy_from": "نسخ لون الدور",
+  "search_all": "الكل",
+  "search_mine": "لي",
+  "search_others": "الآخرون",
+  "search_all_types": "كل الأنواع",
+  "search_with_files": "مع ملفات",
+  "search_text_only": "نص فقط",
+  "search_any_time": "أي وقت",
+  "search_today": "اليوم",
+  "search_7days": "آخر 7 أيام",
+  "search_30days": "آخر 30 يوماً",
+  "stories_stickers": "الملصقات"
 }

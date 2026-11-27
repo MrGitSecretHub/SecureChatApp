@@ -68,6 +68,6 @@ public static class ChatFolders
         StoredChatFolder folder,
         IReadOnlyList<StoredConversation> regular) =>
         WithBadge(
-            folder.Name,
+            (string.IsNullOrWhiteSpace(folder.Icon) ? "📁 " : folder.Icon + " ") + folder.Name,
             regular.Count(c => Contains(folder, c) && c.UnreadCount > 0));
 }

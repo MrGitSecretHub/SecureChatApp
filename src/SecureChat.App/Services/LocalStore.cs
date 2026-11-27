@@ -85,6 +85,8 @@ public sealed class StoredMessageSearchResult
     public required string Text { get; init; }
     public long SentAtUnixMs { get; init; }
     public bool IsMine { get; init; }
+    public string Kind { get; init; } = string.Empty;
+    public bool HasMedia { get; init; }
 }
 
 /// <summary>Пользовательская папка чатов: имя и список логинов внутри неё.</summary>
@@ -92,6 +94,8 @@ public sealed class StoredChatFolder
 {
     public required string Name { get; set; }
     public List<string> Usernames { get; set; } = new();
+    public string Icon { get; set; } = "📁";
+    public string Color { get; set; } = string.Empty;
 }
 
 /// <summary>Результат поиска по локальному кэшу сообщений пространств.</summary>
@@ -541,6 +545,8 @@ public sealed class LocalStore
                 {
                     Name = folder.Name,
                     Usernames = new List<string>(folder.Usernames),
+                    Icon = folder.Icon,
+                    Color = folder.Color,
                 })
                 .ToList();
         }
@@ -554,7 +560,12 @@ public sealed class LocalStore
     /// Создаёт папку (originalName = null) либо переименовывает её и задаёт состав.
     /// false — если исходная папка не найдена или имя уже занято другой папкой.
     /// </summary>
-    public async Task<bool> SaveChatFolderAsync(string? originalName, string name, List<string> usernames)
+    public async Task<bool> SaveChatFolderAsync(
+        string? originalName,
+        string name,
+        List<string> usernames,
+        string icon = "📁",
+        string color = "")
     {
         await _lock.WaitAsync();
         try
@@ -587,6 +598,8 @@ public sealed class LocalStore
 
             target.Name = name;
             target.Usernames = usernames;
+            target.Icon = string.IsNullOrWhiteSpace(icon) ? "📁" : icon.Trim();
+            target.Color = color ?? string.Empty;
             await SaveAsync();
             return true;
         }
@@ -797,7 +810,9 @@ public sealed class LocalStore
                         MessageId = message.Id,
                         Text = message.Text,
                         SentAtUnixMs = message.SentAtUnixMs,
-                        IsMine = message.IsMine
+                        IsMine = message.IsMine,
+                        Kind = message.Kind,
+                        HasMedia = !string.IsNullOrEmpty(message.MediaId)
                     }))
                 .OrderByDescending(item => item.SentAtUnixMs)
                 .Take(limit)

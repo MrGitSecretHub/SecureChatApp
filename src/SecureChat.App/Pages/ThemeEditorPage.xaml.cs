@@ -278,6 +278,25 @@ public partial class ThemeEditorPage : ContentPage
         }
     }
 
+    private async void OnCopyRoleColorClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: string key }) return;
+        if (ThemeColorRoles.NormalizeKey(key) is not { } target) return;
+
+        var roles = ThemeColorRoles.All;
+        var labels = roles.Select(r => $"{r.Title} · {ThemeColor.ToHex(ResolveRoleColor(r.Key))}").ToArray();
+        var chosen = await DisplayActionSheet(
+            Loc.T("theme_copy_from", "Copy color from role"),
+            Loc.T("common_cancel", "Cancel"), null, labels);
+        if (string.IsNullOrWhiteSpace(chosen)) return;
+
+        var index = Array.FindIndex(labels, x => x == chosen);
+        if (index < 0 || index >= roles.Count) return;
+        _draft[target] = ThemeColor.ToHex(ResolveRoleColor(roles[index].Key));
+        ApplyPreview();
+        BuildRoles();
+    }
+
     /// <summary>Открывает полный HSV-пикер для роли и применяет выбранный цвет.</summary>
     private async void OnOpenPickerClicked(object? sender, EventArgs e)
     {
@@ -390,11 +409,25 @@ public partial class ThemeEditorPage : ContentPage
         };
         pickerButton.Clicked += OnOpenPickerClicked;
 
+        var copyButton = new Button
+        {
+            Text = "🔗",
+            Style = (Style)Application.Current.Resources["GhostButton"],
+            Padding = 0,
+            WidthRequest = 36,
+            HeightRequest = 36,
+            FontSize = 16,
+            VerticalOptions = LayoutOptions.Center,
+            CommandParameter = role.Key
+        };
+        copyButton.Clicked += OnCopyRoleColorClicked;
+
         var header = new Grid
         {
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
@@ -409,6 +442,7 @@ public partial class ThemeEditorPage : ContentPage
         header.Add(hexLabel, 1);
         header.Add(swatch, 2);
         header.Add(pickerButton, 3);
+        header.Add(copyButton, 4);
 
         // Раскрываемая часть: палитра по семействам, поле HEX и сброс роли.
         var swatchPanel = new VerticalStackLayout { Spacing = 8 };

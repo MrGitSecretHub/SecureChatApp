@@ -19,6 +19,7 @@ public sealed class StoryCreatePage : ContentPage
     private readonly List<SpaceDto> _spaces = new();
     private readonly Image _preview = new() { Aspect = Aspect.AspectFit, HeightRequest = 180, IsVisible = false };
     private readonly HorizontalStackLayout _palette = new() { Spacing = 8 };
+    private readonly HorizontalStackLayout _stickers = new() { Spacing = 6 };
     private readonly Label _fontValue = new() { Text = "18", WidthRequest = 34, HorizontalTextAlignment = TextAlignment.Center, VerticalOptions = LayoutOptions.Center };
     private readonly Picker _lifetime = new() { Title = Loc.T("stories_lifetime", "Время жизни") };
     private readonly Button _removePhoto = new() { Text = Loc.T("stories_remove_photo", "Убрать фото"), IsVisible = false };
@@ -100,6 +101,20 @@ public sealed class StoryCreatePage : ContentPage
         };
         _ = LoadSpacesAsync();
 
+        foreach (var sticker in new[] { "❤️", "🔥", "🎉", "👍", "😂", "✨", "🌈", "⭐" })
+        {
+            var button = new Button
+            {
+                Text = sticker,
+                FontSize = 20,
+                WidthRequest = 38,
+                HeightRequest = 38,
+                Padding = 0
+            };
+            button.Clicked += (_, _) => _text.Text = (_text.Text ?? string.Empty) + sticker;
+            _stickers.Add(button);
+        }
+
         Content = new ScrollView
         {
             Content = new VerticalStackLayout
@@ -114,6 +129,8 @@ public sealed class StoryCreatePage : ContentPage
                     _preview,
                     _removePhoto,
                     _text,
+                    new Label { Text = Loc.T("stories_stickers", "Стикеры"), FontSize = 12, TextColor = Colors.Gray },
+                    new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = _stickers },
                     new Label { Text = Loc.T("stories_bg", "Цвет фона"), FontSize = 12, TextColor = Colors.Gray },
                     new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = _palette },
                     new Label { Text = Loc.T("stories_font", "Размер текста"), FontSize = 12, TextColor = Colors.Gray },

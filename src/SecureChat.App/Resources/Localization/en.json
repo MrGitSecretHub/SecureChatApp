@@ -1053,5 +1053,19 @@
   "media_type_photos": "Photos",
   "media_type_videos": "Videos",
   "media_type_voice": "Voice",
-  "media_type_files": "Files"
+  "media_type_files": "Files",
+  "folder_color": "Color",
+  "folder_icon": "Icon",
+  "theme_copy_from": "Copy color from role",
+  "search_all": "All",
+  "search_mine": "Mine",
+  "search_others": "Others",
+  "search_all_types": "All types",
+  "search_with_files": "With files",
+  "search_text_only": "Text only",
+  "search_any_time": "Any time",
+  "search_today": "Today",
+  "search_7days": "Last 7 days",
+  "search_30days": "Last 30 days",
+  "stories_stickers": "Stickers"
 }

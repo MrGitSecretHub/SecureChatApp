@@ -1053,5 +1053,19 @@
   "media_type_photos": "Фото",
   "media_type_videos": "Видео",
   "media_type_voice": "Голосовые",
-  "media_type_files": "Файлы"
+  "media_type_files": "Файлы",
+  "folder_color": "Цвет",
+  "folder_icon": "Иконка",
+  "theme_copy_from": "Скопировать цвет роли",
+  "search_all": "Все",
+  "search_mine": "Мои",
+  "search_others": "Чужие",
+  "search_all_types": "Все типы",
+  "search_with_files": "С файлами",
+  "search_text_only": "Только текст",
+  "search_any_time": "Любое время",
+  "search_today": "Сегодня",
+  "search_7days": "За 7 дней",
+  "search_30days": "За 30 дней",
+  "stories_stickers": "Стикеры"
 }

@@ -1053,5 +1053,19 @@
   "media_type_photos": "Fotos",
   "media_type_videos": "Vídeos",
   "media_type_voice": "Voz",
-  "media_type_files": "Arquivos"
+  "media_type_files": "Arquivos",
+  "folder_color": "Cor",
+  "folder_icon": "Ícone",
+  "theme_copy_from": "Copiar cor de papel",
+  "search_all": "Todos",
+  "search_mine": "Meus",
+  "search_others": "Outros",
+  "search_all_types": "Todos tipos",
+  "search_with_files": "Com arquivos",
+  "search_text_only": "Só texto",
+  "search_any_time": "Qualquer data",
+  "search_today": "Hoje",
+  "search_7days": "Últimos 7 dias",
+  "search_30days": "Últimos 30 dias",
+  "stories_stickers": "Adesivos"
 }
