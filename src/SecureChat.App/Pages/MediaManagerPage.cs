@@ -7,9 +7,17 @@ namespace SecureChat.App.Pages;
 /// <summary>Менеджер кэша вложений: разбивка по чатам и выборочная очистка.</summary>
 public sealed class MediaManagerPage : ContentPage
 {
+    private static readonly Color[] Palette =
+    {
+        Color.FromArgb("#5865F2"), Color.FromArgb("#26A69A"), Color.FromArgb("#EF5350"),
+        Color.FromArgb("#FFA726"), Color.FromArgb("#7E57C2"), Color.FromArgb("#42A5F5"),
+        Color.FromArgb("#66BB6A"), Color.FromArgb("#EC407A")
+    };
+
     private sealed class Row
     {
         public required LocalStore.MediaCacheGroup Group { get; init; }
+        public required Color Color { get; init; }
         public string Title { get; init; } = string.Empty;
         public string Subtitle { get; init; } = string.Empty;
     }
@@ -17,6 +25,9 @@ public sealed class MediaManagerPage : ContentPage
     private readonly LocalStore _store = AppServices.Get<LocalStore>();
     private readonly ObservableCollection<Row> _rows = new();
     private readonly Label _summary;
+    private readonly Label _empty;
+    private readonly MediaDonutChart _chart;
+    private readonly Label _chartTotal;
 
     public MediaManagerPage()
     {
@@ -26,6 +37,36 @@ public sealed class MediaManagerPage : ContentPage
             FontSize = 13,
             TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray
         };
+        _empty = new Label
+        {
+            Text = Loc.T("media_manager_empty", "No cached files"),
+            FontSize = 14,
+            HorizontalOptions = LayoutOptions.Center,
+            TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray,
+            IsVisible = false
+        };
+        _chart = new MediaDonutChart
+        {
+            HeightRequest = 190,
+            HorizontalOptions = LayoutOptions.Center,
+            WidthRequest = 260
+        };
+        _chartTotal = new Label
+        {
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = (Color?)Application.Current?.Resources["TextPrimary"] ?? Colors.White,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var chartBox = new Grid
+        {
+            HeightRequest = 190,
+            HorizontalOptions = LayoutOptions.Center,
+            WidthRequest = 260,
+            Children = { _chart, _chartTotal }
+        };
 
         var list = new CollectionView { ItemsSource = _rows, SelectionMode = SelectionMode.None };
         list.ItemTemplate = new DataTemplate(() =>
@@ -34,11 +75,21 @@ public sealed class MediaManagerPage : ContentPage
             {
                 ColumnDefinitions = new ColumnDefinitionCollection
                 {
-                    new(GridLength.Star), new(GridLength.Auto)
+                    new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto)
                 },
                 ColumnSpacing = 10,
                 Padding = new Thickness(4, 8)
             };
+            var swatch = new BoxView
+            {
+                WidthRequest = 10,
+                HeightRequest = 10,
+                CornerRadius = 3,
+                VerticalOptions = LayoutOptions.Center
+            };
+            swatch.SetBinding(BoxView.ColorProperty, nameof(Row.Color));
+            grid.Add(swatch, 0, 0);
+
             var stack = new VerticalStackLayout { Spacing = 2 };
             var title = new Label
             {
@@ -54,7 +105,7 @@ public sealed class MediaManagerPage : ContentPage
             subtitle.SetBinding(Label.TextProperty, nameof(Row.Subtitle));
             stack.Add(title);
             stack.Add(subtitle);
-            grid.Add(stack, 0, 0);
+            grid.Add(stack, 1, 0);
 
             var clear = new Button
             {
@@ -64,7 +115,7 @@ public sealed class MediaManagerPage : ContentPage
             };
             clear.SetBinding(Button.CommandParameterProperty, nameof(Row.Group));
             clear.Clicked += OnClearGroupClicked;
-            grid.Add(clear, 1, 0);
+            grid.Add(clear, 2, 0);
             return grid;
         });
 
@@ -75,25 +126,11 @@ public sealed class MediaManagerPage : ContentPage
         };
         clearAll.Clicked += OnClearAllClicked;
 
-        var empty = new Label
-        {
-            Text = Loc.T("media_manager_empty", "No cached files"),
-            FontSize = 14,
-            HorizontalOptions = LayoutOptions.Center,
-            TextColor = (Color?)Application.Current?.Resources["TextMuted"] ?? Colors.Gray
-        };
-        empty.SetBinding(Label.IsVisibleProperty, new Binding
-        {
-            Source = _rows,
-            Path = nameof(_rows.Count),
-            Converter = new InvertedBoolConverter()
-        });
-
         Content = new VerticalStackLayout
         {
             Padding = 16,
             Spacing = 10,
-            Children = { _summary, empty, list, clearAll }
+            Children = { _summary, chartBox, _empty, list, clearAll }
         };
     }
 
@@ -112,20 +149,29 @@ public sealed class MediaManagerPage : ContentPage
     {
         var groups = await _store.GetMediaCacheBreakdownAsync();
         _rows.Clear();
-        foreach (var group in groups)
+        var segments = new List<MediaDonutSegment>();
+        for (var i = 0; i < groups.Count; i++)
         {
+            var group = groups[i];
+            var color = Palette[i % Palette.Length];
+            segments.Add(new MediaDonutSegment(color, group.Bytes));
             _rows.Add(new Row
             {
                 Group = group,
+                Color = color,
                 Title = (group.IsSpace ? "🌐 " : "💬 ") + group.Name,
                 Subtitle = $"{SizeText(group.Bytes)} · {group.Files}"
             });
         }
+
+        _chart.Segments = segments;
         var total = groups.Sum(g => g.Bytes);
         var files = groups.Sum(g => g.Files);
+        _chartTotal.Text = SizeText(total);
         _summary.Text = string.Format(
             Loc.T("media_manager_summary", "Cached files: {0} · {1}"),
             files, SizeText(total));
+        _empty.IsVisible = groups.Count == 0;
     }
 
     private async void OnClearGroupClicked(object? sender, EventArgs e)
