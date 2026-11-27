@@ -1047,5 +1047,11 @@
   "media_manager_confirm": "Pulire i file di {0}?",
   "settings_proxy": "Server proxy",
   "settings_proxy_hint": "http://host:porta. Vuoto = ignora il proxy di sistema. Si applica dopo la riconnessione.",
-  "settings_proxy_placeholder": "http://127.0.0.1:10809"
+  "settings_proxy_placeholder": "http://127.0.0.1:10809",
+  "media_mode_chat": "Per chat",
+  "media_mode_type": "Per tipo",
+  "media_type_photos": "Foto",
+  "media_type_videos": "Video",
+  "media_type_voice": "Vocali",
+  "media_type_files": "File"
 }

@@ -1047,5 +1047,11 @@
   "media_manager_confirm": "{0} dosyaları temizlensin mi?",
   "settings_proxy": "Proxy sunucusu",
   "settings_proxy_hint": "http://sunucu:port. Boş = sistem proxy'sini yoksay. Yeniden bağlanınca uygulanır.",
-  "settings_proxy_placeholder": "http://127.0.0.1:10809"
+  "settings_proxy_placeholder": "http://127.0.0.1:10809",
+  "media_mode_chat": "Sohbete göre",
+  "media_mode_type": "Türe göre",
+  "media_type_photos": "Fotoğraflar",
+  "media_type_videos": "Videolar",
+  "media_type_voice": "Sesli",
+  "media_type_files": "Dosyalar"
 }

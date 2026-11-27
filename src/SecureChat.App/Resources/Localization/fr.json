@@ -1047,5 +1047,11 @@
   "media_manager_confirm": "Effacer les fichiers de {0} ?",
   "settings_proxy": "Serveur proxy",
   "settings_proxy_hint": "http://hôte:port. Vide = ignorer le proxy système. Appliqué après reconnexion.",
-  "settings_proxy_placeholder": "http://127.0.0.1:10809"
+  "settings_proxy_placeholder": "http://127.0.0.1:10809",
+  "media_mode_chat": "Par discussion",
+  "media_mode_type": "Par type",
+  "media_type_photos": "Photos",
+  "media_type_videos": "Vidéos",
+  "media_type_voice": "Vocal",
+  "media_type_files": "Fichiers"
 }

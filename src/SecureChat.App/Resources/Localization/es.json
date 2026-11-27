@@ -1047,5 +1047,11 @@
   "media_manager_confirm": "¿Limpiar archivos de {0}?",
   "settings_proxy": "Servidor proxy",
   "settings_proxy_hint": "http://host:puerto. Vacío = ignorar el proxy del sistema. Se aplica tras reconectar.",
-  "settings_proxy_placeholder": "http://127.0.0.1:10809"
+  "settings_proxy_placeholder": "http://127.0.0.1:10809",
+  "media_mode_chat": "Por chat",
+  "media_mode_type": "Por tipo",
+  "media_type_photos": "Fotos",
+  "media_type_videos": "Videos",
+  "media_type_voice": "Voz",
+  "media_type_files": "Archivos"
 }

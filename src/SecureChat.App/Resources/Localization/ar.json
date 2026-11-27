@@ -1047,5 +1047,11 @@
   "media_manager_confirm": "مسح ملفات {0}؟",
   "settings_proxy": "خادم الوكيل",
   "settings_proxy_hint": "http://المضيف:المنفذ. فارغ = تجاهل وكيل النظام. يُطبق بعد إعادة الاتصال.",
-  "settings_proxy_placeholder": "http://127.0.0.1:10809"
+  "settings_proxy_placeholder": "http://127.0.0.1:10809",
+  "media_mode_chat": "حسب المحادثة",
+  "media_mode_type": "حسب النوع",
+  "media_type_photos": "الصور",
+  "media_type_videos": "الفيديو",
+  "media_type_voice": "الصوت",
+  "media_type_files": "الملفات"
 }

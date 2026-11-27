@@ -28,6 +28,8 @@ public sealed class MediaManagerPage : ContentPage
     private readonly Label _empty;
     private readonly MediaDonutChart _chart;
     private readonly Label _chartTotal;
+    private readonly Picker _modePicker;
+    private int _mode;
 
     public MediaManagerPage()
     {
@@ -51,6 +53,23 @@ public sealed class MediaManagerPage : ContentPage
             HorizontalOptions = LayoutOptions.Center,
             WidthRequest = 260
         };
+        _modePicker = new Picker
+        {
+            Title = Loc.T("media_mode_chat", "By chat"),
+            ItemsSource = new[]
+            {
+                Loc.T("media_mode_chat", "By chat"),
+                Loc.T("media_mode_type", "By type")
+            },
+            SelectedIndex = 0,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        _modePicker.SelectedIndexChanged += async (_, _) =>
+        {
+            _mode = _modePicker.SelectedIndex;
+            await RefreshAsync();
+        };
+
         _chartTotal = new Label
         {
             FontSize = 16,
@@ -130,7 +149,7 @@ public sealed class MediaManagerPage : ContentPage
         {
             Padding = 16,
             Spacing = 10,
-            Children = { _summary, chartBox, _empty, list, clearAll }
+            Children = { _summary, _modePicker, chartBox, _empty, list, clearAll }
         };
     }
 
@@ -140,6 +159,20 @@ public sealed class MediaManagerPage : ContentPage
         await RefreshAsync();
     }
 
+    private static string DisplayName(LocalStore.MediaCacheGroup group)
+    {
+        if (!group.Key.StartsWith("type:", StringComparison.Ordinal))
+            return (group.IsSpace ? "🌐 " : "💬 ") + group.Name;
+
+        return group.Name switch
+        {
+            "Photos" => "🖼 " + Loc.T("media_type_photos", "Photos"),
+            "Videos" => "🎬 " + Loc.T("media_type_videos", "Videos"),
+            "Voice" => "🎙 " + Loc.T("media_type_voice", "Voice"),
+            _ => "📄 " + Loc.T("media_type_files", "Files")
+        };
+    }
+
     private static string SizeText(long bytes) =>
         bytes >= 1024 * 1024
             ? $"{bytes / (1024.0 * 1024.0):0.0} MB"
@@ -147,7 +180,9 @@ public sealed class MediaManagerPage : ContentPage
 
     private async Task RefreshAsync()
     {
-        var groups = await _store.GetMediaCacheBreakdownAsync();
+        var groups = _mode == 0
+            ? await _store.GetMediaCacheBreakdownAsync()
+            : await _store.GetMediaTypeBreakdownAsync();
         _rows.Clear();
         var segments = new List<MediaDonutSegment>();
         for (var i = 0; i < groups.Count; i++)
@@ -159,7 +194,7 @@ public sealed class MediaManagerPage : ContentPage
             {
                 Group = group,
                 Color = color,
-                Title = (group.IsSpace ? "🌐 " : "💬 ") + group.Name,
+                Title = DisplayName(group),
                 Subtitle = $"{SizeText(group.Bytes)} · {group.Files}"
             });
         }

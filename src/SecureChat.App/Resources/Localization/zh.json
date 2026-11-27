@@ -1047,5 +1047,11 @@
   "media_manager_confirm": "清理「{0}」的文件？",
   "settings_proxy": "代理服务器",
   "settings_proxy_hint": "http://主机:端口。留空=忽略系统代理。重连后生效。",
-  "settings_proxy_placeholder": "http://127.0.0.1:10809"
+  "settings_proxy_placeholder": "http://127.0.0.1:10809",
+  "media_mode_chat": "按聊天",
+  "media_mode_type": "按类型",
+  "media_type_photos": "照片",
+  "media_type_videos": "视频",
+  "media_type_voice": "语音",
+  "media_type_files": "文件"
 }

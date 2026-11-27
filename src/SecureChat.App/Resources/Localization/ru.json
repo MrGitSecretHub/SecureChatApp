@@ -1047,5 +1047,11 @@
   "media_manager_confirm": "Очистить файлы «{0}»?",
   "settings_proxy": "Прокси-сервер",
   "settings_proxy_hint": "http://хост:порт. Пусто — игнорировать системный прокси. Применится после переподключения.",
-  "settings_proxy_placeholder": "http://127.0.0.1:10809"
+  "settings_proxy_placeholder": "http://127.0.0.1:10809",
+  "media_mode_chat": "По чатам",
+  "media_mode_type": "По типам",
+  "media_type_photos": "Фото",
+  "media_type_videos": "Видео",
+  "media_type_voice": "Голосовые",
+  "media_type_files": "Файлы"
 }

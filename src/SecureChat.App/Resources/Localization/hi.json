@@ -1047,5 +1047,11 @@
   "media_manager_confirm": "{0} की फ़ाइलें साफ़ करें?",
   "settings_proxy": "प्रॉक्सी सर्वर",
   "settings_proxy_hint": "http://host:port. खाली = सिस्टम प्रॉक्सी नजरअंदाज करें। पुनः कनेक्ट पर लागू।",
-  "settings_proxy_placeholder": "http://127.0.0.1:10809"
+  "settings_proxy_placeholder": "http://127.0.0.1:10809",
+  "media_mode_chat": "चैट अनुसार",
+  "media_mode_type": "प्रकार अनुसार",
+  "media_type_photos": "फ़ोटो",
+  "media_type_videos": "वीडियो",
+  "media_type_voice": "वॉयस",
+  "media_type_files": "फ़ाइलें"
 }

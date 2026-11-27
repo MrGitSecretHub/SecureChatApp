@@ -2042,6 +2042,73 @@ public sealed class LocalStore
         }
     }
 
+    /// <summary>Разбивка кэша вложений по типам файлов.</summary>
+    public async Task<List<MediaCacheGroup>> GetMediaTypeBreakdownAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+
+            var types = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var conversation in _state!.Conversations)
+            {
+                foreach (var message in conversation.Messages)
+                {
+                    types[message.Id] = MediaTypeOf(message.Kind, message.ContentType);
+                }
+            }
+            foreach (var message in _state.SpaceMessages)
+            {
+                string kind = string.Empty;
+                string contentType = string.Empty;
+                try
+                {
+                    var payload = SpacePayloadCodec.Decode(message.PayloadJson);
+                    kind = payload.Kind;
+                    contentType = payload.Media?.ContentType ?? string.Empty;
+                }
+                catch { }
+                types[message.Id] = MediaTypeOf(kind, contentType);
+            }
+
+            var groups = new Dictionary<string, (string Name, long Bytes, List<string> Ids)>(StringComparer.OrdinalIgnoreCase);
+            if (Directory.Exists(MediaDirectory))
+            {
+                foreach (var file in Directory.EnumerateFiles(MediaDirectory, "*.bin"))
+                {
+                    var id = Path.GetFileNameWithoutExtension(file);
+                    if (!types.TryGetValue(id, out var typeName)) continue;
+                    var info = new FileInfo(file);
+                    if (!info.Exists) continue;
+                    groups.TryGetValue(typeName, out var current);
+                    var ids = current.Ids ?? new List<string>();
+                    ids.Add(id);
+                    groups[typeName] = (typeName, current.Bytes + info.Length, ids);
+                }
+            }
+
+            return groups.Select(g => new MediaCacheGroup(
+                    "type:" + g.Key, g.Value.Name, false, g.Value.Bytes,
+                    g.Value.Ids.Count, g.Value.Ids))
+                .OrderByDescending(g => g.Bytes)
+                .ToList();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    private static string MediaTypeOf(string kind, string contentType)
+    {
+        if (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) return "Photos";
+        if (contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase)) return "Videos";
+        if (contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ||
+            kind == MessageKinds.Voice || kind == MessageKinds.VideoCircle) return "Voice";
+        return "Files";
+    }
+
     /// <summary>Удаляет локальные копии указанных вложений.</summary>
     public async Task<long> ClearMediaCacheAsync(IReadOnlyCollection<string> messageIds)
     {

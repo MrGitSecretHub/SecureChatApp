@@ -1047,5 +1047,11 @@
   "media_manager_confirm": "Dateien von {0} löschen?",
   "settings_proxy": "Proxy-Server",
   "settings_proxy_hint": "http://host:port. Leer = Systemproxy ignorieren. Gilt nach Neuerbindung.",
-  "settings_proxy_placeholder": "http://127.0.0.1:10809"
+  "settings_proxy_placeholder": "http://127.0.0.1:10809",
+  "media_mode_chat": "Nach Chat",
+  "media_mode_type": "Nach Typ",
+  "media_type_photos": "Fotos",
+  "media_type_videos": "Videos",
+  "media_type_voice": "Sprache",
+  "media_type_files": "Dateien"
 }
