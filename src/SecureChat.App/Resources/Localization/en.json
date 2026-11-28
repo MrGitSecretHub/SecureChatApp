@@ -1070,5 +1070,12 @@
   "stories_stickers": "Stickers",
   "bookmark_add": "🔖 Add to bookmarks",
   "bookmark_remove": "🔖 Remove bookmark",
-  "bookmarks_title": "Bookmarks"
+  "bookmarks_title": "Bookmarks",
+  "ttl_title": "Auto-delete messages",
+  "ttl_off": "Off",
+  "ttl_1m": "1 minute",
+  "ttl_1h": "1 hour",
+  "ttl_1d": "1 day",
+  "ttl_next": "Only next message",
+  "ttl_set": "Chat auto-delete set"
 }

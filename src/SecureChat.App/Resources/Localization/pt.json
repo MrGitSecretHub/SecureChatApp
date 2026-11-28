@@ -1070,5 +1070,12 @@
   "stories_stickers": "Adesivos",
   "bookmark_add": "🔖 Adicionar aos favoritos",
   "bookmark_remove": "🔖 Remover favorito",
-  "bookmarks_title": "Favoritos"
+  "bookmarks_title": "Favoritos",
+  "ttl_title": "Exclusão automática",
+  "ttl_off": "Desativado",
+  "ttl_1m": "1 minuto",
+  "ttl_1h": "1 hora",
+  "ttl_1d": "1 dia",
+  "ttl_next": "Próxima mensagem apenas",
+  "ttl_set": "Exclusão automática ativada"
 }

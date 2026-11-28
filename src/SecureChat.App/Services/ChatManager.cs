@@ -129,6 +129,7 @@ public sealed class ChatManager
     public async Task StartAsync()
     {
         await _localStore.InitializeAsync(_session.Username);
+        _ = PurgeExpiredMessagesAsync();
         AppServices.Get<NtfyPushService>().Start();
         await RefreshMuteCacheAsync();
 
@@ -1263,6 +1264,15 @@ public sealed class ChatManager
 
         return changed;
     }
+
+    public Task SetChatTtlAsync(string username, int minutes) =>
+        _localStore.SetChatTtlAsync(username, minutes);
+
+    public Task<int> GetChatTtlAsync(string username) =>
+        _localStore.GetChatTtlAsync(username);
+
+    public Task<int> PurgeExpiredMessagesAsync() =>
+        _localStore.PurgeExpiredMessagesAsync();
 
     public async Task<bool> ToggleBookmarkAsync(string messageId)
     {

@@ -1070,5 +1070,12 @@
   "stories_stickers": "Sticker",
   "bookmark_add": "🔖 Zu Lesezeichen",
   "bookmark_remove": "🔖 Lesezeichen entfernen",
-  "bookmarks_title": "Lesezeichen"
+  "bookmarks_title": "Lesezeichen",
+  "ttl_title": "Auto-Löschung",
+  "ttl_off": "Aus",
+  "ttl_1m": "1 Minute",
+  "ttl_1h": "1 Stunde",
+  "ttl_1d": "1 Tag",
+  "ttl_next": "Nur nächste Nachricht",
+  "ttl_set": "Auto-Löschung aktiviert"
 }

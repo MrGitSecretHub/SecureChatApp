@@ -1070,5 +1070,12 @@
   "stories_stickers": "Pegatinas",
   "bookmark_add": "🔖 Añadir a marcadores",
   "bookmark_remove": "🔖 Quitar marcador",
-  "bookmarks_title": "Marcadores"
+  "bookmarks_title": "Marcadores",
+  "ttl_title": "Eliminación automática",
+  "ttl_off": "Desactivado",
+  "ttl_1m": "1 minuto",
+  "ttl_1h": "1 hora",
+  "ttl_1d": "1 día",
+  "ttl_next": "Solo el siguiente mensaje",
+  "ttl_set": "Autodestrucción del chat activada"
 }

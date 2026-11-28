@@ -1070,5 +1070,12 @@
   "stories_stickers": "Autocollants",
   "bookmark_add": "🔖 Ajouter aux favoris",
   "bookmark_remove": "🔖 Retirer des favoris",
-  "bookmarks_title": "Favoris"
+  "bookmarks_title": "Favoris",
+  "ttl_title": "Suppression auto",
+  "ttl_off": "Désactivé",
+  "ttl_1m": "1 minute",
+  "ttl_1h": "1 heure",
+  "ttl_1d": "1 jour",
+  "ttl_next": "Message suivant seulement",
+  "ttl_set": "Suppression auto activée"
 }

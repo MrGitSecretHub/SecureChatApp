@@ -1070,5 +1070,12 @@
   "stories_stickers": "贴纸",
   "bookmark_add": "🔖 加入书签",
   "bookmark_remove": "🔖 移除书签",
-  "bookmarks_title": "书签"
+  "bookmarks_title": "书签",
+  "ttl_title": "自动删除消息",
+  "ttl_off": "关闭",
+  "ttl_1m": "1分钟",
+  "ttl_1h": "1小时",
+  "ttl_1d": "1天",
+  "ttl_next": "仅下一条消息",
+  "ttl_set": "已开启聊天自动删除"
 }

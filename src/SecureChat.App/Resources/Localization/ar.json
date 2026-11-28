@@ -1070,5 +1070,12 @@
   "stories_stickers": "الملصقات",
   "bookmark_add": "🔖 إضافة إلى الإشارات",
   "bookmark_remove": "🔖 إزالة الإشارة",
-  "bookmarks_title": "الإشارات"
+  "bookmarks_title": "الإشارات",
+  "ttl_title": "حذف تلقائي",
+  "ttl_off": "إيقاف",
+  "ttl_1m": "دقيقة واحدة",
+  "ttl_1h": "ساعة",
+  "ttl_1d": "يوم",
+  "ttl_next": "الرسالة التالية فقط",
+  "ttl_set": "تم تفعيل الحذف التلقائي"
 }

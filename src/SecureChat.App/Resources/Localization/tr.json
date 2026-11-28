@@ -1070,5 +1070,12 @@
   "stories_stickers": "Çıkartmalar",
   "bookmark_add": "🔖 Yer imlerine ekle",
   "bookmark_remove": "🔖 Yer imini kaldır",
-  "bookmarks_title": "Yer imleri"
+  "bookmarks_title": "Yer imleri",
+  "ttl_title": "Otomatik silme",
+  "ttl_off": "Kapalı",
+  "ttl_1m": "1 dakika",
+  "ttl_1h": "1 saat",
+  "ttl_1d": "1 gün",
+  "ttl_next": "Sadece sonraki mesaj",
+  "ttl_set": "Sohbet otomatik silme açık"
 }

@@ -73,6 +73,10 @@ public sealed class StoredConversation
     public bool KeysChanged { get; set; }
     public bool KeyVerified { get; set; }
     public bool IsArchived { get; set; }
+
+    /// <summary>TTL чата в минутах; 0 — сообщения не исчезают автоматически.</summary>
+    public int TtlMinutes { get; set; }
+
     /// <summary>Уведомления и звук для этого чата отключены.</summary>
     public bool IsMuted { get; set; }
     public List<StoredMessage> Messages { get; set; } = new();
@@ -1334,6 +1338,65 @@ public sealed class LocalStore
 
             await SaveAsync();
             return true;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Задаёт TTL чата в минутах (0 — выключить).</summary>
+    public async Task SetChatTtlAsync(string username, int minutes)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var conversation = Find(username);
+            if (conversation is null) return;
+            conversation.TtlMinutes = Math.Clamp(minutes, 0, 60 * 24 * 7);
+            await SaveAsync();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>TTL чата в минутах.</summary>
+    public async Task<int> GetChatTtlAsync(string username)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            return Find(username)?.TtlMinutes ?? 0;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Удаляет сообщения, срок жизни которых истёк.</summary>
+    public async Task<int> PurgeExpiredMessagesAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            EnsureInitialized();
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var removed = 0;
+            foreach (var conversation in _state!.Conversations)
+            {
+                var expired = conversation.Messages
+                    .Where(m => m.ExpireAtUnixMs > 0 && m.ExpireAtUnixMs <= now)
+                    .ToList();
+                foreach (var message in expired) conversation.Messages.Remove(message);
+                removed += expired.Count;
+            }
+            if (removed > 0) await SaveAsync();
+            return removed;
         }
         finally
         {

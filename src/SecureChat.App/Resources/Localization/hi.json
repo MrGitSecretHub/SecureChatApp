@@ -1070,5 +1070,12 @@
   "stories_stickers": "स्टिकर",
   "bookmark_add": "🔖 बुकमार्क करें",
   "bookmark_remove": "🔖 बुकमार्क हटाएँ",
-  "bookmarks_title": "बुकमार्क"
+  "bookmarks_title": "बुकमार्क",
+  "ttl_title": "स्वतः हटाना",
+  "ttl_off": "बंद",
+  "ttl_1m": "1 मिनट",
+  "ttl_1h": "1 घंटा",
+  "ttl_1d": "1 दिन",
+  "ttl_next": "केवल अगला संदेश",
+  "ttl_set": "चैट स्वतः हटाना चालू"
 }

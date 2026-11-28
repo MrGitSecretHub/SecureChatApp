@@ -1419,7 +1419,7 @@ public partial class ChatView : ContentView
                     replyToFileName: replyTarget?.FileName,
                     replyToSender: replyTarget?.ReplyAuthorName,
                     isOnce: sendOnce,
-                    expireAtUnixMs: _ttlNext);
+                    expireAtUnixMs: _ttlNext ?? await ChatTtlForNextAsync());
                 _ttlNext = null;
                 UpdateActionsButton();
                 ResetViewOnce();
@@ -4266,20 +4266,46 @@ public partial class ChatView : ContentView
         await page.Navigation.PushAsync(new StoriesPage());
     }
 
+    private async Task<long?> ChatTtlForNextAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_username)) return null;
+        var minutes = await _chatManager.GetChatTtlAsync(_username);
+        return minutes > 0
+            ? DateTimeOffset.UtcNow.AddMinutes(minutes).ToUnixTimeMilliseconds()
+            : null;
+    }
+
     private async void OnTtlClicked(object? sender, EventArgs e)
     {
         var page = HostPage;
-        if (page is null) return;
+        if (page is null || string.IsNullOrWhiteSpace(_username)) return;
+        var off = Loc.T("ttl_off", "Off");
+        var one = Loc.T("ttl_1m", "1 minute");
+        var hour = Loc.T("ttl_1h", "1 hour");
+        var day = Loc.T("ttl_1d", "1 day");
+        var next = Loc.T("ttl_next", "Only next message");
         var choice = await page.DisplayActionSheet(
-            "Автоудаление сообщения", "Отмена", "Без автоудаления",
-            "Через 1 минуту", "Через 1 час", "Через 1 день");
-        _ttlNext = choice switch
+            Loc.T("ttl_title", "Auto-delete messages"),
+            Loc.T("common_cancel", "Cancel"), off, one, hour, day, next);
+
+        if (string.IsNullOrWhiteSpace(choice) || choice == Loc.T("common_cancel", "Cancel")) return;
+        if (choice == next)
         {
-            "Через 1 минуту" => DateTimeOffset.UtcNow.AddMinutes(1).ToUnixTimeMilliseconds(),
-            "Через 1 час" => DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeMilliseconds(),
-            "Через 1 день" => DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeMilliseconds(),
-            _ => null
-        };
+            _ttlNext = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeMilliseconds();
+        }
+        else
+        {
+            var minutes = choice switch
+            {
+                _ when choice == one => 1,
+                _ when choice == hour => 60,
+                _ when choice == day => 1440,
+                _ => 0
+            };
+            await _chatManager.SetChatTtlAsync(_username, minutes);
+            _ttlNext = null;
+            if (minutes > 0) ShowHint(Loc.T("ttl_set", "Chat auto-delete set"), isError: false);
+        }
         UpdateActionsButton();
     }
 
