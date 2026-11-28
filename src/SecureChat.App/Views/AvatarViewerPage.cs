@@ -90,9 +90,10 @@ public sealed class AvatarViewerPage : ContentPage
                 _image,
                 new HorizontalStackLayout
                 {
-                    Spacing = 8,
+                    Spacing = 12,
                     HorizontalOptions = LayoutOptions.Center,
-                    VerticalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.End,
+                    Margin = new Thickness(0, 0, 0, 48),
                     Children = { _prev, _counter, _next }
                 },
                 close
