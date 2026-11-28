@@ -1265,7 +1265,10 @@ public sealed class LocalStore
                     Username = profile.Username,
                     EncryptionPublicKey = profile.EncryptionPublicKey,
                     SigningPublicKey = profile.SigningPublicKey,
-                    Fingerprint = profile.Fingerprint
+                    Fingerprint = profile.Fingerprint,
+                    AvatarBase64 = profile.AvatarBase64 ?? string.Empty,
+                    OnlineStatus = profile.OnlineStatus ?? "Онлайн",
+                    OnlineStatusColor = profile.OnlineStatusColor ?? "#3BA55D"
                 };
                 _state!.Conversations.Add(conversation);
             }

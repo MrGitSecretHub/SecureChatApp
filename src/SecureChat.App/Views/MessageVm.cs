@@ -825,6 +825,16 @@ public sealed class MessageVm : INotifyPropertyChanged
 
     public ImageSource? SenderAvatarImageSource => _senderAvatarImageSource;
 
+    /// <summary>Подставить аватар собеседника, если сообщение сохранили без него.</summary>
+    public void SetSenderAvatar(string? base64)
+    {
+        if (!IsMine && string.IsNullOrWhiteSpace(_senderAvatarBase64) &&
+            !string.IsNullOrWhiteSpace(base64))
+        {
+            SenderAvatarBase64 = base64;
+        }
+    }
+
     public string? Username => _username;
     public bool IsArchived
     {

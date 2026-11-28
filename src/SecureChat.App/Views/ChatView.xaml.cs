@@ -518,6 +518,7 @@ public partial class ChatView : ContentView
 
         ContactLabel.Text = _conversation.Username;
         ContactAvatar.Source = AvatarSource(_conversation.AvatarBase64);
+        RefreshMessageAvatars();
         KeyWarningLabel.IsVisible = _conversation.KeysChanged;
         _ = RefreshVerifyBadgeAsync();
         ApplyConnectionState(_chatManager.IsOnline, offline: _chatManager.IsOffline);
@@ -967,6 +968,7 @@ public partial class ChatView : ContentView
                 {
                     _conversation.AvatarBase64 = message.SenderAvatarBase64;
                     ContactAvatar.Source = AvatarSource(_conversation.AvatarBase64);
+        RefreshMessageAvatars();
                 }
 
                 return;
@@ -1001,6 +1003,7 @@ public partial class ChatView : ContentView
             {
                 _conversation.AvatarBase64 = message.SenderAvatarBase64;
                 ContactAvatar.Source = AvatarSource(_conversation.AvatarBase64);
+        RefreshMessageAvatars();
             }
         });
 
@@ -1088,6 +1091,13 @@ public partial class ChatView : ContentView
         OfflineBanner.IsVisible = offline;
         ContactStatusLabel.Text = connected ? "Онлайн" : offline ? Loc.T("uc_056", "Офлайн") : Loc.T("uc_058", "Подключение…");
         ContactStatusLabel.TextColor = Res(offline && !connected ? "Warning" : "TextMuted");
+    }
+
+    private void RefreshMessageAvatars()
+    {
+        var avatar = _conversation?.AvatarBase64;
+        if (string.IsNullOrWhiteSpace(avatar)) return;
+        foreach (var item in _messages) item.SetSenderAvatar(avatar);
     }
 
     private void FillProfile()
