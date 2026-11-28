@@ -980,6 +980,7 @@ public partial class ChatView : ContentView
             InsertSorted(created);
             RefreshDerived();
             ScrollToBottom();
+            HideScrollToBottom();
             _ = LoadImagesAsync(new[] { created }, peer);
             if (_session.LinkPreviewEnabled && created.HasUrls)
             {
@@ -2624,7 +2625,7 @@ public partial class ChatView : ContentView
             return;
         }
         var remaining = lastIndex - e.LastVisibleItemIndex;
-        ScrollToBottomButton.IsVisible = remaining > 2;
+        ScrollToBottomButton.IsVisible = remaining > 0;
         ScrollToBottomButton.Text = remaining > 0 ? $"↓ {remaining}" : "↓";
     }
 
