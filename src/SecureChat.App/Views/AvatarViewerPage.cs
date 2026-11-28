@@ -18,6 +18,8 @@ public sealed class AvatarViewerPage : ContentPage
         _avatars = avatars ?? Array.Empty<string>();
         _index = _avatars.Count == 0 ? 0 : Math.Clamp(index, 0, _avatars.Count - 1);
         BackgroundColor = Colors.Black;
+        Shell.SetNavBarIsVisible(this, false);
+        NavigationPage.SetHasNavigationBar(this, false);
 
         _image = new Image
         {
@@ -81,8 +83,10 @@ public sealed class AvatarViewerPage : ContentPage
 
         Content = new Grid
         {
+            BackgroundColor = Colors.Black,
             Children =
             {
+                new BoxView { Color = Colors.Black, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill },
                 _image,
                 new HorizontalStackLayout
                 {
