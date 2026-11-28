@@ -53,6 +53,17 @@ public sealed class UsersController : ControllerBase
         return Ok(users.Select(u => AuthController.ToProfile(u, _presence)).ToList());
     }
 
+    [HttpGet("{username}/avatars")]
+    public async Task<IActionResult> AvatarHistory(
+        string username,
+        CancellationToken cancellationToken)
+    {
+        var user = await _repository.GetUserByUsernameAsync(username, cancellationToken);
+        if (user is null) return NotFound();
+        var history = await _repository.GetAvatarHistoryAsync(user.Id, cancellationToken);
+        return Ok(history);
+    }
+
     [HttpGet("contacts")]
     public async Task<IActionResult> Contacts(CancellationToken cancellationToken)
     {

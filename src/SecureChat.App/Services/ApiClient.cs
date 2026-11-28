@@ -290,6 +290,22 @@ public sealed class ApiException : Exception
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    /// <summary>История аватаров пользователя (base64, новые сначала).</summary>
+    public async Task<IReadOnlyList<string>> GetAvatarHistoryAsync(
+        string serverUrl,
+        string token,
+        string username,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            BuildUri(serverUrl, $"api/users/{Uri.EscapeDataString(username)}/avatars"));
+        request.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        return await ReadAsync<IReadOnlyList<string>>(response, cancellationToken);
+    }
+
     /// <summary>Свой случайный ntfy-topic для push-уведомлений.</summary>
     public async Task<string> GetPushTopicAsync(
         string serverUrl,

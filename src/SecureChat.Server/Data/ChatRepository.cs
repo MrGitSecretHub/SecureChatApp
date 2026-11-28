@@ -96,6 +96,17 @@ public sealed class ChatRepository
             CREATE INDEX IF NOT EXISTS IX_Media_Recipient
                 ON Media (RecipientId, CreatedAt);
 
+            CREATE TABLE IF NOT EXISTS AvatarHistory (
+                Id         TEXT PRIMARY KEY,
+                UserId     TEXT NOT NULL,
+                Base64     TEXT NOT NULL,
+                CreatedAt  TEXT NOT NULL,
+                FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS IX_AvatarHistory_User
+                ON AvatarHistory (UserId, CreatedAt);
+
             CREATE TABLE IF NOT EXISTS BannedUsers (
                 UserId      TEXT PRIMARY KEY,
                 BannedAt    TEXT NOT NULL,
@@ -634,12 +645,59 @@ public sealed class ChatRepository
             command.Parameters.AddWithValue("$status", statusMessage);
             command.Parameters.AddWithValue("$id", userId);
 
+            string? previousAvatar;
+            await using (var current = connection.CreateCommand())
+            {
+                current.CommandText = "SELECT AvatarBase64 FROM Users WHERE Id = $id;";
+                current.Parameters.AddWithValue("$id", userId);
+                previousAvatar = await current.ExecuteScalarAsync(cancellationToken) as string;
+            }
+
             await command.ExecuteNonQueryAsync(cancellationToken);
+
+            // История аватаров: сохраняем каждое новое изображение.
+            if (!string.IsNullOrEmpty(avatarBase64))
+            {
+                if (!string.Equals(previousAvatar, avatarBase64, StringComparison.Ordinal))
+                {
+                    await using var history = connection.CreateCommand();
+                    history.CommandText = """
+                        INSERT INTO AvatarHistory (Id, UserId, Base64, CreatedAt)
+                        VALUES ($id, $user, $base64, $at);
+                        """;
+                    history.Parameters.AddWithValue("$id", Guid.NewGuid().ToString("N"));
+                    history.Parameters.AddWithValue("$user", userId);
+                    history.Parameters.AddWithValue("$base64", avatarBase64);
+                    history.Parameters.AddWithValue("$at", DateTimeOffset.UtcNow.ToString("O"));
+                    await history.ExecuteNonQueryAsync(cancellationToken);
+                }
+            }
         }
         finally
         {
             _writeLock.Release();
         }
+    }
+
+    /// <summary>История аватаров пользователя (новые сначала).</summary>
+    public async Task<IReadOnlyList<string>> GetAvatarHistoryAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT Base64 FROM AvatarHistory
+            WHERE UserId = $user
+            ORDER BY CreatedAt DESC
+            LIMIT 30;
+            """;
+        command.Parameters.AddWithValue("$user", userId);
+        var result = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken)) result.Add(reader.GetString(0));
+        return result;
     }
 
     /// <summary>Фиксирует время последнего выхода в сеть.</summary>

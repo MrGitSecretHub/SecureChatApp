@@ -13,29 +13,50 @@
                 <Border Style="{DynamicResource Card}" Padding="16">
                     <VerticalStackLayout Spacing="10">
                         <HorizontalStackLayout Spacing="14">
-                            <Grid WidthRequest="84" HeightRequest="84">
-                                <Border StrokeThickness="0"
-                                        BackgroundColor="{DynamicResource AccentSoft}">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="42" />
-                                    </Border.StrokeShape>
-                                    <Label x:Name="InitialLabel"
-                                           Text="?"
-                                           FontSize="34"
-                                           FontAttributes="Bold"
-                                           TextColor="{DynamicResource Accent}"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-                                <Image x:Name="AvatarImage"
-                                       Aspect="AspectFill"
-                                       WidthRequest="84"
-                                       HeightRequest="84">
-                                    <Image.Clip>
-                                        <EllipseGeometry />
-                                    </Image.Clip>
-                                </Image>
-                            </Grid>
+                            <VerticalStackLayout Spacing="4" WidthRequest="84">
+                                <Grid WidthRequest="84" HeightRequest="84">
+                                    <Border StrokeThickness="0"
+                                            BackgroundColor="{DynamicResource AccentSoft}">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="42" />
+                                        </Border.StrokeShape>
+                                        <Label x:Name="InitialLabel"
+                                               Text="?"
+                                               FontSize="34"
+                                               FontAttributes="Bold"
+                                               TextColor="{DynamicResource Accent}"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Border>
+                                    <Image x:Name="AvatarImage"
+                                           Aspect="AspectFill"
+                                           WidthRequest="84"
+                                           HeightRequest="84">
+                                        <Image.Clip>
+                                            <EllipseGeometry />
+                                        </Image.Clip>
+                                    </Image>
+                                </Grid>
+                                <HorizontalStackLayout Spacing="2" HorizontalOptions="Center">
+                                    <Button x:Name="AvatarPrevButton"
+                                            Text="‹" FontSize="18" Padding="0"
+                                            WidthRequest="28" HeightRequest="28"
+                                            Style="{DynamicResource GhostButton}"
+                                            IsVisible="False"
+                                            Clicked="OnAvatarPrevClicked" />
+                                    <Label x:Name="AvatarCounterLabel"
+                                           FontSize="11"
+                                           TextColor="{DynamicResource TextMuted}"
+                                           VerticalOptions="Center"
+                                           IsVisible="False" />
+                                    <Button x:Name="AvatarNextButton"
+                                            Text="›" FontSize="18" Padding="0"
+                                            WidthRequest="28" HeightRequest="28"
+                                            Style="{DynamicResource GhostButton}"
+                                            IsVisible="False"
+                                            Clicked="OnAvatarNextClicked" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
 
                             <VerticalStackLayout Spacing="4"
                                                  VerticalOptions="Center">

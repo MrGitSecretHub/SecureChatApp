@@ -14,6 +14,8 @@ public partial class UserProfilePage : ContentPage
     private readonly ApiClient _api = AppServices.Get<ApiClient>();
     private readonly string _username;
     private UserProfileDto? _profile;
+    private readonly List<string> _avatars = new();
+    private int _avatarIndex;
 
     public UserProfilePage(string username)
     {
@@ -47,6 +49,7 @@ public partial class UserProfilePage : ContentPage
 
             var profile = await _api.GetUserAsync(session.ServerUrl, session.Token, _username);
             ApplyProfile(profile);
+            await LoadAvatarHistoryAsync(profile);
         }
         catch (Exception ex)
         {
@@ -61,6 +64,54 @@ public partial class UserProfilePage : ContentPage
             StartChatButton.IsEnabled = true;
         }
     }
+
+    private async Task LoadAvatarHistoryAsync(UserProfileDto profile)
+    {
+        _avatars.Clear();
+        try
+        {
+            var session = AppServices.Get<AppSession>();
+            var history = await _api.GetAvatarHistoryAsync(
+                session.ServerUrl, session.Token, profile.Username);
+            _avatars.AddRange(history);
+        }
+        catch { }
+
+        if (!string.IsNullOrWhiteSpace(profile.AvatarBase64) &&
+            !_avatars.Contains(profile.AvatarBase64!, StringComparer.Ordinal))
+        {
+            _avatars.Insert(0, profile.AvatarBase64!);
+        }
+
+        _avatarIndex = 0;
+        ShowAvatar(_avatarIndex);
+    }
+
+    private void ShowAvatar(int index)
+    {
+        var hasMany = _avatars.Count > 1;
+        AvatarPrevButton.IsVisible = hasMany;
+        AvatarNextButton.IsVisible = hasMany;
+        AvatarCounterLabel.IsVisible = hasMany;
+        if (!hasMany)
+        {
+            AvatarCounterLabel.Text = string.Empty;
+            return;
+        }
+
+        _avatarIndex = (index + _avatars.Count) % _avatars.Count;
+        AvatarCounterLabel.Text = $"{_avatarIndex + 1} / {_avatars.Count}";
+        try
+        {
+            var bytes = Convert.FromBase64String(_avatars[_avatarIndex]);
+            AvatarImage.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
+        }
+        catch { }
+    }
+
+    private void OnAvatarPrevClicked(object? sender, EventArgs e) => ShowAvatar(_avatarIndex - 1);
+
+    private void OnAvatarNextClicked(object? sender, EventArgs e) => ShowAvatar(_avatarIndex + 1);
 
     private void ApplyProfile(UserProfileDto profile)
     {
