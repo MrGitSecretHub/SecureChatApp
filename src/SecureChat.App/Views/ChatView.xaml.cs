@@ -1152,6 +1152,13 @@ public partial class ChatView : ContentView
         catch { }
     }
 
+    private async void OnAvatarTapped(object? sender, EventArgs e)
+    {
+        await LoadProfileAvatarHistoryAsync();
+        if (_profileAvatars.Count == 0) return;
+        await Navigation.PushAsync(new AvatarViewerPage(_profileAvatars, _profileAvatarIndex));
+    }
+
     private void OnProfileAvatarPrevClicked(object? sender, EventArgs e) =>
         ShowProfileAvatar(_profileAvatarIndex - 1);
 

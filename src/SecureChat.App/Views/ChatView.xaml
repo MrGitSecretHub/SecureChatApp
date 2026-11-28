@@ -102,7 +102,11 @@
                     <Image x:Name="ContactAvatar"
                            WidthRequest="42"
                            HeightRequest="42"
-                           Aspect="AspectFill" />
+                           Aspect="AspectFill">
+                        <Image.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnAvatarTapped" />
+                        </Image.GestureRecognizers>
+                    </Image>
                 </Border>
 
                 <VerticalStackLayout Grid.Column="1"
@@ -1524,7 +1528,11 @@
                                 <Image x:Name="ProfileAvatar"
                                        WidthRequest="84"
                                        HeightRequest="84"
-                                       Aspect="AspectFill" />
+                                       Aspect="AspectFill">
+                                    <Image.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnAvatarTapped" />
+                                    </Image.GestureRecognizers>
+                                </Image>
                             </Border>
                             <HorizontalStackLayout Spacing="4" HorizontalOptions="Center">
                                 <Button x:Name="ProfileAvatarPrev"
