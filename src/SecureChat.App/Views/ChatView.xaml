@@ -376,6 +376,39 @@
                                                                   PointerExited="OnBubblePointerExited" />
                                     </VerticalStackLayout.GestureRecognizers>
 
+                                        <!-- Аватар и имя отправителя внутри пузыря -->
+                                        <HorizontalStackLayout Spacing="6"
+                                                               IsVisible="{Binding ShowSenderInfo}"
+                                                               Margin="0,0,0,2">
+                                            <Grid WidthRequest="24" HeightRequest="24">
+                                                <Border StrokeThickness="0"
+                                                        BackgroundColor="{Binding SenderAvatarColor}">
+                                                    <Border.StrokeShape>
+                                                        <Ellipse />
+                                                    </Border.StrokeShape>
+                                                    <Label Text="{Binding SenderInitial}"
+                                                           FontSize="11"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center" />
+                                                </Border>
+                                                <Image Source="{Binding SenderAvatarImageSource}"
+                                                       Aspect="AspectFill"
+                                                       WidthRequest="24"
+                                                       HeightRequest="24">
+                                                    <Image.Clip>
+                                                        <EllipseGeometry />
+                                                    </Image.Clip>
+                                                </Image>
+                                            </Grid>
+                                            <Label Text="{Binding SenderDisplay}"
+                                                   FontSize="12"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{DynamicResource Accent}"
+                                                   VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+
                                         <!-- Цитата ответа -->
                                         <Border IsVisible="{Binding HasReplyQuote}"
                                                 BackgroundColor="{DynamicResource SurfaceAlt}"

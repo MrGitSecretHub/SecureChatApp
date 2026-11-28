@@ -863,6 +863,9 @@ public sealed class MessageVm : INotifyPropertyChanged
         set => Set(ref _showAvatar, value);
     }
 
+    /// <summary>Аватар и имя отправителя внутри пузыря (входящие сообщения).</summary>
+    public bool ShowSenderInfo => !IsMine;
+
     public ImageSource? ImageSource => _imageSource;
 
     public bool IsImageReady => IsImage && _imageSource is not null;

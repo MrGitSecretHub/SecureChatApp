@@ -733,9 +733,9 @@ public partial class ChatView : ContentView
 
             current.HasDateLabel = previous is null || previous.LocalDate != current.LocalDate;
             current.DateLabel = FormatDateLabel(current.LocalDate, today);
-            // Аватар показывается у каждого входящего сообщения — так переписка
-            // выглядит нагляднее, особенно на телефоне.
-            current.ShowAvatar = !current.IsMine;
+            current.ShowAvatar = !current.IsMine &&
+                (next is null || next.IsMine || next.LocalDate != current.LocalDate ||
+                 next.SenderDisplay != current.SenderDisplay);
             current.MatchesSearch = _messageQuery.Length == 0 ||
                 current.DisplayText.Contains(_messageQuery, StringComparison.OrdinalIgnoreCase);
         }
