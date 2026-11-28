@@ -1280,6 +1280,7 @@ public sealed class ChatManager
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(messageId))
             return false;
         var saved = await _localStore.ToggleBookmarkAsync(username, messageId);
+        BookmarkDiag.Log($"TOGGLE user={username} id={messageId} saved={saved}");
         ConversationsChanged?.Invoke();
         return saved;
     }

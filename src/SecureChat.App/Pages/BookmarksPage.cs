@@ -48,6 +48,7 @@ public sealed class BookmarksPage : ContentPage
     {
         base.OnAppearing();
         var items = await _chat.GetBookmarkedMessagesAsync();
+        BookmarkDiag.Log($"PAGE items={items.Count}");
         _rows.Clear();
         foreach (var item in items)
         {

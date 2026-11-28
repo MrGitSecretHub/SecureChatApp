@@ -562,6 +562,7 @@ public partial class ChatView : ContentView
         _pinnedIndex = 0;
         _messageQuery = string.Empty;
         _messages.Clear();
+        HideScrollToBottom();
         _mediaItems.Clear();
         _pinnedItems.Clear();
 
@@ -631,6 +632,7 @@ public partial class ChatView : ContentView
     private void LoadMessages()
     {
         _messages.Clear();
+        HideScrollToBottom();
         if (_username is null || _conversation is null)
         {
             return;
@@ -2613,6 +2615,28 @@ public partial class ChatView : ContentView
 
     private void OnCloseClicked(object sender, EventArgs e) => CloseRequested?.Invoke();
 
+    private void OnMessagesScrolled(object? sender, ItemsViewScrolledEventArgs e)
+    {
+        var lastIndex = _messages.Count - 1;
+        if (lastIndex < 3)
+        {
+            ScrollToBottomButton.IsVisible = false;
+            return;
+        }
+        var remaining = lastIndex - e.LastVisibleItemIndex;
+        ScrollToBottomButton.IsVisible = remaining > 2;
+        ScrollToBottomButton.Text = remaining > 0 ? $"↓ {remaining}" : "↓";
+    }
+
+    private void OnScrollToBottomClicked(object sender, EventArgs e)
+    {
+        if (_messages.Count == 0) return;
+        MessagesView.ScrollTo(_messages[^1], position: ScrollToPosition.End, animate: true);
+        ScrollToBottomButton.IsVisible = false;
+    }
+
+    private void HideScrollToBottom() => ScrollToBottomButton.IsVisible = false;
+
     private void OnBubbleTapped(object? sender, TappedEventArgs e)
     {
         if (GetMessage(sender) is { } message)
@@ -2707,6 +2731,14 @@ public partial class ChatView : ContentView
         if (GetMessage(sender) is { } message)
         {
             await TogglePinAsync(message);
+        }
+    }
+
+    private async void OnActionBookmarkClicked(object sender, EventArgs e)
+    {
+        if (GetMessage(sender) is { } message)
+        {
+            await ToggleBookmarkAsync(message);
         }
     }
 
@@ -3136,6 +3168,7 @@ public partial class ChatView : ContentView
         if (_username is not null && string.Equals(_username, username, StringComparison.OrdinalIgnoreCase))
         {
             _messages.Clear();
+        HideScrollToBottom();
             RefreshDerived();
         }
     }

@@ -292,6 +292,7 @@
                             x:Name="MessagesView"
                             SelectionMode="None"
                             ItemsLayout="VerticalList"
+                            Scrolled="OnMessagesScrolled"
                             BackgroundColor="Transparent">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Style="{DynamicResource EmptyStateCard}">
@@ -1024,6 +1025,11 @@
                                                     Clicked="OnActionPinClicked"
                                                     ToolTipProperties.Text="{DynamicResource s_ui_039}" />
                                             <Button Style="{StaticResource BubbleActionButton}"
+                                                    Text="🔖"
+                                                    CommandParameter="{Binding .}"
+                                                    Clicked="OnActionBookmarkClicked"
+                                                    ToolTipProperties.Text="{DynamicResource s_bookmarks_title}" />
+                                            <Button Style="{StaticResource BubbleActionButton}"
                                                     Text="✏️"
                                                     IsVisible="{Binding IsMine}"
                                                     CommandParameter="{Binding .}"
@@ -1077,6 +1083,22 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+
+            <Button Grid.Row="4"
+                    x:Name="ScrollToBottomButton"
+                    Text="↓"
+                    FontSize="20"
+                    WidthRequest="44"
+                    HeightRequest="44"
+                    CornerRadius="22"
+                    Padding="0"
+                    HorizontalOptions="End"
+                    VerticalOptions="End"
+                    Margin="16,0,16,16"
+                    BackgroundColor="{DynamicResource Accent}"
+                    TextColor="{DynamicResource AccentText}"
+                    IsVisible="False"
+                    Clicked="OnScrollToBottomClicked" />
 
             <!-- Подсказка и черновик -->
             <VerticalStackLayout Grid.Row="5"
