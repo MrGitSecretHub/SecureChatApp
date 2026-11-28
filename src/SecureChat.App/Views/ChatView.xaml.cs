@@ -39,6 +39,8 @@ public partial class ChatView : ContentView
     private readonly LinkPreviewService _previewService = AppServices.Get<LinkPreviewService>();
     private readonly IAudioRecorder _audioRecorder = AppServices.Get<IAudioRecorder>();
     private readonly ObservableCollection<MessageVm> _messages = new();
+    private readonly List<string> _profileAvatars = new();
+    private int _profileAvatarIndex;
     private readonly List<MessageVm> _allPollVotes = new();
     private readonly ObservableCollection<MediaListItemVm> _mediaItems = new();
     private readonly ObservableCollection<MessageVm> _pinnedItems = new();
@@ -1102,7 +1104,59 @@ public partial class ChatView : ContentView
         ProfileFingerprint.Text = _conversation.Fingerprint;
         ProfileUserId.Text = _conversation.UserId;
         ProfileCreated.Text = "—";
+        _ = LoadProfileAvatarHistoryAsync();
     }
+
+    private async Task LoadProfileAvatarHistoryAsync()
+    {
+        _profileAvatars.Clear();
+        var session = AppServices.Get<AppSession>();
+        if (!string.IsNullOrWhiteSpace(session.Token))
+        {
+            try
+            {
+                var history = await AppServices.Get<ApiClient>().GetAvatarHistoryAsync(
+                    session.ServerUrl, session.Token, _conversation!.Username);
+                _profileAvatars.AddRange(history);
+            }
+            catch { }
+        }
+        var current = _conversation?.AvatarBase64;
+        if (!string.IsNullOrWhiteSpace(current) &&
+            !_profileAvatars.Contains(current!, StringComparer.Ordinal))
+        {
+            _profileAvatars.Insert(0, current!);
+        }
+        ShowProfileAvatar(0);
+    }
+
+    private void ShowProfileAvatar(int index)
+    {
+        var many = _profileAvatars.Count > 1;
+        ProfileAvatarPrev.IsVisible = many;
+        ProfileAvatarNext.IsVisible = many;
+        ProfileAvatarCounter.IsVisible = many;
+        if (!many)
+        {
+            ProfileAvatarCounter.Text = string.Empty;
+            ProfileAvatar.Source = AvatarSource(_conversation?.AvatarBase64);
+            return;
+        }
+        _profileAvatarIndex = (index + _profileAvatars.Count) % _profileAvatars.Count;
+        ProfileAvatarCounter.Text = $"{_profileAvatarIndex + 1} / {_profileAvatars.Count}";
+        try
+        {
+            var bytes = Convert.FromBase64String(_profileAvatars[_profileAvatarIndex]);
+            ProfileAvatar.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
+        }
+        catch { }
+    }
+
+    private void OnProfileAvatarPrevClicked(object? sender, EventArgs e) =>
+        ShowProfileAvatar(_profileAvatarIndex - 1);
+
+    private void OnProfileAvatarNextClicked(object? sender, EventArgs e) =>
+        ShowProfileAvatar(_profileAvatarIndex + 1);
 
     private void OnMessageTextChanged(object? sender, TextChangedEventArgs e)
     {

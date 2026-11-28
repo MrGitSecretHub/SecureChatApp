@@ -1513,18 +1513,39 @@
                             IsVisible="False">
                     <VerticalStackLayout Padding="16"
                                          Spacing="14">
-                        <Border WidthRequest="84"
-                                HeightRequest="84"
-                                BackgroundColor="{DynamicResource Accent}"
-                                StrokeThickness="0">
-                            <Border.StrokeShape>
-                                <Ellipse />
-                            </Border.StrokeShape>
-                            <Image x:Name="ProfileAvatar"
-                                   WidthRequest="84"
-                                   HeightRequest="84"
-                                   Aspect="AspectFill" />
-                        </Border>
+                        <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                            <Border WidthRequest="84"
+                                    HeightRequest="84"
+                                    BackgroundColor="{DynamicResource Accent}"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <Ellipse />
+                                </Border.StrokeShape>
+                                <Image x:Name="ProfileAvatar"
+                                       WidthRequest="84"
+                                       HeightRequest="84"
+                                       Aspect="AspectFill" />
+                            </Border>
+                            <HorizontalStackLayout Spacing="4" HorizontalOptions="Center">
+                                <Button x:Name="ProfileAvatarPrev"
+                                        Text="‹" FontSize="18" Padding="0"
+                                        WidthRequest="30" HeightRequest="28"
+                                        Style="{DynamicResource GhostButton}"
+                                        IsVisible="False"
+                                        Clicked="OnProfileAvatarPrevClicked" />
+                                <Label x:Name="ProfileAvatarCounter"
+                                       FontSize="11"
+                                       TextColor="{DynamicResource TextMuted}"
+                                       VerticalOptions="Center"
+                                       IsVisible="False" />
+                                <Button x:Name="ProfileAvatarNext"
+                                        Text="›" FontSize="18" Padding="0"
+                                        WidthRequest="30" HeightRequest="28"
+                                        Style="{DynamicResource GhostButton}"
+                                        IsVisible="False"
+                                        Clicked="OnProfileAvatarNextClicked" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
 
                         <Label x:Name="ProfileName"
                                FontSize="19"
